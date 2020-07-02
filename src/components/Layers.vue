@@ -7,7 +7,8 @@
             class="layer"
             :class="{current: l.id == currentLayer.id}"
             @click="() => $emit('select-layer', l.id)"
-            >{{l.name}}</div>
+            ><input type="text" v-model="l.name" > <button :disabled="layers.length == 1" @click="() => $emit('remove-layer', l.id)">X</button>
+            </div>
         </draggable>       
 
     </Toolbar>
@@ -17,7 +18,7 @@
 import Draggable from 'vuedraggable';
 import Toolbar from "./Toolbar";
 export default {
-  name: 'Instruments',
+  name: 'Layers',
   components: {
       Toolbar, Draggable
   },
@@ -28,10 +29,10 @@ export default {
   },
   computed: {
       prefs() {
-          return this.$store.state.userPref.layers
+          return this.$store.state.userPref.layers;
       },
       layersReverse() {
-          return this.layers.slice().reverse()
+          return this.layers.filter(l => l.id).reverse();
       }
   },
   mounted() {
@@ -50,6 +51,7 @@ export default {
     padding: 5px;
     margin: 1px;
     border: 1px lightgrey solid;
+    display: flex;
     &.current {
         background: grey;
     }

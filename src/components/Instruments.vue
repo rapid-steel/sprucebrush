@@ -25,7 +25,8 @@ export default {
       return {
           instruments: [
               {name: "brush", icon: require("@/assets/img/001-paintbrush.svg")},
-              {name: "eraser", icon: require("@/assets/img/002-eraser.svg")}
+              {name: "eraser", icon: require("@/assets/img/002-eraser.svg")},
+              {name: "picker", icon: require("@/assets/img/002-eraser.svg")}
           ]
       }
   },

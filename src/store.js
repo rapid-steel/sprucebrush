@@ -9,6 +9,9 @@ export default new Vuex.Store({
     currentColor: "black",
     currentLayer: 0,
     currentInstrumentSettings: {
+      picker: {
+
+      },
       brush: {
         radius: 5,
         opacity: 1,
@@ -29,6 +32,7 @@ export default new Vuex.Store({
       },
     },
     userPref: {
+      historySize: 10,
       brushSettings: {
         x: 80, y: 10
       },
@@ -53,6 +57,7 @@ export default new Vuex.Store({
     },
     selectColor(state, color) {
       state.currentColor = color;
+      console.log(color)
     },
     changeSettings(state, {instrument, prop, val}) {
       state.currentInstrumentSettings[instrument][prop] = val;
