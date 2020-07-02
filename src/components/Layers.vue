@@ -7,7 +7,9 @@
             class="layer"
             :class="{current: l.id == currentLayer.id}"
             @click="() => $emit('select-layer', l.id)"
-            ><input type="text" v-model="l.name" > <button :disabled="layers.length == 1" @click="() => $emit('remove-layer', l.id)">X</button>
+            ><input type="text" v-model="l.name" > 
+            <div class="range"><input type="number" min="0" max="100" v-model="l.opacity"></div>
+            <button :disabled="layers.length == 1" @click="() => $emit('remove-layer', l.id)">X</button>
             </div>
         </draggable>       
 

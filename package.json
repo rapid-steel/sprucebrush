@@ -10,6 +10,7 @@
   "dependencies": {
     "core-js": "^2.6.5",
     "file-saver": "^2.0.2",
+    "jszip": "^3.5.0",
     "vue": "^2.6.10",
     "vue-color-picker-wheel": "^0.4.3",
     "vuedraggable": "^2.23.2",

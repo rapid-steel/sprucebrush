@@ -7,18 +7,18 @@
       :style="{...canvasSizes, transform: getTransform() }">
         <canvas v-for="l in layers" 
         :key="l.id" 
-        :style="canvasSizes" 
+        :style="{...canvasSizes, opacity: l.opacity + '%'}" 
         :width="sizes.width" 
         :height="sizes.height" 
         :ref="'layerEl' + l.id"></canvas>
         <canvas
-        :style="canvasSizes" 
+        :style="{...canvasSizes, opacity: currentLayer ? currentLayer.opacity + '%' : 0}" 
         :width="sizes.width" 
         :height="sizes.height" 
         ref="temporary2"
         ></canvas>
         <canvas
-        :style="{...canvasSizes, opacity: currentInstrument == 'eraser' ? 0 : 1}" 
+        :style="{...canvasSizes, opacity: currentInstrument == 'eraser' ? 0 : currentLayer ? currentLayer.opacity + '%' : 0}" 
         :width="sizes.width" 
         :height="sizes.height" 
         ref="temporary"
@@ -40,6 +40,7 @@
      <Brush-Settings v-if="currentInstrument != 'picker'" />
      <Save-Settings 
      @save-to-file="saveToFile"
+     @save-to-profile="saveToProfile"
      />
 
 
@@ -51,12 +52,32 @@
 <script>
 import {mapState} from "vuex";
 import { saveAs } from 'file-saver';
+import JSZip from 'jszip';
 
 import Instruments from "./components/Instruments";
 import ColorPicker from "./components/ColorPicker";
 import Layers from "./components/Layers";
 import BrushSettings from "./components/BrushSettings";
 import SaveSettings from "./components/SaveSettings";
+
+function getRgba(color) {
+  if(color.indexOf("rgb") == 0) {
+    let vals = color.replace(")", "").split("(")[1].split(",").map(s => +s);
+    if(vals.length == 3) vals.push(255)
+    else vals[3] = 255 * vals[3]
+    return vals;
+  } 
+  if(color.indexOf("#") == 0) {
+    color = color.slice(1);
+    let vals = [];
+    while(color.length) {
+      vals.push(parseInt(color.slice(0,2), 16));
+      color = color.slice(2);
+    }
+    if(vals.length == 3) vals.push(255)
+    return vals;
+  }
+}
 
 class History {
   constructor(size) {
@@ -153,12 +174,40 @@ export default {
     this.setCursor();
   },
   methods: {
+    
     getTransform() {
       return (
         this.zoom >= 1 ? 
         "" 
         : `translate(${(1 - this.zoom)  * .5 * this.sizes.width}px,${(1 - this.zoom)  * .5 * this.sizes.height}px)`
       ) + `scale(${this.zoom},${this.zoom})`
+
+    },
+    saveToProfile() {
+      let data = [];
+      let imgs = {};
+      let inc = 0;
+      let zip = new JSZip();
+      
+      
+      this.layers.forEach(l => {
+        data.push({
+          name: l.name,
+          id: l.id,
+          opacity: l.opacity
+        });
+        this.$refs['layerEl' +l.id][0].toBlob(blob => {
+          zip.file(l.id + ".png", blob);
+          inc++;
+          if(inc == this.layers.length) {
+            zip.file("layers.txt", JSON.stringify(data));
+            zip.generateAsync({type: "blob"})
+            .then(content => {
+             saveAs(content, "download.zip");
+            });
+          }
+        })
+      });
 
     },
     saveToFile() {
@@ -224,11 +273,78 @@ export default {
         event.preventDefault();
         pressure = getPressure(event);
           this.lastPoint = {
-            x: event.offsetX, 
-            y: event.offsetY,
+            x: Math.round(event.offsetX), 
+            y: Math.round(event.offsetY),
             pressure
           };
         if(pressure > 0) {              
+           if(this.currentInstrument == "fill") {
+             let data = this.currentLayer.ctx.getImageData(0, 0, this.sizes.width, this.sizes.height);
+             this.history.append({
+              instrument: this.currentInstrument,
+              layer: this.currentLayer,
+              state: this.currentLayer.ctx.getImageData(0, 0, this.sizes.width, this.sizes.height)
+            });
+             let positions = new Int8Array( this.sizes.width * this.sizes.height );
+             let color = getRgba(this.currentColor);
+             let color0 = Array.from(
+               data.data.slice(
+                 (this.lastPoint.y * this.sizes.width + this.lastPoint.x) * 4,
+                 (this.lastPoint.y * this.sizes.width + this.lastPoint.x) * 4 + 4
+               )
+             )
+
+
+             let g = 0;
+
+             function fill(pos, positions, pixels, color, color0, width, height, tolerance) {
+               let pos1 = [];
+               pos.forEach(([x,y]) => {
+                 let p = y * width + x
+                 positions[p] = 1;
+                 for(let i = 0; i < 4; i++) {
+                   pixels[p * 4 + i] = color[i] 
+                 }
+                 
+                 [
+                   [x - 1, y],  [x - 1, y-1],
+                   [x, y -1],  [x - 1, y+1],
+                   [x + 1, y],  [x + 1, y-1],
+                   [x, y + 1],  [x + 1, y - 1],
+                 ].forEach(([x1, y1]) => {
+                   let ind = y1 * width + x1
+                   if(ind < width * height && ind >= 0) {
+                     if(positions[ind] == 0) {
+                       positions[ind] = 1;
+                       let t = 0;
+                       for(let i = 0; i < 4; i++) {
+                         t += Math.abs(
+                           pixels[ind * 4 + i] - color0[i]
+                         )
+                       }
+                       if(t < tolerance) {
+                         pos1.push([x1, y1]);
+                       }
+                     }
+                   }
+                 })                 
+               })
+               if(pos1.length) {
+                   pixels = fill(pos1, positions, pixels, color, color0, width, height, tolerance)
+                   
+                 }
+
+                return pixels;
+
+             }
+             
+             let data1 = fill([[this.lastPoint.x, this.lastPoint.y]], positions, data.data, color, color0, this.sizes.width, this.sizes.height, 30);
+             this.currentLayer.ctx.putImageData(
+               new ImageData(data1, this.sizes.width), 0, 0, 0, 0, this.sizes.width, this.sizes.height);
+
+
+
+           }
             if(this.currentInstrument == "brush") {
               this.draw(this.lastPoint);           
             } else if(this.currentInstrument == "eraser") {
@@ -251,7 +367,7 @@ export default {
             y: event.offsetY,
             pressure
           };
-          if(this.lastPoint === null || this.currentInstrument == "picker") {
+          if(this.lastPoint === null || this.currentInstrument == "picker" || this.currentInstrument == "fill") {
             this.lastPoint = point1;
           } else {
             if(pressure > 0) {              
@@ -277,7 +393,7 @@ export default {
       this.$refs.canvas.addEventListener("pointerup", event => {
           this.lastPoint = null;       
 
-          if(this.currentInstrument != "picker") {
+          if(this.currentInstrument != "picker" && this.currentInstrument !== "fill") {
             this.history.append({
               instrument: this.currentInstrument,
               layer: this.currentLayer,
@@ -336,7 +452,7 @@ export default {
 
     },
     setCursor() {
-      if(this.currentInstrument == "picker") {
+      if(this.currentInstrument == "picker" || this.currentInstrument == "fill") {
         this.cursorStyles.width = "20px";
         this.cursorStyles.height = "20px";
 
@@ -348,6 +464,8 @@ export default {
         }
     },
     setSize({width, height}) {
+      width = Math.round(width)
+      height - Math.round(height)
       this.sizes = {width, height};
       this.canvasSizes = {
         width: width + "px",
@@ -365,7 +483,8 @@ export default {
       const layer = {
         id: Date.now(), 
         name, 
-        ref: null
+        ref: null,
+        opacity: 100
       };
       this.layers.push(layer);
       let prev = this.currentLayer;
@@ -458,7 +577,7 @@ export default {
     z-index: 10000000000;
     transform: translate(-50%,-50%);
     
-    &.brush, &.eraser, &.picker {
+    &.brush, &.eraser, &.picker, &.fill {
       border-radius: 50%;
       border: 1px solid black;
     }

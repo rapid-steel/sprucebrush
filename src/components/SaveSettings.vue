@@ -1,6 +1,7 @@
 <template>
     <Toolbar name="saveSettings">
         <button @click="$emit('save-to-file')">Save to file</button>
+        <button @click="$emit('save-to-profile')">Save to profile</button>
 
     </Toolbar>
 </template>
@@ -9,7 +10,7 @@
 import {mapState} from "vuex";
 import Toolbar from "./Toolbar";
 export default {
-  name: 'Instruments',
+  name: 'saveSettings',
   components: {
       Toolbar
   },
