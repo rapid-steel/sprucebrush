@@ -18,8 +18,7 @@ export default new Vuex.Store({
         pressure: {
           radius: 1,
           opacity: 0
-        },
-  
+        },  
       },
       eraser: {
         radius: 5,
@@ -31,7 +30,10 @@ export default new Vuex.Store({
       },
       fill: {
         tolerance: 30
-      }
+      },
+      "selection-rect": {},
+      "selection-polygon": {},
+      "selection-lasso": {}
     },
     userPref: {
       historySize: 10,

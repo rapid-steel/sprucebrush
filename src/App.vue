@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     
-    <div id="canvas-container" :style="canvasSizes">
+    <div id="canvas-container" ref="container">
       <div id="canvas" 
       ref="canvas" 
       :style="{...canvasSizes, transform: getTransform() }">
@@ -23,9 +23,22 @@
         :height="sizes.height" 
         ref="temporary"
         ></canvas>
+        <canvas 
+        :style="canvasSizes"
+        :width="sizes.width" 
+        :height="sizes.height" 
+        ref="selectionImg"
+        ></canvas>
+        <canvas 
+        :style="canvasSizes"
+        :width="sizes.width" 
+        :height="sizes.height" 
+        ref="selection"
+        ></canvas>
         <div id="cursor" :style="cursorStyles" :class="currentInstrument"></div>
       </div>
     </div>
+
 
     <Instruments />
     <Color-Picker />
@@ -60,6 +73,7 @@ import Layers from "./components/Layers";
 import BrushSettings from "./components/BrushSettings";
 import SaveSettings from "./components/SaveSettings";
 
+
 function getRgba(color) {
   if(color.indexOf("rgb") == 0) {
     let vals = color.replace(")", "").split("(")[1].split(",").map(s => +s);
@@ -78,6 +92,307 @@ function getRgba(color) {
     return vals;
   }
 }
+function fill(pos, positions, pixels, color, color0, width, height, tolerance) {
+  let pos1 = [];
+  pos.forEach(([x,y]) => {
+    let p = y * width + x
+    positions[p] = 1;
+    for(let i = 0; i < 4; i++) {
+      pixels[p * 4 + i] = color[i] 
+    }
+    
+    [
+      [x - 1, y],  [x - 1, y-1],
+      [x, y -1],  [x - 1, y+1],
+      [x + 1, y],  [x + 1, y-1],
+      [x, y + 1],  [x + 1, y - 1],
+    ].forEach(([x1, y1]) => {
+      let ind = y1 * width + x1
+      if(ind < width * height && ind >= 0) {
+        if(positions[ind] == 0) {
+          positions[ind] = 1;
+          let t = 0;
+          for(let i = 0; i < 4; i++) {
+            t += Math.abs(
+              pixels[ind * 4 + i] - color0[i]
+            )
+          }
+          if(t < tolerance) {
+            pos1.push([x1, y1]);
+          }
+        }
+      }
+    })                 
+  })
+  if(pos1.length) {
+      pixels = fill(pos1, positions, pixels, color, color0, width, height, tolerance)
+      
+    }
+
+  return pixels;
+
+}
+
+class Selection {
+  constructor(p1, imgCtx, selCtx) {
+    this.ready = false;
+    this.started = false;
+    this.bbox = [p1.slice(),p1.slice()];
+    this.bboxOrd = this.bbox.slice();
+    this.imgCtx = imgCtx;
+    this.selCtx = selCtx;
+    let sCopy = document.createElement("canvas");
+    sCopy.width = this.imgCtx.canvas.width;
+    sCopy.height = this.imgCtx.canvas.height;
+    sCopy.style.width = this.imgCtx.canvas.width + "px";
+    sCopy.style.height = this.imgCtx.canvas.height + "px";
+    this.sourceCopy = sCopy.getContext("2d");
+
+    this.rectW = 10;
+    this.origin = [0,0];
+    this.scale = [1, 1];
+    this.angle = 0;
+
+    this.calculateControls();
+    this.drawSelection();
+  }
+  setPoint(p2) {
+    this.bbox[1] = p2.slice();
+    this.calculateControls();
+    this.drawSelection();
+  }
+  startTransform(p, source) {
+    this.movePoint = [p.x, p.y];
+    this.imgCtx.save();
+    this.imgCtx.rect(
+      this.bboxOrd[0][0], 
+      this.bboxOrd[0][1], 
+      this.bboxOrd[1][0] - this.bboxOrd[0][0], 
+      this.bboxOrd[1][1] - this.bboxOrd[0][1]
+    );
+    this.imgCtx.clip();
+    this.imgCtx.drawImage(source.canvas, 0, 0, source.canvas.width, source.canvas.height);    
+    this.sourceCopy.clearRect(0, 0, this.sourceCopy.canvas.width, this.sourceCopy.canvas.height);
+    this.sourceCopy.drawImage(this.imgCtx.canvas, 0, 0, source.canvas.width, source.canvas.height);
+    this.imgCtx.restore();
+
+    source.globalCompositeOperation = "destination-out";
+    source.fillRect(
+      this.bboxOrd[0][0], 
+      this.bboxOrd[0][1], 
+      this.bboxOrd[1][0] - this.bboxOrd[0][0], 
+      this.bboxOrd[1][1] - this.bboxOrd[0][1]
+    );
+    source.globalCompositeOperation = "source-over";
+    
+    this.detectAction(p);
+    this.started = true;
+  }
+  detectAction(p) {
+    this.action = this.getAction(p); 
+    this.scale_ = this.scale.slice();
+  }
+  getAction(p) {
+    let x1 = (p.x - this.center[0]);
+    let y1 = (p.y - this.center[1]);
+    let x0 = this.center[0] + x1 * Math.cos(-this.angle) - y1 * Math.sin(-this.angle);
+    let y0 = this.center[1] + x1 * Math.sin(-this.angle) + y1 * Math.cos(-this.angle);
+    let action = null;
+    this.controls.forEach(([i, j, x, y]) => {
+      if(Math.abs(x0 - x - i * this.rectW) <= this.rectW / 2 &&
+         Math.abs(y0 - y - j * this.rectW) <= this.rectW / 2
+      ) {
+        action = {resize: 1, dir: [i, j]};     
+        return;
+      } 
+    });
+    if(!action) {
+      action = this.bboxOrd[0][0] < x0 && x0 < this.bboxOrd[1][0] &&
+               this.bboxOrd[0][1] < y0 && y0 < this.bboxOrd[1][1] ?
+        {move: 1}
+        : {rotate: 1}
+    }
+    return action;
+  }
+  applyTransform(p, recAction = false) {
+    if(recAction) {
+      this.movePoint = [p.x, p.y];
+      this.detectAction(p);
+    }
+
+    
+    let [dx, dy] = [p.x, p.y].map((c,i) => c - this.movePoint[i]);
+    if(this.action.move) {
+      this.origin[0] += dx
+      this.origin[1] += dy 
+      this.bbox = this.bbox.map(([x, y]) => [x+dx, y+dy]);
+      this.calculateControls();      
+    }
+
+    if(this.action.resize) {
+      let d = Math.sqrt(dx * dx + dy * dy);
+      let a = Math.atan(dy / dx) + (dx < 0 ? Math.PI : 0);
+      if(isNaN(a)) a = dy < 0 ? Math.PI / 2 : Math.PI * 1.5;
+      a -= this.angle
+
+      let dx1 = dx * Math.cos(-this.angle) - dy * Math.sin(-this.angle) 
+      let dy1 = dx * Math.sin(-this.angle) + dy * Math.cos(-this.angle) 
+
+      this.bbox = this.bboxOrd;
+      let bbox = this.bbox.map( b => b.slice());
+
+      
+      
+      if(this.action.dir[0] == -1) {
+        bbox[0][0] += dx1 * (1 - Math.sin(this.angle) * Math.sin(this.angle) / 4)
+        bbox[1][0] -= dx1 * (Math.sin(this.angle) * Math.sin(this.angle)) / 4
+        this.origin[0] += dx1;
+        bbox[0][1] += dx1 * Math.sin(this.angle) / 2 
+        bbox[1][1] += dx1 * Math.sin(this.angle) / 2
+      }
+      else if(this.action.dir[0] == 1) {
+        bbox[1][0] += dx1 * (1 - Math.sin(this.angle) * Math.sin(this.angle) / 4)
+        bbox[0][0] -= dx1 * (Math.sin(this.angle) * Math.sin(this.angle)) / 4
+        bbox[0][1] += dx1 * Math.sin(this.angle) / 2 
+        bbox[1][1] += dx1 * Math.sin(this.angle) / 2
+      }
+      if(this.action.dir[1] == -1) {
+        bbox[0][1] += dy1 * (1 - Math.sin(this.angle) * Math.sin(this.angle) / 4)
+        bbox[1][1] -= dy1 * (Math.sin(this.angle) * Math.sin(this.angle)) / 4
+        this.origin[1] += dy1;
+        bbox[0][0] -= dy1 * Math.sin(this.angle) / 2 
+        bbox[1][0] -= dy1 * Math.sin(this.angle) / 2
+      }
+      else if(this.action.dir[1] == 1) {
+        bbox[1][1] += dy1 * (1 - Math.sin(this.angle) * Math.sin(this.angle) / 4)
+        bbox[0][1] -= dy1 * (Math.sin(this.angle) * Math.sin(this.angle)) / 4
+        bbox[0][0] -= dy1 * Math.sin(this.angle) / 2 
+        bbox[1][0] -= dy1 * Math.sin(this.angle) / 2
+      }
+
+
+    
+
+
+      
+
+      if(bbox[1][0] == bbox[0][0]) bbox[1][0] += .001;
+      if(bbox[1][1] == bbox[0][1]) bbox[1][1] += .001;
+      let scale = [
+        (bbox[1][0] - bbox[0][0]) / (this.bbox[1][0] - this.bbox[0][0]),
+        (bbox[1][1] - bbox[0][1]) / (this.bbox[1][1] - this.bbox[0][1])  
+      ];
+      if(scale[0] < 0) this.action.dir[0] = -this.action.dir[0]
+      if(scale[1] < 0) this.action.dir[1] = -this.action.dir[1]
+
+      
+      
+      this.bbox = bbox;
+      this.scale = this.scale.map((s,i) => s * scale[i]);
+      let dt = scale.map((s,i) => {
+        return Math.abs(this.bbox[1][i] - this.bbox[0][i]) * (s - 1)
+      });
+
+      this.calculateControls();
+
+ 
+    }    
+
+    if(this.action.rotate) {
+      
+      let c1 = this.movePoint.map((c,i) => c - this.center[i]);
+      let c2 = [p.x, p.y].map((c,i) => c - this.center[i]);
+      let a1 = Math.atan(c1[1] / c1[0]);
+      if(c1[0] < 0) a1 += Math.PI
+      let a2 = Math.atan(c2[1] / c2[0]);
+      if(c2[0] < 0) a2 += Math.PI
+      this.angle += (a2 - a1);
+
+    }
+
+    
+      this.imgCtx.save();      
+      this.imgCtx.clearRect(0, 0, this.imgCtx.canvas.width, this.imgCtx.canvas.height);
+      
+      this.imgCtx.translate(...this.center);   
+      this.imgCtx.rotate(this.angle); 
+      this.imgCtx.translate(...this.center.map(v => -v));
+
+      this.imgCtx.translate(...this.bboxOrd[0]);   
+      this.imgCtx.scale(...this.scale); 
+      this.imgCtx.translate(...this.bboxOrd[0].map(v => -v));
+      
+      this.imgCtx.translate(...this.origin);      
+      this.imgCtx.drawImage(this.sourceCopy.canvas, 0, 0, this.imgCtx.canvas.width, this.imgCtx.canvas.height);   
+      this.imgCtx.restore();      
+    
+    this.drawSelection();
+
+    this.movePoint = [p.x, p.y];
+  }
+  calculateControls() {
+    this.bboxOrd = [
+      [ Math.min(this.bbox[0][0],this.bbox[1][0]), Math.min(this.bbox[0][1],this.bbox[1][1]) ],
+      [ Math.max(this.bbox[0][0],this.bbox[1][0]), Math.max(this.bbox[0][1],this.bbox[1][1]) ]
+    ]
+    this.controls = [
+      [-1, -1, ...this.bboxOrd[0] ],
+      [-1,  0, this.bboxOrd[0][0], (this.bboxOrd[0][1] + this.bboxOrd[1][1]) / 2 ],
+      [-1,  1, this.bboxOrd[0][0], this.bboxOrd[1][1] ],
+      [ 0,  1, (this.bboxOrd[0][0] + this.bboxOrd[1][0]) / 2, this.bboxOrd[1][1] ],
+      [ 1,  1, ...this.bbox[1] ],
+      [ 1,  0, this.bboxOrd[1][0], (this.bboxOrd[0][1] + this.bboxOrd[1][1]) / 2 ],
+      [ 1, -1, this.bboxOrd[1][0], this.bboxOrd[0][1] ],
+      [ 0, -1, (this.bboxOrd[0][0] + this.bboxOrd[1][0]) / 2, this.bboxOrd[0][1] ],     
+    ];
+    this.center = this.bboxOrd[0].map((c,i) => (this.bboxOrd[1][i] + c) / 2 );
+  }
+  getCursor(point) {
+    return this.getAction(point);
+  }
+
+
+  
+  drawSelection() {
+    this.selCtx.save();
+    this.selCtx.clearRect(0, 0, this.selCtx.canvas.width, this.selCtx.canvas.height);
+
+
+    this.selCtx.translate(...this.center);
+    this.selCtx.rotate(this.angle);
+    this.selCtx.translate(...this.center.map(c => -c));
+    
+    this.selCtx.setLineDash([3, 3]);
+    this.selCtx.strokeStyle = "blue";    
+    this.selCtx.strokeRect(
+      this.bboxOrd[0][0], 
+      this.bboxOrd[0][1], 
+      this.bboxOrd[1][0] - this.bboxOrd[0][0], 
+      this.bboxOrd[1][1] - this.bboxOrd[0][1]
+    );
+
+    if(this.ready) {
+      this.selCtx.setLineDash([]);
+      this.selCtx.strokeStyle = "black";
+
+      this.controls.forEach(([i,j,x,y]) => {
+        this.selCtx.strokeRect( x + (i - .5) * this.rectW, y + (j - .5) * this.rectW, this.rectW, this.rectW );
+      });
+    }
+    this.selCtx.restore();
+  }
+  drop() {
+    this.imgCtx.clearRect(0, 0, this.imgCtx.canvas.width, this.imgCtx.canvas.height);
+    this.imgCtx.restore();
+    this.selCtx.clearRect(0, 0, this.selCtx.canvas.width, this.selCtx.canvas.height);
+    this.started = false;
+    this.ready = false;
+    
+  }
+}
+
+
+
 
 class History {
   constructor(size) {
@@ -125,7 +440,8 @@ export default {
       lastPoint: null,
       currentLayer: null,
       history: new History(10),
-      zoom: 1     
+      zoom: 1,
+      selection: null     
     }
   },
   components: {
@@ -154,11 +470,13 @@ export default {
   },
   mounted() {
     this.setSize({
-      width: window.innerWidth * .8,
-      height: window.innerHeight * .8
+      width: 800,
+      height: 600
     });
     this.tempCtx2 = this.$refs.temporary2.getContext("2d");
     this.tempCtx = this.$refs.temporary.getContext("2d");
+    this.selImgCtx = this.$refs.selectionImg.getContext("2d");
+    this.selCtx = this.$refs.selection.getContext("2d");
 
     this.$store.commit("setPosition", {
       el: "saveSettings", x:  window.innerWidth  - 100, y: 600
@@ -176,11 +494,15 @@ export default {
   methods: {
     
     getTransform() {
-      return (
-        this.zoom >= 1 ? 
-        "" 
-        : `translate(${(1 - this.zoom)  * .5 * this.sizes.width}px,${(1 - this.zoom)  * .5 * this.sizes.height}px)`
-      ) + `scale(${this.zoom},${this.zoom})`
+      
+      if(this.$refs.container) {
+        let {width, height} = this.$refs.container.getBoundingClientRect();
+        let dx = Math.max( (width - this.sizes.width * this.zoom),  0) / 2;
+        let dy = Math.max( (height - this.sizes.height * this.zoom),  0) / 2;
+        return `translate(${dx}px,${dy}px)` + 
+        `scale(${this.zoom},${this.zoom})`
+      }
+      return "";
 
     },
     saveToProfile() {
@@ -229,6 +551,14 @@ export default {
       this.cursorStyles.height = this.currentBrush.radius * 2 + "px";
 
       document.addEventListener("keydown", e => {      
+        if(e.key == "Enter") {
+          e.preventDefault();
+          if(this.selection && this.selection.started) {
+            this.currentLayer.ctx.drawImage(this.$refs.selectionImg, 0, 0, this.sizes.width, this.sizes.height);
+            this.selection.drop();
+            this.selection = null;           
+          }
+        }
         if(e.ctrlKey) {
           switch(e.key.toLowerCase()) {
             case "z":
@@ -250,6 +580,10 @@ export default {
                   }, 50);                   
 
                 } else {
+                  if(sshot.instrument.indexOf("selection") == 0 && this.selection) {
+                    this.selection.drop();
+                    this.selection = null;
+                  }
                   sshot.layer.ctx.putImageData(sshot.state, 0, 0);
                   this.currentLayer = sshot.layer;
                 }
@@ -277,73 +611,29 @@ export default {
             y: Math.round(event.offsetY),
             pressure
           };
-        if(pressure > 0) {              
-           if(this.currentInstrument == "fill") {
-             let data = this.currentLayer.ctx.getImageData(0, 0, this.sizes.width, this.sizes.height);
-             this.history.append({
+        if(pressure > 0) {           
+          if(["picker"].indexOf(this.currentInstrument) == -1) {
+            this.history.append({
               instrument: this.currentInstrument,
               layer: this.currentLayer,
-              state: this.currentLayer.ctx.getImageData(0, 0, this.sizes.width, this.sizes.height)
+              state:  this.currentLayer.ctx.getImageData(0, 0, this.sizes.width, this.sizes.height)
             });
-             let positions = new Int8Array( this.sizes.width * this.sizes.height );
-             let color = getRgba(this.currentColor);
-             let color0 = Array.from(
-               data.data.slice(
-                 (this.lastPoint.y * this.sizes.width + this.lastPoint.x) * 4,
-                 (this.lastPoint.y * this.sizes.width + this.lastPoint.x) * 4 + 4
-               )
-             )
-
-
-             let g = 0;
-
-             function fill(pos, positions, pixels, color, color0, width, height, tolerance) {
-               let pos1 = [];
-               pos.forEach(([x,y]) => {
-                 let p = y * width + x
-                 positions[p] = 1;
-                 for(let i = 0; i < 4; i++) {
-                   pixels[p * 4 + i] = color[i] 
-                 }
-                 
-                 [
-                   [x - 1, y],  [x - 1, y-1],
-                   [x, y -1],  [x - 1, y+1],
-                   [x + 1, y],  [x + 1, y-1],
-                   [x, y + 1],  [x + 1, y - 1],
-                 ].forEach(([x1, y1]) => {
-                   let ind = y1 * width + x1
-                   if(ind < width * height && ind >= 0) {
-                     if(positions[ind] == 0) {
-                       positions[ind] = 1;
-                       let t = 0;
-                       for(let i = 0; i < 4; i++) {
-                         t += Math.abs(
-                           pixels[ind * 4 + i] - color0[i]
-                         )
-                       }
-                       if(t < tolerance) {
-                         pos1.push([x1, y1]);
-                       }
-                     }
-                   }
-                 })                 
-               })
-               if(pos1.length) {
-                   pixels = fill(pos1, positions, pixels, color, color0, width, height, tolerance)
-                   
-                 }
-
-                return pixels;
-
-             }
-             
-             let data1 = fill([[this.lastPoint.x, this.lastPoint.y]], positions, data.data, color, color0, this.sizes.width, this.sizes.height, 30);
-             this.currentLayer.ctx.putImageData(
-               new ImageData(data1, this.sizes.width), 0, 0, 0, 0, this.sizes.width, this.sizes.height);
-
-
-
+          }
+          
+          if(this.currentInstrument == "selection-rect") {
+            if(!this.selection) {
+              this.selection = new Selection([ this.lastPoint.x, this.lastPoint.y ], this.selImgCtx, this.selCtx);
+            } else {
+              if(!this.selection.started)
+                this.selection.startTransform(this.lastPoint, this.currentLayer.ctx);
+              else {
+                this.selection.applyTransform(this.lastPoint, true);
+              }
+            }            
+          }
+          
+           if(this.currentInstrument == "fill") {
+            this.fill(this.lastPoint);
            }
             if(this.currentInstrument == "brush") {
               this.draw(this.lastPoint);           
@@ -367,10 +657,26 @@ export default {
             y: event.offsetY,
             pressure
           };
+
+          if(this.selection && this.selection.ready) {
+            let c = this.selection.getCursor(point1);
+          }
+         
+
           if(this.lastPoint === null || this.currentInstrument == "picker" || this.currentInstrument == "fill") {
             this.lastPoint = point1;
           } else {
+         
             if(pressure > 0) {              
+              if(this.currentInstrument == "selection-rect") {
+                  this.lastPoint = point1;
+                  if(this.selection.started) {
+                    
+                    this.selection.applyTransform(this.lastPoint);
+                  } else {
+                    this.selection.setPoint([ this.lastPoint.x, this.lastPoint.y ]);            
+                  }                  
+                }
               if(this.currentInstrument == "brush") {
                 this.draw(point1);           
               } else if(this.currentInstrument == "eraser") {
@@ -393,13 +699,17 @@ export default {
       this.$refs.canvas.addEventListener("pointerup", event => {
           this.lastPoint = null;       
 
-          if(this.currentInstrument != "picker" && this.currentInstrument !== "fill") {
-            this.history.append({
-              instrument: this.currentInstrument,
-              layer: this.currentLayer,
-              state:  this.currentLayer.ctx.getImageData(0, 0, this.sizes.width, this.sizes.height)
-            });
+          if(this.currentInstrument == "selection-rect") {
+            if(this.selection.ready) {
+              ///
+            } else {
+              this.selection.ready = true;
+              this.selection.drawSelection();
+            }
+            
           }
+
+
 
           if(this.currentInstrument == "brush") {
             
@@ -418,6 +728,21 @@ export default {
 
           
       });
+
+    },
+    fill(point) {
+      let data = this.currentLayer.ctx.getImageData(0, 0, this.sizes.width, this.sizes.height).data;
+      let positions = new Int8Array( this.sizes.width * this.sizes.height );
+      let color = getRgba(this.currentColor);
+      let color0 = Array.from(
+        data.slice(
+          (point.y * this.sizes.width + point.x) * 4,
+          (point.y * this.sizes.width + point.x) * 4 + 4
+        )
+      );             
+     let data1 = fill([[point.x, point.y]], positions, data, color, color0, this.sizes.width, this.sizes.height, this.currentBrush.tolerance);
+      this.currentLayer.ctx.putImageData(
+        new ImageData(data1, this.sizes.width), 0, 0, 0, 0, this.sizes.width, this.sizes.height);
 
     },
     draw(point1) {
@@ -452,7 +777,7 @@ export default {
 
     },
     setCursor() {
-      if(this.currentInstrument == "picker" || this.currentInstrument == "fill") {
+      if(["brush", "eraser"].indexOf(this.currentInstrument) == -1) {
         this.cursorStyles.width = "20px";
         this.cursorStyles.height = "20px";
 
@@ -547,6 +872,8 @@ export default {
   height: 100vh;
   #canvas-container {
     position: absolute;
+    width: 90vw;
+    height: 90vh;
     left: 50%;
     top: 50%;
     transform: translate(-50%,-50%);
@@ -583,6 +910,12 @@ export default {
     }
     &.picker {
 
+    }
+
+    &.selection-rect {
+      transform: translate(-50%,-50%);
+      background-image: url("./assets/img/crosshair.png");
+      background-size: cover;
     }
   }
 }
