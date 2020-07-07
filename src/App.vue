@@ -1,60 +1,68 @@
 <template>
-  <div id="app">
-    
-    <div id="canvas-container" ref="container">
-      <div id="canvas" 
-      ref="canvas" 
-      :style="{...canvasSizes, transform: getTransform() }">
-        <canvas v-for="l in layers" 
-        :key="l.id" 
-        :style="{...canvasSizes, opacity: l.opacity + '%'}" 
-        :width="sizes.width" 
-        :height="sizes.height" 
-        :ref="'layerEl' + l.id"></canvas>
-        <canvas
-        :style="{...canvasSizes, opacity: currentLayer ? currentLayer.opacity + '%' : 0}" 
-        :width="sizes.width" 
-        :height="sizes.height" 
-        ref="temporary2"
-        ></canvas>
-        <canvas
-        :style="{...canvasSizes, opacity: currentInstrument == 'eraser' ? 0 : currentLayer ? currentLayer.opacity + '%' : 0}" 
-        :width="sizes.width" 
-        :height="sizes.height" 
-        ref="temporary"
-        ></canvas>
-        <canvas 
-        :style="canvasSizes"
-        :width="sizes.width" 
-        :height="sizes.height" 
-        ref="selectionImg"
-        ></canvas>
-        <canvas 
-        :style="canvasSizes"
-        :width="sizes.width" 
-        :height="sizes.height" 
-        ref="selection"
-        ></canvas>
-        <div id="cursor" :style="cursorStyles" :class="currentInstrument"></div>
-      </div>
+  <div id="app">    
+    <div class="panel left">
+      <Instruments />
     </div>
+    <div id="center">
+      <div class="panel top"></div>
+          <div id="canvas-container" ref="container">
+            <div id="canvas" 
+            ref="canvas" 
+            :style="{...canvasSizes, transform: getTransform() }">
+              <canvas v-for="l in layers" 
+              :key="l.id" 
+              :style="{...canvasSizes, opacity: l.opacity + '%', visibility: l.visible ? 'visible' : 'hidden'}" 
+              :width="sizes.width" 
+              :height="sizes.height" 
+              :ref="'layerEl' + l.id"></canvas>
+              <canvas
+              :style="{...canvasSizes, opacity: currentLayer ? currentLayer.opacity + '%' : 0}" 
+              :width="sizes.width" 
+              :height="sizes.height" 
+              ref="temporary2"
+              ></canvas>
+              <canvas
+              :style="{...canvasSizes, opacity: currentInstrument == 'eraser' ? 0 : currentLayer ? currentLayer.opacity + '%' : 0}" 
+              :width="sizes.width" 
+              :height="sizes.height" 
+              ref="temporary"
+              ></canvas>
+              <canvas 
+              :style="canvasSizes"
+              :width="sizes.width" 
+              :height="sizes.height" 
+              ref="selectionImg"
+              ></canvas>
+              <canvas 
+              :style="canvasSizes"
+              :width="sizes.width" 
+              :height="sizes.height" 
+              ref="selection"
+              ></canvas>
+              <div id="cursor" :style="cursorStyles" :class="[currentInstrument, ...cursorClasses]"></div>
+            </div>
+          </div>
+
+    </div>
+    <div class="panel right">
+       <Color-Picker />
+        <Layers 
+          :layers="layers" 
+          :currentLayer="currentLayer"
+          @add-layer="appendLayer"
+          @select-layer="selectLayer"
+          @reorder-layer="reorderLayer"
+          @toggle-layer="toggleLayer"
+          @remove-layer="removeLayer"
+        />
+    </div>
+    
 
 
-    <Instruments />
-    <Color-Picker />
-    <Layers 
-      :layers="layers" 
-      :currentLayer="currentLayer"
-      @add-layer="appendLayer"
-      @select-layer="selectLayer"
-      @reorder-layer="reorderLayer"
-      @remove-layer="removeLayer"
-     />
-     <Brush-Settings v-if="currentInstrument != 'picker'" />
-     <Save-Settings 
-     @save-to-file="saveToFile"
-     @save-to-profile="saveToProfile"
-     />
+
+    
+   
+
 
 
     
@@ -70,8 +78,6 @@ import JSZip from 'jszip';
 import Instruments from "./components/Instruments";
 import ColorPicker from "./components/ColorPicker";
 import Layers from "./components/Layers";
-import BrushSettings from "./components/BrushSettings";
-import SaveSettings from "./components/SaveSettings";
 
 
 function getRgba(color) {
@@ -161,8 +167,7 @@ class Selection {
     this.calculateControls();
     this.drawSelection();
   }
-  startTransform(p, source) {
-    this.movePoint = [p.x, p.y];
+  startTransform(source) {
     this.imgCtx.save();
     this.imgCtx.rect(
       this.bboxOrd[0][0], 
@@ -184,13 +189,10 @@ class Selection {
       this.bboxOrd[1][1] - this.bboxOrd[0][1]
     );
     source.globalCompositeOperation = "source-over";
-    
-    this.detectAction(p);
     this.started = true;
   }
   detectAction(p) {
     this.action = this.getAction(p); 
-    this.scale_ = this.scale.slice();
   }
   getAction(p) {
     let x1 = (p.x - this.center[0]);
@@ -242,37 +244,42 @@ class Selection {
       let bbox = this.bbox.map( b => b.slice());
 
       
-      
+      const sin_2 = Math.sin(this.angle) / 2;
+      const sin2_2 = sin_2 * sin_2; 
+
+
       if(this.action.dir[0] == -1) {
-        bbox[0][0] += dx1 * (1 - Math.sin(this.angle) * Math.sin(this.angle) / 4)
-        bbox[1][0] -= dx1 * (Math.sin(this.angle) * Math.sin(this.angle)) / 4
-        this.origin[0] += dx1;
-        bbox[0][1] += dx1 * Math.sin(this.angle) / 2 
-        bbox[1][1] += dx1 * Math.sin(this.angle) / 2
+        bbox[0][0] += dx1 * (1 - sin2_2);
+        this.origin[0] += dx1 * (1 - sin2_2);
+        bbox[1][0] -= dx1 * sin2_2;        
+        bbox[0][1] += dx1 * sin_2;
+        bbox[1][1] += dx1 * sin_2;
+        this.origin[1] += dx1 * sin_2;
       }
       else if(this.action.dir[0] == 1) {
-        bbox[1][0] += dx1 * (1 - Math.sin(this.angle) * Math.sin(this.angle) / 4)
-        bbox[0][0] -= dx1 * (Math.sin(this.angle) * Math.sin(this.angle)) / 4
-        bbox[0][1] += dx1 * Math.sin(this.angle) / 2 
-        bbox[1][1] += dx1 * Math.sin(this.angle) / 2
+        bbox[1][0] += dx1 * (1 - sin2_2);
+        this.origin[0] -= dx1 * sin2_2;
+        bbox[0][0] -= dx1 * sin2_2;        
+        bbox[0][1] += dx1 * sin_2;
+        bbox[1][1] += dx1 * sin_2;
+        this.origin[1] += dx1 * sin_2;
       }
       if(this.action.dir[1] == -1) {
-        bbox[0][1] += dy1 * (1 - Math.sin(this.angle) * Math.sin(this.angle) / 4)
-        bbox[1][1] -= dy1 * (Math.sin(this.angle) * Math.sin(this.angle)) / 4
-        this.origin[1] += dy1;
-        bbox[0][0] -= dy1 * Math.sin(this.angle) / 2 
-        bbox[1][0] -= dy1 * Math.sin(this.angle) / 2
+        bbox[0][1] += dy1 * (1 - sin2_2);
+        bbox[1][1] -= dy1 * sin2_2;
+        this.origin[1] += dy1 * (1 - sin2_2);
+        bbox[0][0] -= dy1 * sin_2;
+        bbox[1][0] -= dy1 * sin_2;
+        this.origin[0] -= dy1 * sin_2;
       }
       else if(this.action.dir[1] == 1) {
-        bbox[1][1] += dy1 * (1 - Math.sin(this.angle) * Math.sin(this.angle) / 4)
-        bbox[0][1] -= dy1 * (Math.sin(this.angle) * Math.sin(this.angle)) / 4
-        bbox[0][0] -= dy1 * Math.sin(this.angle) / 2 
-        bbox[1][0] -= dy1 * Math.sin(this.angle) / 2
-      }
-
-
-    
-
+        bbox[1][1] += dy1 * (1  + sin2_2);
+        bbox[0][1] += dy1 * sin2_2;
+        this.origin[1] += dy1 * sin2_2;
+        bbox[0][0] += dy1 * sin_2;
+        bbox[1][0] += dy1 * sin_2;
+        this.origin[0] -= dy1 * sin_2;
+      }  
 
       
 
@@ -440,12 +447,13 @@ export default {
       lastPoint: null,
       currentLayer: null,
       history: new History(10),
+      cursorClasses: [],
       zoom: 1,
       selection: null     
     }
   },
   components: {
-    Instruments, ColorPicker, Layers, BrushSettings, SaveSettings
+    Instruments, ColorPicker, Layers
   },
   computed: {
     ...mapState(['currentInstrument', 'currentColor']),
@@ -478,15 +486,6 @@ export default {
     this.selImgCtx = this.$refs.selectionImg.getContext("2d");
     this.selCtx = this.$refs.selection.getContext("2d");
 
-    this.$store.commit("setPosition", {
-      el: "saveSettings", x:  window.innerWidth  - 100, y: 600
-    });
-    this.$store.commit("setPosition", {
-      el: "layers", x:  window.innerWidth  - 100, y: 300
-    });
-    this.$store.commit("setPosition", {
-      el: "colorPicker", x:  window.innerWidth  - 250, y: 10
-    });
     this.newDrawing();
     this.initControls();
     this.setCursor();
@@ -553,11 +552,7 @@ export default {
       document.addEventListener("keydown", e => {      
         if(e.key == "Enter") {
           e.preventDefault();
-          if(this.selection && this.selection.started) {
-            this.currentLayer.ctx.drawImage(this.$refs.selectionImg, 0, 0, this.sizes.width, this.sizes.height);
-            this.selection.drop();
-            this.selection = null;           
-          }
+          this.applySelection();
         }
         if(e.ctrlKey) {
           switch(e.key.toLowerCase()) {
@@ -624,11 +619,8 @@ export default {
             if(!this.selection) {
               this.selection = new Selection([ this.lastPoint.x, this.lastPoint.y ], this.selImgCtx, this.selCtx);
             } else {
-              if(!this.selection.started)
-                this.selection.startTransform(this.lastPoint, this.currentLayer.ctx);
-              else {
-                this.selection.applyTransform(this.lastPoint, true);
-              }
+              this.selection.applyTransform(this.lastPoint, true);
+              
             }            
           }
           
@@ -642,10 +634,7 @@ export default {
             }                       
           }
         if(this.currentInstrument == "picker") {
-          const data = Array.from(this.currentLayer.ctx.getImageData(this.lastPoint.x, this.lastPoint.y, 1, 1).data);
-          this.$store.commit("selectColor", 
-            (this.cursorStyles["background-color"] = `rgba(${data.join(",")})`)
-          );
+          this.pickColor();
         }
       });
       this.$refs.canvas.addEventListener("pointermove", event => {     
@@ -658,8 +647,34 @@ export default {
             pressure
           };
 
-          if(this.selection && this.selection.ready) {
-            let c = this.selection.getCursor(point1);
+          if(this.selection) {
+            if(this.selection.ready) {
+              let c = this.selection.getCursor(point1);
+              this.cursorClasses = [];
+              if(c.resize) {
+                this.cursorClasses.push("resize");
+                let angle = this.selection.angle / Math.PI * 180;
+                if(c.dir[0]) {
+                  if(c.dir[1]) {
+                    this.cursorStyles.transform = `translate(-50%,-50%)rotate(${angle+45 + (c.dir[0] == c.dir[1] ? 90 : 0)}deg)`;
+                  } else {
+                    this.cursorStyles.transform = `translate(-50%,-50%)rotate(${angle+90}deg)`;
+                  }
+                }
+                else if(c.dir[1]) {
+                  this.cursorStyles.transform = `translate(-50%,-50%)rotate(${angle}deg)`;
+                }
+                
+              }
+              if(c.rotate) {
+                this.cursorClasses.push("rotate");
+              }
+
+            } else {
+              this.cursorClasses = [];
+            }
+            this.$forceUpdate();
+            
           }
          
 
@@ -689,10 +704,7 @@ export default {
           this.cursorStyles.left = this.lastPoint.x + "px";
           this.cursorStyles.top =  this.lastPoint.y + "px";
           if(this.currentInstrument == "picker" && pressure > .25) {
-          const data = Array.from(this.currentLayer.ctx.getImageData(this.lastPoint.x, this.lastPoint.y, 1, 1).data);
-          this.$store.commit("selectColor", 
-            (this.cursorStyles["background-color"] = `rgba(${data.join(",")})`)
-          );
+            this.pickColor();
         }
           this.$forceUpdate();
       });
@@ -704,7 +716,7 @@ export default {
               ///
             } else {
               this.selection.ready = true;
-              this.selection.drawSelection();
+              this.selection.startTransform(this.currentLayer.ctx);
             }
             
           }
@@ -729,6 +741,20 @@ export default {
           
       });
 
+    },
+    pickColor() {
+      const data = Array.from(this.currentLayer.ctx.getImageData(this.lastPoint.x, this.lastPoint.y, 1, 1).data);
+        this.$store.commit("selectColor", 
+          (this.cursorStyles["background-color"] = `rgba(${data.join(",")})`)
+        );
+        this.$forceUpdate();
+    },
+    applySelection() {
+      if(this.selection && this.selection.started) {
+        this.currentLayer.ctx.drawImage(this.$refs.selectionImg, 0, 0, this.sizes.width, this.sizes.height);
+        this.selection.drop();
+        this.selection = null;           
+      }
     },
     fill(point) {
       let data = this.currentLayer.ctx.getImageData(0, 0, this.sizes.width, this.sizes.height).data;
@@ -777,6 +803,7 @@ export default {
 
     },
     setCursor() {
+      this.cursorStyles.transform = null;
       if(["brush", "eraser"].indexOf(this.currentInstrument) == -1) {
         this.cursorStyles.width = "20px";
         this.cursorStyles.height = "20px";
@@ -809,7 +836,8 @@ export default {
         id: Date.now(), 
         name, 
         ref: null,
-        opacity: 100
+        opacity: 100,
+        visible: true
       };
       this.layers.push(layer);
       let prev = this.currentLayer;
@@ -842,6 +870,10 @@ export default {
         ...this.layers.slice(newIndex1)
       ];
     },
+    toggleLayer(id) {
+      const layer = this.layers.find(l => l.id === id);
+      layer.visible = !layer.visible;
+    },
     removeLayer(id) {
       let ind = this.layers.findIndex(l => l.id === id);
       let remove = this.layers[ind];
@@ -870,20 +902,35 @@ export default {
   top: 0;
   width: 100vw;
   height: 100vh;
+  display: flex;
+  #center {
+    flex: 2 1 100%;
+    display: flex;
+    flex-flow: column nowrap;
+  }
+  .panel {
+    padding: 5px;
+    flex: 1 1 50px;
+    display: flex;
+    flex-flow: column nowrap;
+    align-items: center;
+    position: relative;
+    & > * {
+      max-width: 100%;
+    }
+    &.right {
+      flex: 1 1 200px;
+      max-width: 200px;
+    }
+  }
   #canvas-container {
-    position: absolute;
-    width: 90vw;
-    height: 90vh;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%,-50%);
+    flex: 2 1 100%;
     border: 2px solid black;
     overflow: auto;
     background: grey;
     #canvas {
       transform-origin: 0 0;
       background: white;
-
     }
     
     &:hover #cursor {
@@ -908,14 +955,47 @@ export default {
       border-radius: 50%;
       border: 1px solid black;
     }
+    &.fill {
+      width: 2px!important;
+      height: 2px!important;
+      &::after {
+        background-image: url("./assets/img/fill_opaq.png");
+      }
+    }
     &.picker {
-
+      width: 10px!important;
+      height: 10px!important;
+      border-color: transparent;
+      &::after {
+        background-image: url("./assets/img/picker_opaq.png");
+      }
+    }
+    &.picker, &.fill {
+      &::after {
+        display: block;
+        position: absolute;
+        bottom: 50%;
+        left: 50%;
+        content: "";
+        z-index: 1000000;
+        width: 20px;
+        height: 20px;
+        background-size: 100% 100%;        
+      }
     }
 
     &.selection-rect {
       transform: translate(-50%,-50%);
       background-image: url("./assets/img/crosshair.png");
       background-size: cover;
+      &.rotate {
+        width: 15px!important;
+        height: 15px!important;
+        background-image: url("./assets/img/rotate.svg");
+      }
+      &.resize {
+        background-image: url("./assets/img/resize3.svg");
+      }
     }
   }
 }

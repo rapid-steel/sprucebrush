@@ -2,7 +2,8 @@
     <Toolbar name="brushSettings">
         <input type="number" v-if="currentBrush.radius" @input="e => set('radius', e.target.value)" :value="currentBrush.radius" min="1"/>
         <input type="number" v-if="currentBrush.opacity" @input="e => set('opacity', e.target.value)" :value="currentBrush.opacity" min="0.01" max="1" step=".01"/>
-        
+
+        <button v-if="currentInstrument.indexOf('selection') == 0 && selectionReady">Apply selection (Enter)</button>        
 
     </Toolbar>
 </template>
@@ -19,9 +20,10 @@ export default {
       return {
       }
   },
+  props: ['selectionReady'],
   computed: {
       prefs() {
-          return this.$store.state.userPref.colorPicker
+          return this.$store.state.userPref.brushSettings
       },
       ...mapState(['currentInstrument']),
       currentBrush() {

@@ -37,21 +37,6 @@ export default new Vuex.Store({
     },
     userPref: {
       historySize: 10,
-      brushSettings: {
-        x: 80, y: 10
-      },
-      saveSettings: {
-        x: 900, y: 500
-      },
-      instruments: {
-        x: 10, y: 10
-      },
-      colorPicker: {
-        x: 900, y: 10
-      },
-      layers: {
-        x: 900, y: 600
-      }
     }
 
   },
@@ -61,7 +46,6 @@ export default new Vuex.Store({
     },
     selectColor(state, color) {
       state.currentColor = color;
-      console.log(color)
     },
     changeSettings(state, {instrument, prop, val}) {
       state.currentInstrumentSettings[instrument][prop] = val;
