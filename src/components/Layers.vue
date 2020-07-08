@@ -5,8 +5,8 @@
             <div v-for="l in layersReverse" 
             :key="l.id"
             class="layer"
-            :class="{current: l.id == currentLayer.id, visible: l.visible}"
-            @click="() => $emit('select-layer', l.id)"
+            :class="{current: currentLayer && l.id == currentLayer.id, visible: l.visible}"
+            @click.self.stop="() => $emit('select-layer', l.id)"
             ><input type="text" v-model="l.name" class="layer-name"> 
             <img class="img-icon" src="@/assets/img/opacity.svg" />
             <RangeInput 
@@ -15,10 +15,10 @@
             v-model="l.opacity" />
             <button class="visible"
                 :disabled="layers.length == 1" 
-                @click="() => $emit('toggle-layer', l.id)" />
+                @click.stop="() => $emit('toggle-layer', l.id)" />
             <button class="delete"
                 :disabled="layers.length == 1" 
-                @click="() => $emit('remove-layer', l.id)" />
+                @click.stop="() => $emit('remove-layer', l.id)" />
             </div>
         </draggable>      
 
@@ -40,7 +40,7 @@ export default {
   },
   computed: {
       layersReverse() {
-          return this.layers.filter(l => l.id).reverse();
+          return this.layers.filter(l => l && l.id).reverse();
       }
   },
   mounted() {

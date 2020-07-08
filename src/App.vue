@@ -168,6 +168,7 @@ class Selection {
     this.drawSelection();
   }
   startTransform(source) {
+    this.ready = true;
     this.imgCtx.save();
     this.imgCtx.rect(
       this.bboxOrd[0][0], 
@@ -556,6 +557,47 @@ export default {
         }
         if(e.ctrlKey) {
           switch(e.key.toLowerCase()) {
+            case "a":
+              e.preventDefault();
+              this.$store.commit("selectInstrument", "selection-rect");
+              this.selection = new Selection([0,0], this.selImgCtx, this.selCtx);
+              this.selection.setPoint([this.sizes.width, this.sizes.height]);
+              this.selection.startTransform(this.currentLayer.ctx);
+              break;
+            case "x":
+              this.copySelection(true);
+              break;
+            case "c":
+              this.copySelection();             
+              break;
+            case "v":
+              this.applySelection();
+              navigator.permissions.query({name: "clipboard-read"}).then(result => {
+
+                if (result.state == "granted" || result.state == "prompt") {
+                  navigator.clipboard.read().then(res => {
+                    res.forEach(item => {
+                      let type = item.types.find(i => i.indexOf("image/") > -1)
+                      if(type) {
+                        item.getType(type).then(blob => {
+                          let img = new Image();
+                          img.onload = () => {
+                            this.appendLayer("", {
+                            img,
+                            x: (this.sizes.width - img.width) / 2,
+                            y: (this.sizes.height - img.height) / 2,
+                          });
+                          }
+                          img.src = URL.createObjectURL(blob);
+                          
+                        });                                    
+                      }
+                    });
+                  });
+                }
+              });
+              
+              break;
             case "z":
               e.preventDefault();
               const sshot = this.history.remove();
@@ -749,6 +791,33 @@ export default {
         );
         this.$forceUpdate();
     },
+    copySelection(clip = false) {
+      if(this.selection && this.selection.ready) {
+          let c = document.createElement("canvas");
+          c.width = this.selection.bbox[1][0] - this.selection.bbox[0][0];
+          c.height = this.selection.bbox[1][1] - this.selection.bbox[0][1];
+          let ctx = c.getContext("2d");      
+          ctx.drawImage(this.$refs.selectionImg, 
+            this.selection.bbox[0][0], this.selection.bbox[0][1],
+            c.width, c.height,
+            0, 0, c.width, c.height,
+          );          
+          c.toBlob(blob => {
+            navigator.clipboard.write([
+              new ClipboardItem({
+                [blob.type]: blob
+              })              
+            ]).then(res => {
+              
+              if(clip) {
+                this.selection.drop();
+                this.selection = null;
+              }
+            });
+        });                
+      } 
+
+    },
     applySelection() {
       if(this.selection && this.selection.started) {
         this.currentLayer.ctx.drawImage(this.$refs.selectionImg, 0, 0, this.sizes.width, this.sizes.height);
@@ -775,6 +844,13 @@ export default {
       this.tempCtx.lineWidth = this.currentBrush.radius * (1 + this.currentBrush.pressure.radius * (this.lastPoint.pressure - 1));
       this.tempCtx.strokeStyle = this.currentColor;
       this.tempCtx.lineCap ="round";
+      this.tempCtx.filter = "";
+      if(this.currentBrush.blur) {
+        let lineWidth = this.tempCtx.lineWidth;
+        this.tempCtx.lineWidth = lineWidth * (.5 + (100 - this.currentBrush.blur) / 100) || 1;
+        this.tempCtx.filter = `blur(${lineWidth / 200 * this.currentBrush.blur}px)`;
+      } 
+      
       let opacity = this.currentBrush.opacity * (1 + this.currentBrush.pressure.opacity * (this.lastPoint.pressure - 1));
         if(opacity < 1) {
           this.tempCtx.globalCompositeOperation = "destination-out";                
@@ -831,7 +907,17 @@ export default {
     newDrawing() {
       this.appendLayer("Layer 1");
     },
-    appendLayer(name) {
+    appendLayer(name, paste) {
+      if(!name) {
+        name = this.layers.reduce((last, layer) => {
+          if(/Layer (\d+)/.test(layer)) {
+            if(layer > last) 
+            return "Layer " + (1 + parseInt(layer.split(" ")[1]));
+          }
+          return last;
+        }, "Layer " + (1 + this.layers.length));
+        
+      }
       const layer = {
         id: Date.now(), 
         name, 
@@ -846,6 +932,10 @@ export default {
         let ref = this.$refs['layerEl' + layer.id];
         if(Array.isArray(ref)) ref = ref[0];
         this.currentLayer.ctx = ref.getContext("2d");
+
+        if(paste) {
+          this.currentLayer.ctx.drawImage(paste.img, paste.x, paste.y);
+        }
         
         if(prev)
           this.history.append({
@@ -854,11 +944,12 @@ export default {
             state:  this.currentLayer.ctx.getImageData(0, 0, this.sizes.width, this.sizes.height),
             prev
           });
-      }, 50);
+      }, 100);
       
     },
     selectLayer(id) {
       this.currentLayer = this.layers.find(l => l.id == id);
+      console.log(this.layers, this.currentLayer, id)
     },
     reorderLayer({oldIndex, newIndex}) {
       let oldIndex1 = this.layers.length - oldIndex - 1;
@@ -884,8 +975,8 @@ export default {
           state:  remove.ctx.getImageData(0, 0, this.sizes.width, this.sizes.height)
         });
 
-        if(this.currentLayer.id == remove) {
-          this.selectLayer(ind ? ind - 1 : 0);
+        if(this.currentLayer.id == remove.id) {
+          this.selectLayer(this.layers[(ind ? ind - 1 : 0)].id);
         }
 
         this.layers.splice(ind, 1);

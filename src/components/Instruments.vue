@@ -11,20 +11,19 @@
             </div>
         </div>       
     </div>
+    <div class="current-instrument">
+        
+        <img :src="currentItem.icon">
+        <div>{{currentItem.title}}</div>
+    </div>
     <div class="settings">
-        <div v-if="currentBrush.radius">
-            <div>Radius:</div>
-            <RangeInput :min="1" :max="2500" :horizontal="true"
-            v-model="currentBrush.radius"
-            @input="v => set('radius', v)" />
+        <div v-for="s in settings.filter(s => currentBrush[s.k] != undefined)" :key="s.k">
+            <div>{{s.label}}:</div>
+            <RangeInput :min="s.min" :max="s.max" :step="s.step" :horizontal="true"
+            v-model="currentBrush[s.k]"
+            @input="v => set(s.k, v)" />
         </div>
-        <div v-if="currentBrush.opacity">
-            <div>Opacity:</div>
-            <RangeInput :min=".01" :max="1" :step=".01" :horizontal="true"
-            v-model="currentBrush.opacity"
-            @input="v => set('opacity', v)" />
 
-        </div>
     </div>
 </div>
 
@@ -38,20 +37,26 @@ export default {
   components: {RangeInput},
   data() {
       return {
+          settings: [
+              {k: "radius", label: "Radius", min: 1, max: 2500, step: 1},
+              {k: "opacity", label: "Opacity", min: .01, max: 1, step: .01},
+              {k: "blur", label: "Softness", min: 0, max: 100, step: 1},
+              {k: "tolerance", label: "Tolerance", min: 1, max: 255, step: 1}
+          ],
           instruments: [{
               group: "drawing",
               items: [
-                {name: "brush", icon: require("@/assets/img/brush.png")},
-                {name: "eraser", icon: require("@/assets/img/eraser.png")},
-                {name: "picker", icon: require("@/assets/img/picker.png")},
-                {name: "fill", icon: require("@/assets/img/fill.png")},
+                {name: "brush", icon: require("@/assets/img/brush.png"), title: "Brush"},
+                {name: "eraser", icon: require("@/assets/img/eraser.png"), title: "Eraser"},
+                {name: "picker", icon: require("@/assets/img/picker.png"), title: "Color picker"},
+                {name: "fill", icon: require("@/assets/img/fill.png"), title: "Filling tool"},
               ]
           }, {
             group: "selection",
             items: [
-                {name: "selection-rect", icon: require("@/assets/img/selection-rect.png")},
-                {name: "selection-polygon", icon: require("@/assets/img/selection-polygon.png")},
-                {name: "selection-lasso", icon: require("@/assets/img/selection-lasso.png")},
+                {name: "selection-rect", icon: require("@/assets/img/selection-rect.png"), title: "Rectangular selection"},
+                {name: "selection-polygon", icon: require("@/assets/img/selection-polygon.png"), title: "Polygonal selection"},
+                {name: "selection-lasso", icon: require("@/assets/img/selection-lasso.png"), title: "Freehand selection"},
             ]
           }
               
@@ -60,6 +65,13 @@ export default {
   },
   computed: {
       ...mapState(['currentInstrument']),
+      currentItem() {
+          for(let i = 0; i < this.instruments.length; i++) {
+              let item = this.instruments[i].items.find(item => item.name == this.currentInstrument);
+              if(item) return item;
+          }
+          return {};
+      },
       currentBrush() {
         return this.$store.state.currentInstrumentSettings[this.currentInstrument];
      }
@@ -105,6 +117,18 @@ export default {
         &.selected {
             filter: invert(1);
         }
+    }
+}
+
+.current-instrument {
+    text-align: center;
+    max-width: 60px;
+    font: bold 10px Helvetica;
+    margin-top: 10px;
+    img {
+        max-width: 50px;
+        width: 50px;
+        height: 50px;
     }
 }
 

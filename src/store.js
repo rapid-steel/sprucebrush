@@ -13,6 +13,7 @@ export default new Vuex.Store({
 
       },
       brush: {
+        blur: 0,
         radius: 5,
         opacity: 1,
         pressure: {
@@ -25,7 +26,8 @@ export default new Vuex.Store({
         opacity: 1,
         pressure: {
           radius: 1,
-          opacity: 0
+          opacity: 0,
+          blur: 0
         },  
       },
       fill: {
