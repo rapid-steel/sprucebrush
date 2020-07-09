@@ -39,6 +39,10 @@ export default new Vuex.Store({
     },
     userPref: {
       historySize: 10,
+      palletes: [{
+        name: "New pallete",
+        colors: []
+      }]
     }
 
   },

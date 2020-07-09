@@ -74,6 +74,8 @@
 import {mapState} from "vuex";
 import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
+import Selection from "./classes/Selection";
+import SelectionPath from "./classes/SelectionPath";
 
 import Instruments from "./components/Instruments";
 import ColorPicker from "./components/ColorPicker";
@@ -137,266 +139,6 @@ function fill(pos, positions, pixels, color, color0, width, height, tolerance) {
 
   return pixels;
 
-}
-
-class Selection {
-  constructor(p1, imgCtx, selCtx) {
-    this.ready = false;
-    this.started = false;
-    this.bbox = [p1.slice(),p1.slice()];
-    this.bboxOrd = this.bbox.slice();
-    this.imgCtx = imgCtx;
-    this.selCtx = selCtx;
-    let sCopy = document.createElement("canvas");
-    sCopy.width = this.imgCtx.canvas.width;
-    sCopy.height = this.imgCtx.canvas.height;
-    sCopy.style.width = this.imgCtx.canvas.width + "px";
-    sCopy.style.height = this.imgCtx.canvas.height + "px";
-    this.sourceCopy = sCopy.getContext("2d");
-
-    this.rectW = 10;
-    this.origin = [0,0];
-    this.scale = [1, 1];
-    this.angle = 0;
-
-    this.calculateControls();
-    this.drawSelection();
-  }
-  setPoint(p2) {
-    this.bbox[1] = p2.slice();
-    this.calculateControls();
-    this.drawSelection();
-  }
-  startTransform(source) {
-    this.ready = true;
-    this.imgCtx.save();
-    this.imgCtx.rect(
-      this.bboxOrd[0][0], 
-      this.bboxOrd[0][1], 
-      this.bboxOrd[1][0] - this.bboxOrd[0][0], 
-      this.bboxOrd[1][1] - this.bboxOrd[0][1]
-    );
-    this.imgCtx.clip();
-    this.imgCtx.drawImage(source.canvas, 0, 0, source.canvas.width, source.canvas.height);    
-    this.sourceCopy.clearRect(0, 0, this.sourceCopy.canvas.width, this.sourceCopy.canvas.height);
-    this.sourceCopy.drawImage(this.imgCtx.canvas, 0, 0, source.canvas.width, source.canvas.height);
-    this.imgCtx.restore();
-
-    source.globalCompositeOperation = "destination-out";
-    source.fillRect(
-      this.bboxOrd[0][0], 
-      this.bboxOrd[0][1], 
-      this.bboxOrd[1][0] - this.bboxOrd[0][0], 
-      this.bboxOrd[1][1] - this.bboxOrd[0][1]
-    );
-    source.globalCompositeOperation = "source-over";
-    this.started = true;
-  }
-  detectAction(p) {
-    this.action = this.getAction(p); 
-  }
-  getAction(p) {
-    let x1 = (p.x - this.center[0]);
-    let y1 = (p.y - this.center[1]);
-    let x0 = this.center[0] + x1 * Math.cos(-this.angle) - y1 * Math.sin(-this.angle);
-    let y0 = this.center[1] + x1 * Math.sin(-this.angle) + y1 * Math.cos(-this.angle);
-    let action = null;
-    this.controls.forEach(([i, j, x, y]) => {
-      if(Math.abs(x0 - x - i * this.rectW) <= this.rectW / 2 &&
-         Math.abs(y0 - y - j * this.rectW) <= this.rectW / 2
-      ) {
-        action = {resize: 1, dir: [i, j]};     
-        return;
-      } 
-    });
-    if(!action) {
-      action = this.bboxOrd[0][0] < x0 && x0 < this.bboxOrd[1][0] &&
-               this.bboxOrd[0][1] < y0 && y0 < this.bboxOrd[1][1] ?
-        {move: 1}
-        : {rotate: 1}
-    }
-    return action;
-  }
-  applyTransform(p, recAction = false) {
-    if(recAction) {
-      this.movePoint = [p.x, p.y];
-      this.detectAction(p);
-    }
-
-    
-    let [dx, dy] = [p.x, p.y].map((c,i) => c - this.movePoint[i]);
-    if(this.action.move) {
-      this.origin[0] += dx
-      this.origin[1] += dy 
-      this.bbox = this.bbox.map(([x, y]) => [x+dx, y+dy]);
-      this.calculateControls();      
-    }
-
-    if(this.action.resize) {
-      let d = Math.sqrt(dx * dx + dy * dy);
-      let a = Math.atan(dy / dx) + (dx < 0 ? Math.PI : 0);
-      if(isNaN(a)) a = dy < 0 ? Math.PI / 2 : Math.PI * 1.5;
-      a -= this.angle
-
-      let dx1 = dx * Math.cos(-this.angle) - dy * Math.sin(-this.angle) 
-      let dy1 = dx * Math.sin(-this.angle) + dy * Math.cos(-this.angle) 
-
-      this.bbox = this.bboxOrd;
-      let bbox = this.bbox.map( b => b.slice());
-
-      
-      const sin_2 = Math.sin(this.angle) / 2;
-      const sin2_2 = sin_2 * sin_2; 
-
-
-      if(this.action.dir[0] == -1) {
-        bbox[0][0] += dx1 * (1 - sin2_2);
-        this.origin[0] += dx1 * (1 - sin2_2);
-        bbox[1][0] -= dx1 * sin2_2;        
-        bbox[0][1] += dx1 * sin_2;
-        bbox[1][1] += dx1 * sin_2;
-        this.origin[1] += dx1 * sin_2;
-      }
-      else if(this.action.dir[0] == 1) {
-        bbox[1][0] += dx1 * (1 - sin2_2);
-        this.origin[0] -= dx1 * sin2_2;
-        bbox[0][0] -= dx1 * sin2_2;        
-        bbox[0][1] += dx1 * sin_2;
-        bbox[1][1] += dx1 * sin_2;
-        this.origin[1] += dx1 * sin_2;
-      }
-      if(this.action.dir[1] == -1) {
-        bbox[0][1] += dy1 * (1 - sin2_2);
-        bbox[1][1] -= dy1 * sin2_2;
-        this.origin[1] += dy1 * (1 - sin2_2);
-        bbox[0][0] -= dy1 * sin_2;
-        bbox[1][0] -= dy1 * sin_2;
-        this.origin[0] -= dy1 * sin_2;
-      }
-      else if(this.action.dir[1] == 1) {
-        bbox[1][1] += dy1 * (1  + sin2_2);
-        bbox[0][1] += dy1 * sin2_2;
-        this.origin[1] += dy1 * sin2_2;
-        bbox[0][0] += dy1 * sin_2;
-        bbox[1][0] += dy1 * sin_2;
-        this.origin[0] -= dy1 * sin_2;
-      }  
-
-      
-
-      if(bbox[1][0] == bbox[0][0]) bbox[1][0] += .001;
-      if(bbox[1][1] == bbox[0][1]) bbox[1][1] += .001;
-      let scale = [
-        (bbox[1][0] - bbox[0][0]) / (this.bbox[1][0] - this.bbox[0][0]),
-        (bbox[1][1] - bbox[0][1]) / (this.bbox[1][1] - this.bbox[0][1])  
-      ];
-      if(scale[0] < 0) this.action.dir[0] = -this.action.dir[0]
-      if(scale[1] < 0) this.action.dir[1] = -this.action.dir[1]
-
-      
-      
-      this.bbox = bbox;
-      this.scale = this.scale.map((s,i) => s * scale[i]);
-      let dt = scale.map((s,i) => {
-        return Math.abs(this.bbox[1][i] - this.bbox[0][i]) * (s - 1)
-      });
-
-      this.calculateControls();
-
- 
-    }    
-
-    if(this.action.rotate) {
-      
-      let c1 = this.movePoint.map((c,i) => c - this.center[i]);
-      let c2 = [p.x, p.y].map((c,i) => c - this.center[i]);
-      let a1 = Math.atan(c1[1] / c1[0]);
-      if(c1[0] < 0) a1 += Math.PI
-      let a2 = Math.atan(c2[1] / c2[0]);
-      if(c2[0] < 0) a2 += Math.PI
-      this.angle += (a2 - a1);
-
-    }
-
-    
-      this.imgCtx.save();      
-      this.imgCtx.clearRect(0, 0, this.imgCtx.canvas.width, this.imgCtx.canvas.height);
-      
-      this.imgCtx.translate(...this.center);   
-      this.imgCtx.rotate(this.angle); 
-      this.imgCtx.translate(...this.center.map(v => -v));
-
-      this.imgCtx.translate(...this.bboxOrd[0]);   
-      this.imgCtx.scale(...this.scale); 
-      this.imgCtx.translate(...this.bboxOrd[0].map(v => -v));
-      
-      this.imgCtx.translate(...this.origin);      
-      this.imgCtx.drawImage(this.sourceCopy.canvas, 0, 0, this.imgCtx.canvas.width, this.imgCtx.canvas.height);   
-      this.imgCtx.restore();      
-    
-    this.drawSelection();
-
-    this.movePoint = [p.x, p.y];
-  }
-  calculateControls() {
-    this.bboxOrd = [
-      [ Math.min(this.bbox[0][0],this.bbox[1][0]), Math.min(this.bbox[0][1],this.bbox[1][1]) ],
-      [ Math.max(this.bbox[0][0],this.bbox[1][0]), Math.max(this.bbox[0][1],this.bbox[1][1]) ]
-    ]
-    this.controls = [
-      [-1, -1, ...this.bboxOrd[0] ],
-      [-1,  0, this.bboxOrd[0][0], (this.bboxOrd[0][1] + this.bboxOrd[1][1]) / 2 ],
-      [-1,  1, this.bboxOrd[0][0], this.bboxOrd[1][1] ],
-      [ 0,  1, (this.bboxOrd[0][0] + this.bboxOrd[1][0]) / 2, this.bboxOrd[1][1] ],
-      [ 1,  1, ...this.bbox[1] ],
-      [ 1,  0, this.bboxOrd[1][0], (this.bboxOrd[0][1] + this.bboxOrd[1][1]) / 2 ],
-      [ 1, -1, this.bboxOrd[1][0], this.bboxOrd[0][1] ],
-      [ 0, -1, (this.bboxOrd[0][0] + this.bboxOrd[1][0]) / 2, this.bboxOrd[0][1] ],     
-    ];
-    this.center = this.bboxOrd[0].map((c,i) => (this.bboxOrd[1][i] + c) / 2 );
-  }
-  getCursor(point) {
-    return this.getAction(point);
-  }
-
-
-  
-  drawSelection() {
-    this.selCtx.save();
-    this.selCtx.clearRect(0, 0, this.selCtx.canvas.width, this.selCtx.canvas.height);
-
-
-    this.selCtx.translate(...this.center);
-    this.selCtx.rotate(this.angle);
-    this.selCtx.translate(...this.center.map(c => -c));
-    
-    this.selCtx.setLineDash([3, 3]);
-    this.selCtx.strokeStyle = "blue";    
-    this.selCtx.strokeRect(
-      this.bboxOrd[0][0], 
-      this.bboxOrd[0][1], 
-      this.bboxOrd[1][0] - this.bboxOrd[0][0], 
-      this.bboxOrd[1][1] - this.bboxOrd[0][1]
-    );
-
-    if(this.ready) {
-      this.selCtx.setLineDash([]);
-      this.selCtx.strokeStyle = "black";
-
-      this.controls.forEach(([i,j,x,y]) => {
-        this.selCtx.strokeRect( x + (i - .5) * this.rectW, y + (j - .5) * this.rectW, this.rectW, this.rectW );
-      });
-    }
-    this.selCtx.restore();
-  }
-  drop() {
-    this.imgCtx.clearRect(0, 0, this.imgCtx.canvas.width, this.imgCtx.canvas.height);
-    this.imgCtx.restore();
-    this.selCtx.clearRect(0, 0, this.selCtx.canvas.width, this.selCtx.canvas.height);
-    this.started = false;
-    this.ready = false;
-    
-  }
 }
 
 
@@ -550,27 +292,28 @@ export default {
       this.cursorStyles.width = this.currentBrush.radius * 2 + "px";
       this.cursorStyles.height = this.currentBrush.radius * 2 + "px";
 
-      document.addEventListener("keydown", e => {      
+
+      document.addEventListener("keydown", e => {     
         if(e.key == "Enter") {
           e.preventDefault();
           this.applySelection();
         }
         if(e.ctrlKey) {
-          switch(e.key.toLowerCase()) {
-            case "a":
+          switch(e.keyCode) {
+            case "KeyA":
               e.preventDefault();
               this.$store.commit("selectInstrument", "selection-rect");
               this.selection = new Selection([0,0], this.selImgCtx, this.selCtx);
               this.selection.setPoint([this.sizes.width, this.sizes.height]);
               this.selection.startTransform(this.currentLayer.ctx);
               break;
-            case "x":
+            case "KeyX":
               this.copySelection(true);
               break;
-            case "c":
+            case "KeyC":
               this.copySelection();             
               break;
-            case "v":
+            case "KeyV":
               this.applySelection();
               navigator.permissions.query({name: "clipboard-read"}).then(result => {
 
@@ -598,7 +341,7 @@ export default {
               });
               
               break;
-            case "z":
+            case "KeyZ":
               e.preventDefault();
               const sshot = this.history.remove();
               if(sshot) {
@@ -626,11 +369,13 @@ export default {
                 }
               }             
               break;        
-              case "+":
+              case "NumpadAdd":
+              case "Equal":
                 e.preventDefault();
                 this.zoom *= 1.25
                 break; 
-              case "-":
+              case "NumpadSubtract":
+              case "Minus":
                 e.preventDefault();
                 this.zoom *= .8
                 break;    
@@ -639,6 +384,10 @@ export default {
         }
 
       });   
+
+      let prevClick = {
+        time: 0, x: 0, y: 0
+      };
 
       this.$refs.canvas.addEventListener("pointerdown", event => {
         event.preventDefault();
@@ -661,8 +410,26 @@ export default {
             if(!this.selection) {
               this.selection = new Selection([ this.lastPoint.x, this.lastPoint.y ], this.selImgCtx, this.selCtx);
             } else {
-              this.selection.applyTransform(this.lastPoint, true);
-              
+              this.selection.applyTransform(this.lastPoint, true);              
+            }            
+          }
+          if(this.currentInstrument == "selection-polygon") {
+            if(!this.selection) {
+              this.selection = new SelectionPath([ this.lastPoint.x, this.lastPoint.y ], this.selImgCtx, this.selCtx);
+            } else {
+              if(!this.selection.started) {
+                this.selection.addPoint([this.lastPoint.x, this.lastPoint.y]); 
+              } else {
+                this.selection.applyTransform(this.lastPoint, true);     
+              }            
+            }            
+          }
+
+          if(this.currentInstrument == "selection-lasso") {
+            if(!this.selection) {
+              this.selection = new SelectionPath([ this.lastPoint.x, this.lastPoint.y ], this.selImgCtx, this.selCtx);
+            } else {
+              this.selection.applyTransform(this.lastPoint, true);    
             }            
           }
           
@@ -718,6 +485,16 @@ export default {
             this.$forceUpdate();
             
           }
+
+          if(this.currentInstrument == "selection-polygon" && this.selection && !this.selection.started) {
+              this.lastPoint = point1;
+              this.selection.setPoint([ this.lastPoint.x, this.lastPoint.y ]);                              
+            }
+
+          if(this.currentInstrument == "selection-lasso" && this.selection && !this.selection.started) {
+              this.lastPoint = point1;
+              this.selection.addPoint([ this.lastPoint.x, this.lastPoint.y ]);                              
+            }
          
 
           if(this.lastPoint === null || this.currentInstrument == "picker" || this.currentInstrument == "fill") {
@@ -733,6 +510,11 @@ export default {
                   } else {
                     this.selection.setPoint([ this.lastPoint.x, this.lastPoint.y ]);            
                   }                  
+                }
+
+              if((this.currentInstrument == "selection-polygon" || this.currentInstrument == "selection-lasso") && this.selection.started) {
+                  this.lastPoint = point1;
+                   this.selection.applyTransform(this.lastPoint);                          
                 }
               if(this.currentInstrument == "brush") {
                 this.draw(point1);           
@@ -752,15 +534,32 @@ export default {
       });
       this.$refs.canvas.addEventListener("pointerup", event => {
           this.lastPoint = null;       
+          let t = Date.now();
+          
+
+
 
           if(this.currentInstrument == "selection-rect") {
-            if(this.selection.ready) {
-              ///
-            } else {
+            if(!this.selection.ready) {
               this.selection.ready = true;
               this.selection.startTransform(this.currentLayer.ctx);
-            }
-            
+            }            
+          }
+
+          if(this.currentInstrument == "selection-lasso") {
+            if(!this.selection.ready) {
+              this.selection.ready = true;
+              this.selection.startTransform(this.currentLayer.ctx);
+            }            
+          }
+
+          if(this.currentInstrument == "selection-polygon") {
+            if(!this.selection.ready) {
+              if(t - prevClick.time < 300) {
+                this.selection.ready = true;
+                this.selection.startTransform(this.currentLayer.ctx);
+              }
+            }            
           }
 
 
@@ -779,6 +578,9 @@ export default {
           
           this.tempCtx.clearRect(0,0,this.sizes.width, this.sizes.height);
           this.tempCtx2.clearRect(0,0,this.sizes.width, this.sizes.height);
+
+
+          prevClick.time = t;
 
           
       });
@@ -803,7 +605,7 @@ export default {
             0, 0, c.width, c.height,
           );          
           c.toBlob(blob => {
-            navigator.clipboard.write([
+            navigator.clipboard.write([ // eslint-disable-next-line              
               new ClipboardItem({
                 [blob.type]: blob
               })              
@@ -1075,7 +877,7 @@ export default {
       }
     }
 
-    &.selection-rect {
+    &.selection-rect, &.selection-polygon, &.selection-lasso {
       transform: translate(-50%,-50%);
       background-image: url("./assets/img/crosshair.png");
       background-size: cover;
