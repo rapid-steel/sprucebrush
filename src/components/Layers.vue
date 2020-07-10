@@ -6,7 +6,8 @@
             :key="l.id"
             class="layer"
             :class="{current: currentLayer && l.id == currentLayer.id, visible: l.visible}"
-            @click.self.stop="() => $emit('select-layer', l.id)"
+            @click.ctrl.stop="() => $emit('layer-to-selection', l.id)"
+            @click.exact.stop="() => $emit('select-layer', l.id)"
             ><input type="text" v-model="l.name" class="layer-name"> 
             <img class="img-icon" src="@/assets/img/opacity.svg" />
             <RangeInput 

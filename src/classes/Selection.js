@@ -36,16 +36,40 @@ export default class Selection {
       this.drawSelection();
     }
     drawClipPath(ctx) {
+      ctx.beginPath();
       ctx.rect(
         this.bbox[0][0], 
         this.bbox[0][1], 
         this.bbox[1][0] - this.bbox[0][0], 
         this.bbox[1][1] - this.bbox[0][1]
       );
+      ctx.closePath();
+    }
+    addSource(source) {
+      this.sourceCopy.save();
+      
+      this.sourceCopy.translate(...this.origin.map(o => -o));     
+
+      this.sourceCopy.translate(...this.bbox[0]);   
+      this.sourceCopy.scale(...this.scale.map(s => 1 / s)); 
+      this.sourceCopy.translate(...this.bbox[0].map(v => -v));
+      
+    
+      this.rotate(this.sourceCopy, -1);
+      this.sourceCopy.drawImage(source.canvas, 0, 0, source.canvas.width, source.canvas.height);    
+
+      this.sourceCopy.restore();
+
+      this.drawImage();
+
     }
     startTransform(source) {
       this.ready = true;
+      this.origin = [0, 0];
+      this.scaleOrigin = this.bbox[0];
       this.imgCtx.save();
+      this.imgCtx.clearRect(0, 0, this.imgCtx.canvas.width, this.imgCtx.canvas.height);
+      this.rotate(this.sourceCopy, -1);
       this.drawClipPath(this.imgCtx);
       this.imgCtx.clip();
       this.imgCtx.drawImage(source.canvas, 0, 0, source.canvas.width, source.canvas.height);    
@@ -55,6 +79,7 @@ export default class Selection {
   
       source.globalCompositeOperation = "destination-out";
       this.drawClipPath(source);
+      source.stroke();
       source.fill();
       source.globalCompositeOperation = "source-over";
       this.started = true;
@@ -100,6 +125,7 @@ export default class Selection {
         this.origin[1] += dy;
         this.bbox = this.bbox.map(([x, y]) => [x+dx, y+dy]);
         this.path = this.path.map(([x, y]) => [x+dx, y+dy]);
+        this.scaleOrigin = this.bbox[0];
         this.calculateControls();      
       }
   
@@ -119,6 +145,7 @@ export default class Selection {
         if(this.action.dir[0] == -1) {
           let d1 = dx * cos + dy * sin;
           bbox[0][0] += d1;
+          this.origin[0] += d1;
           dx1 +=  d1 * (cos - 1) / 2
           dy1 += d1 * sin / 2;          
         }
@@ -131,6 +158,7 @@ export default class Selection {
         if(this.action.dir[1] == -1) {
           let d1 = dy * cos - dx * sin;
           bbox[0][1] += d1;
+          this.origin[1] += d1;
           dy1 += d1 * (cos - 1 ) / 2
           dx1 += - d1 * sin / 2;
         }
@@ -147,10 +175,8 @@ export default class Selection {
           b[1] + dy1
         ]);
         
-        this.origin = [
-          this.origin[0] + dx1, this.origin[1] + dy1
-        ];
-
+        
+        
         
 
         
@@ -172,10 +198,16 @@ export default class Selection {
         ]
 
 
+
         this.path = this.path.map(b => [
           (b[0] + dx1 - origin[0]) * scale[0] + origin[0],
           (b[1] + dy1 - origin[1]) * scale[1] + origin[1],
         ]);
+
+        this.origin = [
+          this.origin[0] + dx1,
+          this.origin[1] + dy1,
+        ];
   
         
         
@@ -199,6 +231,8 @@ export default class Selection {
         let a2 = Math.atan(c2[1] / c2[0]);
         if(c2[0] < 0) a2 += Math.PI
         this.angle += (a2 - a1);
+
+        this.scaleOrigin = this.bbox[0];
 
         this.calculateControls(); 
   
@@ -246,9 +280,7 @@ export default class Selection {
       this.imgCtx.save();      
       this.imgCtx.clearRect(0, 0, this.imgCtx.canvas.width, this.imgCtx.canvas.height);
       
-      this.imgCtx.translate(...this.center);   
-      this.imgCtx.rotate(this.angle); 
-      this.imgCtx.translate(...this.center.map(v => -v));
+      this.rotate(this.imgCtx);
 
       this.imgCtx.translate(...this.bbox[0]);   
       this.imgCtx.scale(...this.scale); 
@@ -257,6 +289,11 @@ export default class Selection {
       this.imgCtx.translate(...this.origin);      
       this.imgCtx.drawImage(this.sourceCopy.canvas, 0, 0, this.imgCtx.canvas.width, this.imgCtx.canvas.height);   
       this.imgCtx.restore();      
+    }
+    rotate(ctx, dir = 1) {
+      ctx.translate(...this.center);
+      ctx.rotate(this.angle * dir);
+      ctx.translate(...this.center.map(c => -c));
     }
     drawSelection() {
       this.selCtx.save();
@@ -268,9 +305,7 @@ export default class Selection {
         this.selCtx.strokeRect(...this.rect);
       }
 
-      this.selCtx.translate(...this.center);
-      this.selCtx.rotate(this.angle);
-      this.selCtx.translate(...this.center.map(c => -c));
+      this.rotate(this.selCtx);
       
       this.selCtx.setLineDash([3, 3]);
       this.selCtx.strokeStyle = "blue";    
@@ -302,9 +337,13 @@ export default class Selection {
 
       this.selCtx.restore();
     }
-    drop() {
+    clear() {
+      this.origin = [0, 0];
       this.imgCtx.clearRect(0, 0, this.imgCtx.canvas.width, this.imgCtx.canvas.height);
       this.imgCtx.restore();
+    }
+    drop() {
+      this.clear();
       this.selCtx.clearRect(0, 0, this.selCtx.canvas.width, this.selCtx.canvas.height);
       this.started = false;
       this.ready = false;
