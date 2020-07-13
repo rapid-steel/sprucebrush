@@ -6,6 +6,9 @@
     <div id="center">
       <div class="panel top">
         <TopPanel 
+          :sizes="sizes"
+          @new-drawing="newDrawing"
+          @change-sizes="setSize"
           @save-image="saveToFile"
           @import-image="pasteImageFromFile"
         />
@@ -14,23 +17,36 @@
             <div id="canvas" 
             ref="canvas" 
             :style="{...canvasSizes, transform: getTransform() }">
-              <canvas v-for="l in layers" 
+              <canvas v-for="(l, i) in layers" 
               :key="l.id" 
-              :style="{...canvasSizes, opacity: l.opacity + '%', visibility: l.visible ? 'visible' : 'hidden'}" 
+              :style="{
+                ...canvasSizes, 
+                opacity: l.opacity + '%', 
+                visibility: l.visible ? 'visible' : 'hidden',
+                zIndex: i + 100 + (i > layers.indexOf(currentLayer) ? 10 : 0)
+              }" 
               :width="sizes.width" 
               :height="sizes.height" 
               :ref="'layerEl' + l.id"></canvas>
               <canvas
-              :style="{...canvasSizes, opacity: currentLayer ? currentLayer.opacity + '%' : 0}" 
-              :width="sizes.width" 
-              :height="sizes.height" 
-              ref="temporary2"
-              ></canvas>
-              <canvas
-              :style="{...canvasSizes, opacity: currentInstrument == 'eraser' ? 0 : currentLayer ? currentLayer.opacity + '%' : 0}" 
+              :style="{
+                ...canvasSizes, 
+                opacity: currentLayer ? currentLayer.opacity + '%' : 0,
+                zIndex: 101 + layers.indexOf(currentLayer)
+              }" 
               :width="sizes.width" 
               :height="sizes.height" 
               ref="temporary"
+              ></canvas>
+              <canvas
+              :style="{
+                ...canvasSizes, 
+                opacity: currentInstrument == 'eraser' ? 0 : currentLayer ? currentLayer.opacity + '%' : 0,
+                zIndex: 102 + layers.indexOf(currentLayer)
+              }" 
+              :width="sizes.width" 
+              :height="sizes.height" 
+              ref="brush"
               ></canvas>
               <canvas 
               :style="canvasSizes"
@@ -82,101 +98,18 @@ import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
 import Selection from "./classes/Selection";
 import SelectionPath from "./classes/SelectionPath";
+import Brush from "./classes/Brush";
+import History from "./classes/History";
 
 import Instruments from "./components/Instruments";
 import ColorPicker from "./components/ColorPicker";
 import Layers from "./components/Layers";
 import TopPanel from "./components/TopPanel";
 
-function getRgba(color) {
-  if(color.indexOf("rgb") == 0) {
-    let vals = color.replace(")", "").split("(")[1].split(",").map(s => +s);
-    if(vals.length == 3) vals.push(255)
-    else vals[3] = 255 * vals[3]
-    return vals;
-  } 
-  if(color.indexOf("#") == 0) {
-    color = color.slice(1);
-    let vals = [];
-    while(color.length) {
-      vals.push(parseInt(color.slice(0,2), 16));
-      color = color.slice(2);
-    }
-    if(vals.length == 3) vals.push(255)
-    return vals;
-  }
-}
-function fill(pos, positions, pixels, color, color0, width, height, tolerance) {
-  let pos1 = [];
-  pos.forEach(([x,y]) => {
-    let p = y * width + x
-    positions[p] = 1;
-    for(let i = 0; i < 4; i++) {
-      pixels[p * 4 + i] = color[i] 
-    }
-    
-    [
-      [x - 1, y],  [x - 1, y-1],
-      [x, y -1],  [x - 1, y+1],
-      [x + 1, y],  [x + 1, y-1],
-      [x, y + 1],  [x + 1, y - 1],
-    ].forEach(([x1, y1]) => {
-      let ind = y1 * width + x1
-      if(ind < width * height && ind >= 0) {
-        if(positions[ind] == 0) {
-          positions[ind] = 1;
-          let t = 0;
-          for(let i = 0; i < 4; i++) {
-            t += Math.abs(
-              pixels[ind * 4 + i] - color0[i]
-            )
-          }
-          if(t < tolerance) {
-            pos1.push([x1, y1]);
-          }
-        }
-      }
-    })                 
-  })
-  if(pos1.length) {
-      pixels = fill(pos1, positions, pixels, color, color0, width, height, tolerance)
-      
-    }
-
-  return pixels;
-
-}
+import {getRgba, getGlColor} from "./functions/color-functions";
+import {fill} from "./functions/pixel-functions";
 
 
-
-
-class History {
-  constructor(size) {
-    this.size = size;
-    this.array = new Array(size);
-    this.index = 0;
-  }
-  append(el) {
-    this.array[this.index] = el;
-    this.index = (this.index+1) % this.size;
-  }
-  get() {
-    return this.array[this.index];
-  }
-  remove() {
-    this.index--;
-    if(this.index < 0) {
-      this.index = this.size - 1;
-    }
-    const el = this.array[this.index];
-    if(el) {
-      this.array[this.index] = null;
-    } else {
-      this.index = 0;
-    }
-    return el;
-  }
-}
 
 function getPressure(event) {
   if(event.pointerType == "mouse") {
@@ -198,7 +131,8 @@ export default {
       history: new History(10),
       cursorClasses: [],
       zoom: 1,
-      selection: null     
+      selection: null,
+      texture: null     
     }
   },
   components: {
@@ -210,16 +144,26 @@ export default {
       return this.$store.state.userPrefs.historySize;
     },
     currentBrush() {
-      return this.$store.state.currentInstrumentSettings[this.currentInstrument];
+      return this.$store.getters.currentSettings;
     }
 
   },
   watch: {
     currentColor() {
+      this.brush.setParams({
+        color: getGlColor(this.currentColor)
+      });
     },
     currentBrush: {
       deep: true,
-      handler(p) {
+      handler() {
+        this.setCursor();    
+        this.brush.setParams({
+          ...this.currentBrush
+        });
+      }
+    },
+    currentInstrument() {
         this.setCursor();    
       
         if(this.currentInstrument.indexOf("selection") == 0) {
@@ -228,10 +172,9 @@ export default {
           }
         }   
         if(["brush", "eraser"].indexOf(this.currentInstrument) != -1) {
-          
+          /*
           if(this.selection) {
-          //  this.currentLayer.ctx.drawImage(this.$refs.selectionImg, 0, 0, this.sizes.width, this.sizes.height);
-          //  this.selection.clear();
+            
             this.tempCtx.restore();
             this.tempCtx2.restore();
             this.tempCtx.save();
@@ -248,18 +191,22 @@ export default {
             this.tempCtx.restore();
             this.tempCtx2.restore();
           }
+          */
           
-        }
-        
-      }
+        }        
+      
     }
   },
   mounted() {
+    this.brush = new Brush(this.$refs.brush);
     this.setSize({
       width: 800,
       height: 600
+    }, true);
+    this.brush.setParams({
+      ...this.currentBrush,
+      color: getGlColor(this.currentColor)
     });
-    this.tempCtx2 = this.$refs.temporary2.getContext("2d");
     this.tempCtx = this.$refs.temporary.getContext("2d");
     this.selImgCtx = this.$refs.selectionImg.getContext("2d");
     this.selCtx = this.$refs.selection.getContext("2d");
@@ -585,12 +532,14 @@ export default {
 
 
 
+
+         
           this.applyTemp();
 
           prevClick.time = t;
 
           
-      });
+      }, false);
 
     },
     pickColor() {
@@ -663,7 +612,7 @@ export default {
         this.tempCtx.save();      
         this.selection.drawClipPath(this.tempCtx);
         this.tempCtx.clip();
-        this.tempCtx.drawImage(this.$refs.temporary2, 0, 0);
+        this.tempCtx.drawImage(this.$refs.temporary, 0, 0);
         this.tempCtx.restore();
 
 
@@ -710,7 +659,7 @@ export default {
          if(this.currentInstrument == "eraser") {
             
             this.selection.sourceCopy.globalCompositeOperation = "copy";
-            this.selection.addSource(this.tempCtx2);
+            //this.selection.addSource(this.tempCtx2);
           } else  {            
             this.selection.sourceCopy.globalCompositeOperation = "source-over";
             this.selection.addSource(this.tempCtx);       
@@ -721,21 +670,45 @@ export default {
             const currentCanvas = this.$refs["layerEl" + this.currentLayer.id][0];
             currentCanvas.style.opacity = 1;
             this.currentLayer.ctx.globalCompositeOperation = "copy";
-            this.currentLayer.ctx.drawImage(this.$refs.temporary2, 0, 0);
+            this.currentLayer.ctx.drawImage(this.$refs.temporary, 0, 0);
+            this.brush.dropLine();
+
           } else  {            
             this.currentLayer.ctx.globalCompositeOperation = "source-over";
-            this.currentLayer.ctx.drawImage(this.$refs.temporary, 0, 0);               
+            const img = new Image();
+            
+            img.onload = () => {
+              this.currentLayer.ctx.drawImage(img, 0, 0, this.sizes.width, this.sizes.height);   
+              this.brush.dropLine();   
+            }
+            this.brush.update = false;
+            this.brush.render();
+            img.src = this.brush.canvas.toDataURL("image/png", 1);
+            
+            
+              
           }
       }
-      
+
+          
         
           
           this.tempCtx.clearRect(0,0,this.sizes.width, this.sizes.height);
-          this.tempCtx2.clearRect(0,0,this.sizes.width, this.sizes.height);
+            
     },
-    draw(point1) {
-      this.tempCtx.lineWidth = this.currentBrush.radius * (1 + this.currentBrush.pressure.radius * (this.lastPoint.pressure - 1));
-      this.tempCtx.strokeStyle = this.currentColor;
+    draw(point) {
+      this.brush.addPoint([point.x, point.y], point.pressure);
+    /*  this.tempCtx.lineWidth = this.currentBrush.radius *( 
+        this.currentBrush.pressure ? (1 + this.currentBrush.pressure.radius * (this.lastPoint.pressure - 1)) 
+      : 1);
+      if(this.currentBrush.texture) {
+        this.tempCtx.strokeStyle = this.texture.pattern;
+
+        //
+      } else {
+        this.tempCtx.strokeStyle = this.currentColor;
+      }
+      
       this.tempCtx.lineCap ="round";
       this.tempCtx.filter = "";
       if(this.currentBrush.blur) {
@@ -743,32 +716,51 @@ export default {
         this.tempCtx.lineWidth = lineWidth * (.5 + (100 - this.currentBrush.blur) / 100) || 1;
         this.tempCtx.filter = `blur(${lineWidth / 200 * this.currentBrush.blur}px)`;
       } 
+
+
       
-      let opacity = this.currentBrush.opacity * (1 + this.currentBrush.pressure.opacity * (this.lastPoint.pressure - 1));
+
+      this.tempCtx.globalAlpha = 1;
+      if(this.currentBrush.opacity) {
+        let opacity = this.currentBrush.opacity * (
+          this.currentBrush.pressure ? (1 + this.currentBrush.pressure.opacity * (this.lastPoint.pressure - 1)) 
+        : 1);
         if(opacity < 1) {
           this.tempCtx.globalCompositeOperation = "destination-out";                
-          this.tempCtx.globalAlpha = 1;
+          
           this.tempCtx.beginPath();
           this.tempCtx.moveTo(this.lastPoint.x, this.lastPoint.y);
           this.tempCtx.lineTo(point1.x, point1.y);
           this.tempCtx.stroke();
         }
-        this.tempCtx.globalAlpha = opacity;
+        this.tempCtx.globalAlpha = opacity;        
+      }
+      
+      
         this.tempCtx.globalCompositeOperation = "source-over";
         this.tempCtx.beginPath();
         this.tempCtx.moveTo(this.lastPoint.x, this.lastPoint.y);
         this.tempCtx.lineTo(point1.x, point1.y);
-        this.tempCtx.stroke();
+        this.tempCtx.stroke(); */
     },
     erase(point1) {
       this.draw(point1);
-      const currentCanvas = this.$refs["layerEl" + this.currentLayer.id][0];
-      currentCanvas.style.opacity = 0;
-      this.tempCtx2.globalCompositeOperation = "source-over";
-      this.tempCtx2.drawImage(currentCanvas, 0, 0);
-      
-      this.tempCtx2.globalCompositeOperation = "destination-out";
-      this.tempCtx2.drawImage(this.$refs.temporary, 0, 0);
+
+      this.brush.onNextRedraw = () => {
+          const img = new Image();  
+          img.onload = () => {
+             const currentCanvas = this.$refs["layerEl" + this.currentLayer.id][0];
+            currentCanvas.style.opacity = 0;
+            this.tempCtx.globalCompositeOperation = "copy";
+            this.tempCtx.drawImage(currentCanvas, 0, 0);
+            
+            this.tempCtx.globalCompositeOperation = "destination-out";
+            this.tempCtx.drawImage(img, 0, 0);
+          }
+          img.src = this.brush.canvas.toDataURL("image/png", 1);
+      };
+
+     
 
     },
     setCursor() {
@@ -784,7 +776,14 @@ export default {
 
         }
     },
-    setSize({width, height}) {
+    setSize({width, height}, init = false) {
+      if(!init) {
+        this.history.append({
+          instrument: "set-size",
+          layer: this.currentLayer,
+          prev: Object.assign({}, this.sizes)
+        })
+      }
       width = Math.round(width)
       height - Math.round(height)
       this.sizes = {width, height};
@@ -795,9 +794,12 @@ export default {
       this.canvasStyles = {
         ...this.canvasStyles, 
         ...this.canvasSizes
-      }
+      };
+      this.brush.setSizes(this.sizes);
     },
-    newDrawing() {
+    newDrawing(title = "New drawing") {
+      this.layers = [];
+      this.title = title;
       this.appendLayer("Layer 1");
     },
     appendLayer(name, paste) {

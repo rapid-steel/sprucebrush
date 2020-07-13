@@ -17,13 +17,17 @@
         <div>{{currentItem.title}}</div>
     </div>
     <div class="settings">
-        <div v-for="s in settings.filter(s => currentBrush[s.k] != undefined)" :key="s.k">
+        <div v-for="s in actualSettings" :key="s.k">
             <div>{{s.label}}:</div>
             <RangeInput :min="s.min" :max="s.max" :step="s.step" :horizontal="true"
             v-model="currentBrush[s.k]"
             @input="v => set(s.k, v)" />
         </div>
-
+    </div>
+     <div v-if="currentBrush.type">
+        <div v-for="(_, type) in types[currentInstrument]" :key="type" @click.stop="() => set('type', type)">
+            {{type}}                        
+        </div>
     </div>
 </div>
 
@@ -40,7 +44,8 @@ export default {
           settings: [
               {k: "radius", label: "Radius", min: 1, max: 2500, step: 1},
               {k: "opacity", label: "Opacity", min: .01, max: 1, step: .01},
-              {k: "blur", label: "Softness", min: 0, max: 100, step: 1},
+              {k: "hardness", label: "Hardness", min: .01, max: 1, step: .01},
+              {k: "spacing", label: "Spacing", min: 0.001, max: 10, step: .001},
               {k: "tolerance", label: "Tolerance", min: 1, max: 255, step: 1}
           ],
           instruments: [{
@@ -64,7 +69,10 @@ export default {
       }
   },
   computed: {
-      ...mapState(['currentInstrument']),
+      ...mapState(['currentInstrument', 'types']),
+      actualSettings() {
+          return this.settings.filter(s => this.currentBrush[s.k] != undefined);
+      },
       currentItem() {
           for(let i = 0; i < this.instruments.length; i++) {
               let item = this.instruments[i].items.find(item => item.name == this.currentInstrument);
@@ -73,8 +81,8 @@ export default {
           return {};
       },
       currentBrush() {
-        return this.$store.state.currentInstrumentSettings[this.currentInstrument];
-     }
+        return this.$store.getters.currentSettings;
+        }
   },
   mounted() {
 
