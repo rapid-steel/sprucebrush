@@ -11,11 +11,11 @@
             </div>
         </div>       
     </div>
-    <div class="current-instrument">
-        
+    <div class="current-instrument">        
         <img :src="currentItem.icon">
         <div>{{currentItem.title}}</div>
     </div>
+
     <div class="settings">
         <div v-for="s in actualSettings" :key="s.k">
             <div>{{s.label}}:</div>
@@ -24,9 +24,71 @@
             @input="v => set(s.k, v)" />
         </div>
     </div>
-     <div v-if="currentBrush.type">
-        <div v-for="(_, type) in types[currentInstrument]" :key="type" @click.stop="() => set('type', type)">
-            {{type}}                        
+
+    <div class="pixel" v-if="currentBrush.pixel !== undefined">
+        <input type="checkbox" :checked="currentBrush.pixel" @input="e => set('pixel', e.target.value)" > Pixel
+    </div>
+    
+    <div class="shapes" 
+    :class="{disabled: !!currentBrush.texture}" 
+    v-if="currentBrush.shape !== undefined">
+        <div class="caption">Shape</div>
+        <div>
+            <div v-for="shape in shapes" 
+            :key="shape.k" 
+            class="shape"
+            :class="{active: currentBrush.shape == shape.k, [shape.k]: true}"
+            @click.stop="() => set('shape', shape.k)">
+            </div>
+        </div>
+    </div>
+    <div class="gradients"
+        v-if="currentBrush.linearGradient !== undefined"
+    >
+        <div class="caption">Linear gradient</div>
+        <div
+          :class="{active: currentBrush.linearGradient == false}"
+          @click.stop="() => set('linearGradient', false)"
+         >None</div>
+        <div v-for="(gradient,i) in gradients" 
+        :key="i" class="gradient"
+        :class="{active: currentBrush.linearGradient == gradient}"
+        @click.stop="() => set('linearGradient', gradient)">
+        <div v-for="color in gradient" :key="color" class="color" :style="{background: color}"></div>
+        </div>
+        <div>Gradient length</div>
+        <RangeInput :min="10" :max="100000" :horizontal="true"
+        v-model="currentBrush.linearGradientLength"
+        @input="v => set('linearGradientLength', v)" />
+    </div>
+
+    <div class="gradients"
+        v-if="currentBrush.radialGradient !== undefined"
+    >
+        <div class="caption">Radial gradient</div>
+        <div
+          :class="{active: currentBrush.radialGradient == false}"
+          @click.stop="() => set('radialGradient', false)"
+         >None</div>
+        <div v-for="(gradient,i) in gradients" 
+        :key="i" class="gradient"
+        :class="{active: currentBrush.radialGradient == gradient}"
+        @click.stop="() => set('radialGradient', gradient)">
+        <div v-for="color in gradient" :key="color" class="color" :style="{background: color}"></div>
+        </div>
+    </div>
+    
+     <div class="textures" v-if="currentBrush.texture !== undefined">
+         <div class="caption">Texture</div>
+         <div
+          :class="{active: currentBrush.texture == false}"
+          @click.stop="() => set('texture', false)"
+         >None</div>
+        <div v-for="texture in textures" 
+        :key="texture.k" 
+        :class="{active: currentBrush.texture == texture}"
+        @click.stop="() => set('texture', texture)">
+            <img :src="texture.src">                
         </div>
     </div>
 </div>
@@ -69,7 +131,7 @@ export default {
       }
   },
   computed: {
-      ...mapState(['currentInstrument', 'types']),
+      ...mapState(['currentInstrument', 'types', 'textures', 'shapes', 'gradients']),
       actualSettings() {
           return this.settings.filter(s => this.currentBrush[s.k] != undefined);
       },
@@ -85,6 +147,7 @@ export default {
         }
   },
   mounted() {
+      console.log(this.currentBrush)
 
   },
   methods: {
@@ -143,6 +206,55 @@ export default {
 .settings {
     input {
         width: 50px;
+    }
+}
+
+.shapes {
+    &.disabled {
+        opacity: .5;
+        pointer-events: none;
+    }
+    & > div:nth-child(2) {
+        display: flex;
+        justify-content: space-around;
+    }
+    .shape {
+        flex: 1 1 40px;
+        &::after {
+            content: "";
+            display: block;
+            background: black;
+            width: 20px;
+            height: 20px;
+            margin: 5px auto;
+        }
+        &.round::after {
+            border-radius: 50%;            
+        }
+    }
+}
+.gradient {
+    width: 100px;
+    height: 30px;
+    display: flex;
+    justify-content: flex-start;
+    .color {
+        width: 15px;
+        height: 15px;
+        flex: 0 0 15px;
+        border-radius: 50%;
+    }
+}
+.shapes, .textures, .gradients {
+    & > div {
+        display: flex;
+    }
+    img {
+        width: 64px;
+        height: 64px;
+    }
+    .active {
+        background-color: grey;
     }
 }
 </style>

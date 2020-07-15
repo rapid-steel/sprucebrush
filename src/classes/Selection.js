@@ -21,7 +21,8 @@ export default class Selection {
       this.angle = 0;
 
       this.movePoint = [0, 0];
-  
+
+      this.clipPath = document.getElementById("sClip");
       this.calculateControls();
       this.drawSelection();
     }
@@ -34,6 +35,17 @@ export default class Selection {
 
       this.calculateControls();
       this.drawSelection();
+    }
+    setClipPath() {
+      this.clipPath.setAttribute(
+        "d", `
+        M ${this.bbox[0].join(",")}
+        L ${this.bbox[1][0]},${this.bbox[0][1]}
+        L ${this.bbox[1].join(",")}
+        L ${this.bbox[0][0]},${this.bbox[1][1]}
+        Z
+      `);
+      console.log(this.clipPath)
     }
     drawClipPath(ctx) {
       ctx.beginPath();
@@ -336,6 +348,9 @@ export default class Selection {
       }
 
       this.selCtx.restore();
+
+      this.setClipPath();
+      
     }
     clear() {
       this.origin = [0, 0];

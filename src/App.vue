@@ -23,7 +23,7 @@
                 ...canvasSizes, 
                 opacity: l.opacity + '%', 
                 visibility: l.visible ? 'visible' : 'hidden',
-                zIndex: i + 100 + (i > layers.indexOf(currentLayer) ? 10 : 0)
+                zIndex: i + 100 + (i > layers.indexOf(currentLayer) ? 10 : 0),
               }" 
               :width="sizes.width" 
               :height="sizes.height" 
@@ -42,7 +42,8 @@
               :style="{
                 ...canvasSizes, 
                 opacity: currentInstrument == 'eraser' ? 0 : currentLayer ? currentLayer.opacity + '%' : 0,
-                zIndex: 102 + layers.indexOf(currentLayer)
+                zIndex: 102 + layers.indexOf(currentLayer),
+                clipPath: selection ? 'url(#selectionClipPath)' : ''
               }" 
               :width="sizes.width" 
               :height="sizes.height" 
@@ -78,17 +79,11 @@
           @remove-layer="removeLayer"
         />
     </div>
-    
-
-
-
-    
-   
-
-
-
-    
-
+    <svg style="position: fixed; z-index: -1;">
+    <clipPath id="selectionClipPath">
+      <path id="sClip" fill="black"/>
+    </clipPath>
+  </svg>
   </div>
 </template>
 
@@ -150,17 +145,13 @@ export default {
   },
   watch: {
     currentColor() {
-      this.brush.setParams({
-        color: getGlColor(this.currentColor)
-      });
+      this.setBrushParams();
     },
     currentBrush: {
       deep: true,
-      handler() {
-        this.setCursor();    
-        this.brush.setParams({
-          ...this.currentBrush
-        });
+      handler(val, prev) {
+        this.setCursor();
+        this.setBrushParams();
       }
     },
     currentInstrument() {
@@ -199,14 +190,11 @@ export default {
   },
   mounted() {
     this.brush = new Brush(this.$refs.brush);
+    this.setBrushParams();
     this.setSize({
       width: 800,
       height: 600
     }, true);
-    this.brush.setParams({
-      ...this.currentBrush,
-      color: getGlColor(this.currentColor)
-    });
     this.tempCtx = this.$refs.temporary.getContext("2d");
     this.selImgCtx = this.$refs.selectionImg.getContext("2d");
     this.selCtx = this.$refs.selection.getContext("2d");
@@ -216,6 +204,18 @@ export default {
     this.setCursor();
   },
   methods: {
+    setBrushParams() {
+      this.brush.setParams({
+        ...this.currentBrush, 
+        color: getGlColor(this.currentColor),
+        linearGradient: this.currentBrush.linearGradient ? 
+          this.currentBrush.linearGradient.map(getGlColor) 
+        : false,
+        radialGradient: this.currentBrush.radialGradient ? 
+          this.currentBrush.radialGradient.map(getGlColor) 
+        : false,
+      });
+    },
     
     getTransform() {
       
@@ -617,7 +617,7 @@ export default {
 
 
      } else {
-        this.tempCtx.putImageData(
+        this.currentLayer.ctx.putImageData(
           new ImageData(data1, this.sizes.width), 0, 0, 0, 0, this.sizes.width, this.sizes.height);
      }
       
@@ -655,17 +655,11 @@ export default {
     },
     applyTemp() {
       if(this.selection) {
+        this.currentLayer.ctx.save();
+        this.selection.drawClipPath(this.currentLayer.ctx);
+        this.currentLayer.ctx.clip();
 
-         if(this.currentInstrument == "eraser") {
-            
-            this.selection.sourceCopy.globalCompositeOperation = "copy";
-            //this.selection.addSource(this.tempCtx2);
-          } else  {            
-            this.selection.sourceCopy.globalCompositeOperation = "source-over";
-            this.selection.addSource(this.tempCtx);       
-          }
-
-      } else {
+      } 
          if(this.currentInstrument == "eraser") {
             const currentCanvas = this.$refs["layerEl" + this.currentLayer.id][0];
             currentCanvas.style.opacity = 1;
@@ -673,22 +667,21 @@ export default {
             this.currentLayer.ctx.drawImage(this.$refs.temporary, 0, 0);
             this.brush.dropLine();
 
-          } else  {            
+          } else if(this.currentInstrument == "brush")  {            
             this.currentLayer.ctx.globalCompositeOperation = "source-over";
             const img = new Image();
             
             img.onload = () => {
               this.currentLayer.ctx.drawImage(img, 0, 0, this.sizes.width, this.sizes.height);   
               this.brush.dropLine();   
+              this.currentLayer.ctx.restore();
             }
             this.brush.update = false;
             this.brush.render();
-            img.src = this.brush.canvas.toDataURL("image/png", 1);
-            
-            
+            img.src = this.brush.canvas.toDataURL("image/png", 1);           
               
           }
-      }
+      
 
           
         
@@ -698,50 +691,6 @@ export default {
     },
     draw(point) {
       this.brush.addPoint([point.x, point.y], point.pressure);
-    /*  this.tempCtx.lineWidth = this.currentBrush.radius *( 
-        this.currentBrush.pressure ? (1 + this.currentBrush.pressure.radius * (this.lastPoint.pressure - 1)) 
-      : 1);
-      if(this.currentBrush.texture) {
-        this.tempCtx.strokeStyle = this.texture.pattern;
-
-        //
-      } else {
-        this.tempCtx.strokeStyle = this.currentColor;
-      }
-      
-      this.tempCtx.lineCap ="round";
-      this.tempCtx.filter = "";
-      if(this.currentBrush.blur) {
-        let lineWidth = this.tempCtx.lineWidth;
-        this.tempCtx.lineWidth = lineWidth * (.5 + (100 - this.currentBrush.blur) / 100) || 1;
-        this.tempCtx.filter = `blur(${lineWidth / 200 * this.currentBrush.blur}px)`;
-      } 
-
-
-      
-
-      this.tempCtx.globalAlpha = 1;
-      if(this.currentBrush.opacity) {
-        let opacity = this.currentBrush.opacity * (
-          this.currentBrush.pressure ? (1 + this.currentBrush.pressure.opacity * (this.lastPoint.pressure - 1)) 
-        : 1);
-        if(opacity < 1) {
-          this.tempCtx.globalCompositeOperation = "destination-out";                
-          
-          this.tempCtx.beginPath();
-          this.tempCtx.moveTo(this.lastPoint.x, this.lastPoint.y);
-          this.tempCtx.lineTo(point1.x, point1.y);
-          this.tempCtx.stroke();
-        }
-        this.tempCtx.globalAlpha = opacity;        
-      }
-      
-      
-        this.tempCtx.globalCompositeOperation = "source-over";
-        this.tempCtx.beginPath();
-        this.tempCtx.moveTo(this.lastPoint.x, this.lastPoint.y);
-        this.tempCtx.lineTo(point1.x, point1.y);
-        this.tempCtx.stroke(); */
     },
     erase(point1) {
       this.draw(point1);
@@ -765,6 +714,7 @@ export default {
     },
     setCursor() {
       this.cursorStyles.transform = null;
+       this.cursorStyles["background-image"] = null;
       if(["brush", "eraser"].indexOf(this.currentInstrument) == -1) {
         this.cursorStyles.width = "20px";
         this.cursorStyles.height = "20px";
@@ -773,8 +723,13 @@ export default {
         this.cursorStyles.width = this.currentBrush.radius  + "px";
         this.cursorStyles.height =this.currentBrush.radius  + "px";
         this.cursorStyles["background-color"] = "transparent"; 
-
-        }
+        if(this.currentBrush.texture) {
+          this.cursorClasses = ["texture"];
+          this.cursorStyles["background-image"] = `url(${this.currentBrush.texture.src})`;
+        } else {
+          this.cursorClasses = [this.currentBrush.shape];
+        }        
+      }
     },
     setSize({width, height}, init = false) {
       if(!init) {
@@ -806,7 +761,7 @@ export default {
       if(!name) {
         name = this.layers.reduce((last, layer) => {
           if(/Layer (\d+)/.test(layer)) {
-            if(layer > last) 
+            if(layer >= last) 
             return "Layer " + (1 + parseInt(layer.split(" ")[1]));
           }
           return last;
@@ -937,11 +892,17 @@ export default {
     z-index: 10000000000;
     transform: translate(-50%,-50%);
     
-    &.brush, &.eraser, &.picker, &.fill {
-      border-radius: 50%;
+    &.brush, &.eraser {
       border: 1px solid black;
-      box-shadow: 0 0
+      &.round {
+        border-radius: 50%;
+      }      
+      &.texture {
+        background-size: cover;
+        border-color: transparent;
+      }
     }
+
     &.fill {
       width: 2px!important;
       height: 2px!important;

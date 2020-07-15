@@ -1,8 +1,10 @@
 <template>
     <div class="color-picker">
-        <color-picker v-model="colorVal" @color-change="select" :width="180" :height="180"></color-picker>       
+        <color-picker :value="colorVal" @color-change="select" :width="180" :height="180"></color-picker>       
         <div class="colors">
-            <div class="color-selected" :style="{backgroundColor: colorVal}"></div>
+            <div class="color-selected foreground" 
+            :style="{backgroundColor: currentColor}"></div>
+            <div class="color-selected background" :style="{backgroundColor: colorBG}"></div>
             <div class="pallete">
                 <div class="add-color" @click="() => addColor(colorVal)">+</div>
                 <div v-for="c in pallete" :key="c" class="color" :style="{backgroundColor: c}" @click="() => select(c)"></div>
@@ -15,6 +17,7 @@
 <script>
 import ColorPicker from 'vue-color-picker-wheel';
 import {toHex} from "../functions/color-functions";
+import {mapState} from "vuex";
 
 export default {
   name: 'Instruments',
@@ -23,18 +26,17 @@ export default {
   },
   data() {
       return {
-          colorVal: "",
+          colorToEdit: "fg",
           pallete: []
       }
   },
   computed: {
-      color() {
-          return this.$store.state.currentColor;
-      },
-  },
-  watch: {
-      color() { 
-        this.colorVal = toHex(this.color);
+      ...mapState(['currentColor', 'colorBG']),
+      colorVal() {
+          return toHex(
+            this.colorToEdit === "fg" ? 
+              this.currentColor 
+            : this.colorBG);
       }
   },
   mounted() {
@@ -45,7 +47,7 @@ export default {
           this.pallete.push(color);
       },
       select(color) {
-          this.$store.commit("selectColor", color);
+          this.$store.commit("selectColor", [this.colorToEdit, color]);
       }
   }
 }

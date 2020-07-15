@@ -7,20 +7,20 @@ Vue.use(Vuex)
 export default new Vuex.Store({
   state: {
     currentInstrument: "brush",
-    currentColor: "black",
+    currentColor: "rgb(0,0,0)",
+    colorBG: "rgb(255,255,255)",
     currentLayer: 0,
-    types: {
-      brush: {
-        plain: {
-          radius: true, 
-          opacity: true, 
-          blur: true, 
-          pressure: true,
-          spacing: true
-        },
-        watercolor: {radius: true, texture: require("@/assets/img/texture-watercolor.jpg")}
-      }
-    },
+    textures: [
+      {k: "tex1", src: require("./assets/img/texture1.png") }
+    ],
+    shapes: [
+      {k: "round"}, {k: "rect"}
+    ],
+    gradients: [
+      ["rgb(255,0,0)", "rgb(255,255,0)", "rgb(0,255,0)", "rgb(0,255,255)", "rgb(0,0,255)", "rgb(255,0,255)"],
+      ["#3F51B5", "#4caf50", "#ffeb3b"], 
+      ["#673ab7", "#ff9800"]
+    ],
     currentInstrumentSettings: {
       picker: {
 
@@ -29,8 +29,13 @@ export default new Vuex.Store({
         hardness: 1,
         radius: 50,
         opacity: 1,
-        spacing: .05,        
-       // type: "plain",
+        spacing: .05,  
+        shape: "round",
+        pixel: false,      
+        texture: false,
+        linearGradient: false,
+        linearGradientLength: 100,
+        radialGradient: false,
         pressure: {
           radius: 1,
           opacity: 0
@@ -39,6 +44,9 @@ export default new Vuex.Store({
       eraser: {
         radius: 5,
         opacity: 1,
+        shape: "round",
+        pixel: false,      
+        texture: false,
         pressure: {
           radius: 1,
           opacity: 0,
@@ -80,8 +88,9 @@ export default new Vuex.Store({
     selectInstrument(state, inst) {
       state.currentInstrument = inst;
     },
-    selectColor(state, color) {
-      state.currentColor = color;
+    selectColor(state, [colorType, color]) {
+      if(colorType == "fg") state.currentColor = color;
+      else if(colorType == "bg") state.colorBG = color;
     },
     changeSettings(state, {instrument, prop, val}) {
       state.currentInstrumentSettings[instrument][prop] = val;
