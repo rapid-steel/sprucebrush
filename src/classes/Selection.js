@@ -45,7 +45,7 @@ export default class Selection {
         L ${this.bbox[0][0]},${this.bbox[1][1]}
         Z
       `);
-      console.log(this.clipPath)
+    //console.log(this.clipPath)
     }
     drawClipPath(ctx) {
       ctx.beginPath();
@@ -88,12 +88,15 @@ export default class Selection {
       this.sourceCopy.clearRect(0, 0, this.sourceCopy.canvas.width, this.sourceCopy.canvas.height);
       this.sourceCopy.drawImage(this.imgCtx.canvas, 0, 0, source.canvas.width, source.canvas.height);
       this.imgCtx.restore();
-  
+
+      source.save();  
       source.globalCompositeOperation = "destination-out";
       this.drawClipPath(source);
       source.stroke();
       source.fill();
       source.globalCompositeOperation = "source-over";
+      source.restore();
+      
       this.started = true;
 
       this.drawSelection();
@@ -354,8 +357,9 @@ export default class Selection {
     }
     clear() {
       this.origin = [0, 0];
-      this.imgCtx.clearRect(0, 0, this.imgCtx.canvas.width, this.imgCtx.canvas.height);
       this.imgCtx.restore();
+      this.imgCtx.clearRect(0, 0, this.imgCtx.canvas.width, this.imgCtx.canvas.height);
+      
     }
     drop() {
       this.clear();

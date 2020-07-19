@@ -1,5 +1,5 @@
 <template>
-<div>
+<div id="instruments">
     <div class="btn-container">
         <div v-for="group in instruments" :key="group.group" class="group">
             <div v-for="t in group.items" 
@@ -18,95 +18,162 @@
 
     <div class="settings">
         <div v-for="s in actualSettings" :key="s.k">
-            <div>{{s.label}}:</div>
+            <div class="caption">{{s.label}}:</div>
             <RangeInput :min="s.min" :max="s.max" :step="s.step" :horizontal="true"
             v-model="currentBrush[s.k]"
-            @input="v => set(s.k, v)" />
+            @input="v => set({[s.k]: v})" />
         </div>
-    </div>
 
-    <div class="pixel" v-if="currentBrush.pixel !== undefined">
-        <input type="checkbox" :checked="currentBrush.pixel" @input="e => set('pixel', e.target.value)" > Pixel
-    </div>
-    
-    <div class="shapes" 
-    :class="{disabled: !!currentBrush.texture}" 
-    v-if="currentBrush.shape !== undefined">
-        <div class="caption">Shape</div>
-        <div>
-            <div v-for="shape in shapes" 
-            :key="shape.k" 
-            class="shape"
-            :class="{active: currentBrush.shape == shape.k, [shape.k]: true}"
-            @click.stop="() => set('shape', shape.k)">
+        <div class="input-checkbox" v-if="currentBrush.overlay !== undefined">
+            <div class="caption">Overlay</div>
+            <input type="checkbox" 
+            :checked="currentBrush.overlay" 
+            @input="e => set({overlay: !!e.target.checked})" >
+        </div>
+
+        <div class="shapes" 
+            :class="{disabled: !!currentBrush.texture}" 
+            v-if="currentBrush.shape !== undefined">
+            <div class="caption">Shape</div>
+            <div v-if="!currentBrush.texture">
+                <div v-for="shape in shapes" 
+                :key="shape.k" 
+                class="shape"
+                :class="{active: currentBrush.shape == shape.k, [shape.k]: true}"
+                @click.stop="() => set({shape: shape.k})">
+                </div>
+            </div>
+            <div class="input-checkbox" v-if="currentBrush.pixel !== undefined && !currentBrush.texture">
+                <div class="caption">Pixel</div>
+                <input type="checkbox" 
+                :checked="currentBrush.pixel" 
+                @input="e => set({pixel: !!e.target.checked})" >
+            </div>
+        </div>
+
+        <div class="textures" v-if="currentBrush.texture !== undefined">
+            <div class="side-list-header">
+                <div class="caption">Texture</div>
+                <SideList>
+                    <div class="texture notexture" 
+                        :class="{active: currentBrush.texture == false}"
+                        @click.stop="() => set({texture: false})"
+                        ></div>
+                    <div class="texture"
+                        v-for="texture in textures" 
+                        :key="texture.k" 
+                        :class="{active: currentBrush.texture == texture}"
+                        @click.stop="() => set({texture})">
+                        <img :src="texture.src">                
+                    </div>
+                </SideList>
+            </div>
+            <div v-if="currentBrush.texture">
+                <div class="texture current">
+                    <img :src="currentBrush.texture.src"> 
+                </div>
+            </div>
+        </div>
+
+        <div class="gradients"
+            v-if="currentBrush.linearGradient !== undefined"
+            :class="{disabled: !!currentBrush.radialGradient}" 
+        >
+            <div class="side-list-header">
+                <div class="caption">Linear gradient</div>
+                <SideList>
+                    <div class="gradient nogradient"
+                        :class="{active: currentBrush.linearGradient == false}"
+                        @click.stop="() => set({linearGradient: false})">None
+                    </div>
+                    <div v-for="(gradient,i) in gradients" 
+                        :key="i" class="gradient"
+                        :class="{active: currentBrush.linearGradient == gradient}"
+                        :style="gradient | gradientBG"
+                        @click.stop="() => set({linearGradient: gradient, radialGradient: false})">
+                    </div>
+                    <template slot=footer>
+                        <button class="create-gradient" @click="createGradient">Create gradient</button>
+                    </template>
+                </SideList>
+            </div>
+
+            <div v-if="currentBrush.linearGradient">
+                <div class="gradient current" :style="currentBrush.linearGradient | gradientBG">
+                </div>
+            </div>
+
+            <div class="gradient-length" v-if="currentBrush.linearGradient">
+                <div class="caption">Length</div>
+                    <RangeInput :min="10" :max="100000" :horizontal="true"
+                    v-model="currentBrush.linearGradientLength"
+                    @input="v => set({linearGradientLength: v})" />
+            </div>       
+        </div>
+
+        <div class="gradients"
+            v-if="currentBrush.radialGradient !== undefined"
+            :class="{disabled: !!currentBrush.linearGradient}" 
+        >
+            <div class="side-list-header">
+                <div class="caption">Radial gradient</div>
+                <SideList>
+                    <div
+                        class="gradient nogradient"
+                        :class="{active: currentBrush.radialGradient == false}"
+                        @click.stop="() => set({radialGradient: false})"
+                        >None</div>
+                    <div v-for="(gradient,i) in gradients" 
+                        :key="i" class="gradient"
+                        :class="{active: currentBrush.radialGradient == gradient}"
+                        :style="gradient | gradientBG"
+                        @click.stop="() => set({radialGradient: gradient, linearGradient: false})">
+                    </div>
+                    <template slot=footer>
+                        <button class="create-gradient" @click="createGradient">Create gradient</button>
+                    </template>
+                </SideList>
+            </div>
+
+            <div v-if="currentBrush.radialGradient">
+                <div class="gradient current radial" :style="currentBrush.radialGradient | gradientBG('radial')">
+                </div>
             </div>
         </div>
     </div>
-    <div class="gradients"
-        v-if="currentBrush.linearGradient !== undefined"
-    >
-        <div class="caption">Linear gradient</div>
-        <div
-          :class="{active: currentBrush.linearGradient == false}"
-          @click.stop="() => set('linearGradient', false)"
-         >None</div>
-        <div v-for="(gradient,i) in gradients" 
-        :key="i" class="gradient"
-        :class="{active: currentBrush.linearGradient == gradient}"
-        @click.stop="() => set('linearGradient', gradient)">
-        <div v-for="color in gradient" :key="color" class="color" :style="{background: color}"></div>
-        </div>
-        <div>Gradient length</div>
-        <RangeInput :min="10" :max="100000" :horizontal="true"
-        v-model="currentBrush.linearGradientLength"
-        @input="v => set('linearGradientLength', v)" />
-    </div>
 
-    <div class="gradients"
-        v-if="currentBrush.radialGradient !== undefined"
-    >
-        <div class="caption">Radial gradient</div>
-        <div
-          :class="{active: currentBrush.radialGradient == false}"
-          @click.stop="() => set('radialGradient', false)"
-         >None</div>
-        <div v-for="(gradient,i) in gradients" 
-        :key="i" class="gradient"
-        :class="{active: currentBrush.radialGradient == gradient}"
-        @click.stop="() => set('radialGradient', gradient)">
-        <div v-for="color in gradient" :key="color" class="color" :style="{background: color}"></div>
-        </div>
-    </div>
     
-     <div class="textures" v-if="currentBrush.texture !== undefined">
-         <div class="caption">Texture</div>
-         <div
-          :class="{active: currentBrush.texture == false}"
-          @click.stop="() => set('texture', false)"
-         >None</div>
-        <div v-for="texture in textures" 
-        :key="texture.k" 
-        :class="{active: currentBrush.texture == texture}"
-        @click.stop="() => set('texture', texture)">
-            <img :src="texture.src">                
-        </div>
-    </div>
+
+
+    <GradientCreator 
+        v-if="gradientToEdit" 
+        v-model="gradientToEdit.gradient"
+        @save="saveGradient"
+        @close="() => gradientToEdit = null" 
+    />
+    
+
 </div>
 
 </template>
 
 <script>
 import {mapState} from "vuex";
-import RangeInput from "./RangeInput";
+import SideList from "./SideList";
+import GradientCreator from "./GradientCreator";
+
 export default {
   name: 'Instruments',
-  components: {RangeInput},
+  components: {
+      SideList, GradientCreator
+    },
   data() {
       return {
+          gradientToEdit: null,
           settings: [
-              {k: "radius", label: "Radius", min: 1, max: 2500, step: 1},
+              {k: "radius", label: "Diameter", min: 1, max: 1000, step: 1},
               {k: "opacity", label: "Opacity", min: .01, max: 1, step: .01},
-              {k: "hardness", label: "Hardness", min: .01, max: 1, step: .01},
+         //     {k: "hardness", label: "Hardness", min: .01, max: 1, step: .01},
               {k: "spacing", label: "Spacing", min: 0.001, max: 10, step: .001},
               {k: "tolerance", label: "Tolerance", min: 1, max: 255, step: 1}
           ],
@@ -131,7 +198,7 @@ export default {
       }
   },
   computed: {
-      ...mapState(['currentInstrument', 'types', 'textures', 'shapes', 'gradients']),
+      ...mapState(['currentInstrument', 'types', 'textures', 'shapes', 'gradients', 'currentColor', 'colorBG']),
       actualSettings() {
           return this.settings.filter(s => this.currentBrush[s.k] != undefined);
       },
@@ -147,24 +214,46 @@ export default {
         }
   },
   mounted() {
-      console.log(this.currentBrush)
-
   },
   methods: {
+      createGradient() {
+          this.gradientToEdit = {
+              gradient: [this.currentColor, this.colorBG],
+              index: null
+          };
+      },
+      saveGradient() {
+          if(this.gradientToEdit.index == null) {
+              this.$store.commit("createGradient", this.gradientToEdit.gradient);
+          } else {
+              this.$store.commit("editGradient", this.gradientToEdit);
+          }
+          this.gradientToEdit = false;
+      },
       select(instrument) {
           this.$store.commit("selectInstrument", instrument.name);
       },
-       set(prop, val) {
+       set(settings) {
           this.$store.commit("changeSettings", {
               instrument: this.currentInstrument,
-              prop, val
+              settings
           });
       }
   }
 }
 </script>
 
-<style scoped lang="scss">
+<style lang="scss">
+@import "../assets/styles/colors";
+
+#instruments {
+    width: $tool-panel-width;
+}
+
+.caption {
+    font: $font-tools;
+}
+
 .btn-container {      
     .group {
         border: 1px solid black;
@@ -173,18 +262,16 @@ export default {
         align-content: flex-start;
         align-items: flex-start;
         flex-wrap: wrap;  
-        width: 60px;
+        width: $tool-size * 2;
     }
     .btn {
-        flex: 1 0 30px;
-        height: 30px;
-        max-width: 30px;
-        
+        flex: 1 0 $tool-size;
+        height: $tool-size;
+        max-width: $tool-size;        
         img {
             width: 100%;
             height: 100%;
-        }
-        
+        }        
         &.selected {
             filter: invert(1);
         }
@@ -193,21 +280,44 @@ export default {
 
 .current-instrument {
     text-align: center;
-    max-width: 60px;
-    font: bold 10px Helvetica;
-    margin-top: 10px;
+    max-width: $tool-size * 2;
+    font: $font-tool-title;
+    margin: 10px 0 20px;
     img {
-        max-width: 50px;
-        width: 50px;
-        height: 50px;
+        max-width: $tool-selected-size;
+        width: $tool-selected-size;
+        height: $tool-selected-size;
     }
 }
 
 .settings {
-    input {
-        width: 50px;
+    font: $font-tools;
+    & > div {
+        margin: 10px 0;
     }
 }
+
+.gradient-length {
+    width: 100%;
+}
+.settings, .gradient-length {
+    .range-input {
+        text-align: right;
+        margin-top: 5px;
+        width: 100%;
+    }
+    input {
+        border: $input-border;
+        border-radius: 0;
+        width: 40px;
+        padding: 5px;
+        font: $font-input;
+        text-align: right;
+    }
+}
+
+
+
 
 .shapes {
     &.disabled {
@@ -219,13 +329,18 @@ export default {
         justify-content: space-around;
     }
     .shape {
-        flex: 1 1 40px;
+        flex: 1 1 $shape-size;
+        max-width: $shape-size * 1.5;
+        margin: 5px;
+        &.active {
+            box-shadow: 0 0 1px 1px $color-accent2;
+        }
         &::after {
             content: "";
             display: block;
             background: black;
-            width: 20px;
-            height: 20px;
+            width: $shape-size;
+            height: $shape-size;
             margin: 5px auto;
         }
         &.round::after {
@@ -233,28 +348,124 @@ export default {
         }
     }
 }
-.gradient {
-    width: 100px;
-    height: 30px;
+.notexture {
+    background-image: url("../assets/img/none.jpg");
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-color: lightgrey;
+}
+
+.nogradient {
+    background-image: url("../assets/img/none.jpg");
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.textures, .gradients {
+    margin-top: 20px!important;
     display: flex;
-    justify-content: flex-start;
-    .color {
-        width: 15px;
-        height: 15px;
-        flex: 0 0 15px;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    .side-list-header {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+    }
+    .footer {
+        flex: 2 0 100%;
+    }
+}
+
+.gradients {
+    .expanded-list {
+        width: $gradient-list-size * 2 + 50px;
+    }
+
+}
+
+.input-checkbox {
+    display: flex;
+    justify-content: space-between;
+    input[type=checkbox] {
+        -webkit-appearance: none;
+        padding: 0;
+        border: none;
+        width: $ckbx-size;
+        height: $ckbx-size;
+        box-sizing: border-box;
+        &::after {
+            visibility: visible;
+            border: $input-border;
+            border-radius: 2px;
+            width: $ckbx-size;
+            height: $ckbx-size;
+            display: inline-block;
+            content: " ";
+            pointer-events: none;
+            line-height: $ckbx-size;
+            text-align: center;
+        }
+        &:checked {
+            &::after {
+                background: $color-accent;                
+                content: '\2713';
+                color: white;
+            }        
+        }
+    }
+}
+
+.texture {
+    height: $texture-size;
+    flex: 1 0 $texture-size;
+    max-width: $texture-size;
+    margin: 2.5px;
+    &.active {
+        box-shadow: 0 0 1px 2px $color-accent2;
+    }
+    img {
+        width: $texture-size;
+        height: $texture-size;
+    }
+}
+.gradient {
+    flex: 1 0 $gradient-list-size;
+    margin: 2.5px;
+    width: $gradient-list-size;
+    max-width: $gradient-list-size;
+    &.active {
+        box-shadow: 0 0 1px 2px $color-accent2;
+    }
+    height: 30px;
+    border: 1px solid black;
+    &.current {
+        max-width: $tool-panel-width - 10px;
+    }
+    &.radial {
+        width: $gradient-radial-size;
+        height: $gradient-radial-size;
         border-radius: 50%;
     }
 }
-.shapes, .textures, .gradients {
-    & > div {
-        display: flex;
-    }
-    img {
-        width: 64px;
-        height: 64px;
-    }
-    .active {
-        background-color: grey;
+
+
+
+.footer {
+    display: flex;
+    justify-content: center;
+    margin: 10px 0;
+    button {
+        background: $btn-bg;
+        background: {
+            size: 100% 100%;
+            repeat: no-repeat;
+        };
+        border: none;
+        padding: 12px 20px;
+        margin: 0 10px;
+        font: $font-btn;
     }
 }
+
 </style>

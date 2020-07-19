@@ -1,0 +1,40 @@
+@import url('https://fonts.googleapis.com/css2?family=Russo+One&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap');
+
+
+$color-bg: white;
+$color-text: black;
+$color-accent: #58906c;
+$color-accent2: #2ae042;
+$color-accent3: lightgrey;
+
+$color-selected: blue;
+
+$font-tools: 12px Russo One;
+$font-tool-title: 13px Russo One;
+$font-menu: 14px Russo One;
+$font-window: 14px Russo One;
+$font-btn: 18px Russo One;
+$font-input: bold 16px Nanum Gothic Coding;
+$font-input-small: 14px Nanum Gothic Coding;
+$font-layer: 14px Nanum Gothic Coding;
+$font-layer-button: 30px Russo One;
+$font-select: 14px Russo One;
+
+
+$btn-bg: url("../assets/img/btn-frame.png");
+
+$window-border: 2px black solid;
+$input-border: 1px $color-accent solid;
+$layer-border: 1px lightgrey solid;
+
+$tool-panel-width: 80px;
+$tool-size: 40px;
+$tool-selected-size: 60px;
+$shape-size: 15px;
+$ckbx-size: 18px;
+$btn-top-size: 60px;
+$texture-size: 64px;
+$gradient-list-size: 100px;
+$gradient-radial-size: 60px;
+$color-selected-size: 40px;

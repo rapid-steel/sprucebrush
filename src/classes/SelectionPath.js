@@ -27,7 +27,7 @@ export default class SelectionPath extends Selection {
         ctx.moveTo(...this.path[0]);
         this.path.slice(1).forEach(p => {
             ctx.lineTo(...p);
-        })
+        });
         ctx.closePath();
       }
 }

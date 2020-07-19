@@ -158,31 +158,16 @@ export default {
         this.setCursor();    
       
         if(this.currentInstrument.indexOf("selection") == 0) {
-          if(this.selection) {
-            //this.selection.startTransform(this.currentLayer.ctx);
+          if(this.selection) {            
+            this.selection.startTransform(this.currentLayer.ctx);
           }
         }   
         if(["brush", "eraser"].indexOf(this.currentInstrument) != -1) {
-          /*
+          
           if(this.selection) {
-            
-            this.tempCtx.restore();
-            this.tempCtx2.restore();
-            this.tempCtx.save();
-            this.selection.rotate(this.tempCtx)
-            this.selection.drawClipPath(this.tempCtx);
-            this.tempCtx.clip();
-            this.selection.rotate(this.tempCtx, -1)
-            this.tempCtx2.save();
-            this.selection.rotate(this.tempCtx2)
-            this.selection.drawClipPath(this.tempCtx2);
-            this.tempCtx2.clip();
-            this.selection.rotate(this.tempCtx2, -1)
-          } else {
-            this.tempCtx.restore();
-            this.tempCtx2.restore();
-          }
-          */
+            this.currentLayer.ctx.drawImage(this.$refs.selectionImg, 0, 0, this.sizes.width, this.sizes.height);
+          } 
+          
           
         }        
       
@@ -590,6 +575,8 @@ export default {
     },
     applySelection() {
       if(this.selection && this.selection.started) {
+        this.currentLayer.ctx.restore();
+        this.currentLayer.ctx.globalCompositeOperation = "source-over";
         this.currentLayer.ctx.drawImage(this.$refs.selectionImg, 0, 0, this.sizes.width, this.sizes.height);
         this.selection.drop();
         this.selection = null;           
@@ -654,12 +641,7 @@ export default {
 
     },
     applyTemp() {
-      if(this.selection) {
-        this.currentLayer.ctx.save();
-        this.selection.drawClipPath(this.currentLayer.ctx);
-        this.currentLayer.ctx.clip();
-
-      } 
+     
          if(this.currentInstrument == "eraser") {
             const currentCanvas = this.$refs["layerEl" + this.currentLayer.id][0];
             currentCanvas.style.opacity = 1;
@@ -672,18 +654,23 @@ export default {
             const img = new Image();
             
             img.onload = () => {
+               if(this.selection) {
+                 this.currentLayer.ctx.save();
+                 this.selection.drawClipPath(this.currentLayer.ctx);
+                 this.currentLayer.ctx.clip();
+                } 
               this.currentLayer.ctx.drawImage(img, 0, 0, this.sizes.width, this.sizes.height);   
+              if(this.selection) 
+                this.currentLayer.ctx.restore();
               this.brush.dropLine();   
-              this.currentLayer.ctx.restore();
+              
             }
             this.brush.update = false;
             this.brush.render();
             img.src = this.brush.canvas.toDataURL("image/png", 1);           
               
           }
-      
-
-          
+               
         
           
           this.tempCtx.clearRect(0,0,this.sizes.width, this.sizes.height);
@@ -837,6 +824,26 @@ export default {
 </script>
 
 <style lang="scss">
+@import '~vue-select/dist/vue-select.css';
+
+input[type=file] {
+    width: 0;
+    visibility: hidden;
+}
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0; 
+}
+input[type=number] {
+    -moz-appearance:textfield; /* Firefox */
+}
+
+*:focus {
+    outline: none;
+}
+
+
 #app {
   position: absolute;
   left: 0;
@@ -860,15 +867,18 @@ export default {
       max-width: 100%;
     }
     &.right {
-      flex: 1 1 200px;
-      max-width: 200px;
+      flex: 1 1 250px;
+      max-width: 250px;
     }
   }
   #canvas-container {
     flex: 2 1 100%;
     border: 2px solid black;
     overflow: auto;
-    background: grey;
+    background-image: url("./assets/img/forest.jpg");
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-color: grey;
     #canvas {
       transform-origin: 0 0;
       background: white;

@@ -1,6 +1,9 @@
 <template>
     <div id="layers">
-        <button @click="() => $emit('add-layer', 'Layer ' + (1+layers.length))">Add layer</button>
+        <div>
+            <button @click="() => $emit('add-layer', 'Layer ' + (1+layers.length))">+</button>
+            <div class="caption">Layers</div>
+        </div>
         <draggable :list="layersReverse" group="layers" @end="e => $emit('reorder-layer', e)" >
             <div v-for="l in layersReverse" 
             :key="l.id"
@@ -28,11 +31,10 @@
 
 <script>
 import Draggable from 'vuedraggable';
-import RangeInput from "./RangeInput";
 export default {
   name: 'Layers',
   components: {
-      Draggable, RangeInput
+      Draggable
   },
   props: ['layers', 'currentLayer'],
   data() {
@@ -55,20 +57,69 @@ export default {
 }
 </script>
 
-<style scoped lang="scss">
+<style lang="scss">
+
+@import "../assets/styles/colors";
+
+#layers {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    & > * {
+        background: $color-bg;
+    }
+    & > div:first-child {
+        display: flex;
+        align-items: center;
+        & > button {
+            cursor: pointer;
+            width: 40px;
+            flex: 0 0 40px;
+            height: 40px;
+            border: none;
+            background: $color-bg;
+            color: $color-text;
+            font: $font-layer-button;
+            margin: 1px;
+        }
+        .caption {
+            flex: 2 2 100%;
+            text-align: right;
+            padding-right: 20px;
+            font-size: 14px;
+        }
+    }
+    & > div:nth-child(2) {
+        max-height: 300px;
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+}
+
 .layer {
     padding: 5px;
     margin: 1px;
-    border: 1px lightgrey solid;
+    border: $layer-border;    
     display: flex;
+    align-items: center;;
     max-width: 100%;
     opacity: .5;
+    input[type=number] {
+        border: $layer-border;
+        border-radius: 0;
+        width: 25px;
+        padding: 3px;
+        margin: 0 5px;
+        font: $font-input-small;
+        text-align: center;
+    }
     &.visible {
         opacity: 1;
     }
     .img-icon {
-        width: 20px;
-        height: 20px;
+        width: 13px;
+        height: 13px;
+        display: inline-block;
     }
     .visible, 
     .delete {
@@ -76,14 +127,15 @@ export default {
         height: 20px;
         background: {
             color: transparent;            
-            size: 50% 50%;
+            size: 80% 80%;
             position: center;
             repeat: no-repeat;
         }
         border: none;
     }
     .delete {
-        background-image: url("../assets/img/cancel.svg");
+        background-image: url("../assets/img/trash.svg");
+        background-size: 70% 70%;
     }
     .visible {
         background-image: url("../assets/img/visible.svg");
@@ -97,12 +149,16 @@ export default {
         -webkit-box-shadow: none;
                 box-shadow: none;
         outline: none;
+        font: $font-layer;
         &:focus {
             background: white;
         }
     }
     &.current {
-        background: grey;
+        background:$color-accent;
+        .layer-name {
+            font-weight: bold;
+        }
     }
 }
 

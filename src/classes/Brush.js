@@ -215,10 +215,12 @@ export default class Brush {
 
         this.params = {
             spacing: .05,
-            radius: 1
+            radius: 1,
+            overlay: false
         };
         this.paramCache = {};
         this.update = false;
+        this.index = 0;
        
     }
     setProgram(programType) {
@@ -229,8 +231,7 @@ export default class Brush {
                 const coord = this.gl.getAttribLocation(this.program, "coordinates");
                 this.gl.disableVertexAttribArray(coord); 
                 const press = this.gl.getAttribLocation(this.program, "pressure");
-                this.gl.disableVertexAttribArray(press);
-    
+                this.gl.disableVertexAttribArray(press);    
                 const ind = this.gl.getAttribLocation(this.program, "index");
                 this.gl.disableVertexAttribArray(ind);              
             }
@@ -314,7 +315,7 @@ export default class Brush {
             this.vertices.push(coords[0]);
             this.vertices.push(coords[1]);
             this.pressures.push(pressure);
-            this.indexes.push(this.indexes.length);
+            this.indexes.push(++this.index);
         } else  {
             let p = {coords, pressure};
             let p0 = this.points[this.points.length-1];
@@ -332,7 +333,7 @@ export default class Brush {
                     this.vertices.push(delta * lx + p0.coords[0]);
                     this.vertices.push(delta * ly + p0.coords[1]);
                     this.pressures.push(delta * lp + p0.pressure);
-                    this.indexes.push(this.indexes.length);
+                    this.indexes.push(++this.index);
                 }                
            }
            
@@ -425,6 +426,11 @@ export default class Brush {
                 this.gl[`uniform${this.programParams[param]}`](loc, val);
                             
             }   
+        }
+        if(this.params.overlay) {
+            this.gl.disable(this.gl.SAMPLE_ALPHA_TO_COVERAGE);
+        } else {
+            this.gl.enable(this.gl.SAMPLE_ALPHA_TO_COVERAGE);
         }
     }
     setSizes({width, height}) {
