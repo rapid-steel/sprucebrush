@@ -159,7 +159,11 @@ function createFragShader(programType) {
     if(!type.texture) {
         mainFunc += `gl_FragColor = vec4(color, alpha);`;
     } else {
-        mainFunc += `gl_FragColor = vec4(color, 0.0) + texture2D(texture, gl_PointCoord );`
+        mainFunc += `
+        gl_FragColor = (texture2D(texture, gl_PointCoord ));
+        gl_FragColor.a *= alpha;
+        gl_FragColor.rgb = color;
+        `
     }
     
     
@@ -188,12 +192,14 @@ export default class Brush {
         this.canvas = canvas;
         this.gl = canvas.getContext("webgl", {
            // preserveDrawingBuffer: true, 
+           premultipliedAlpha: true,
             depth: false
         });
 
         this.gl.getExtension("OES_standard_derivatives");
         this.gl.clearColor(0, 0, 0, 0);
         this.gl.enable(this.gl.SAMPLE_ALPHA_TO_COVERAGE);
+        this.gl.enable(this.gl.SAMPLE_COVERAGE);
         this.gl.enable(this.gl.BLEND);
         this.gl.blendFuncSeparate(
             this.gl.SRC_ALPHA, 
@@ -209,7 +215,7 @@ export default class Brush {
         this.vertex_buffer = this.gl.createBuffer();
         this.index_buffer = this.gl.createBuffer();
         this.pressure_buffer = this.gl.createBuffer();
-        
+
 
         this.programsLoaded = {};
 
@@ -218,6 +224,7 @@ export default class Brush {
             radius: 1,
             overlay: false
         };
+        this.pointStep = this.params.radius * this.params.spacing;
         this.paramCache = {};
         this.update = false;
         this.index = 0;
@@ -310,32 +317,29 @@ export default class Brush {
     }
     addPoint(coords, pressure) {
         
-        if(this.points.length === 0) {
-            this.points.push({coords, pressure});
+        if(this.vertices.length === 0) {
             this.vertices.push(coords[0]);
             this.vertices.push(coords[1]);
             this.pressures.push(pressure);
             this.indexes.push(++this.index);
         } else  {
-            let p = {coords, pressure};
-            let p0 = this.points[this.points.length-1];
-            let lx = p.coords[0] - p0.coords[0];
-            let ly = p.coords[1] - p0.coords[1];
-            let lp = p.pressure - p0.pressure;
+            let coords0 = this.vertices.slice(-2);
+            let pressure0 = this.pressures[this.pressures.length-1];
+            let lx = coords[0] - coords0[0];
+            let ly = coords[1] - coords0[1];
+            
             let length = Math.sqrt(
                 Math.pow(lx, 2) + Math.pow(ly, 2)
             );            
-            let step = this.params.radius / 2 * this.params.spacing;
-            if(length >= step) {
-                this.points.push({coords, pressure});
-                for(let i = 0; i < length; i += step) {
-                    let delta = i / length;
-                    this.vertices.push(delta * lx + p0.coords[0]);
-                    this.vertices.push(delta * ly + p0.coords[1]);
-                    this.pressures.push(delta * lp + p0.pressure);
-                    this.indexes.push(++this.index);
-                }                
-           }
+            let lp = pressure - pressure0;
+            for(let i = this.pointStep; i < length; i += this.pointStep) {
+                let delta = i / length;
+                this.vertices.push(delta * lx + coords0[0]);
+                this.vertices.push(delta * ly + coords0[1]);
+                this.pressures.push(delta * lp + pressure0);
+                this.indexes.push(++this.index);
+            }                
+           
            
         }
        
@@ -379,6 +383,7 @@ export default class Brush {
                 this.params[param] = params[param];
             }         
         }
+        this.pointStep = this.params.radius * this.params.spacing;
         const programType = [ 
             params.texture ? "texture" : params.shape,
             params.pixel ? "pixel" : "smooth",
@@ -426,11 +431,6 @@ export default class Brush {
                 this.gl[`uniform${this.programParams[param]}`](loc, val);
                             
             }   
-        }
-        if(this.params.overlay) {
-            this.gl.disable(this.gl.SAMPLE_ALPHA_TO_COVERAGE);
-        } else {
-            this.gl.enable(this.gl.SAMPLE_ALPHA_TO_COVERAGE);
         }
     }
     setSizes({width, height}) {

@@ -16,19 +16,32 @@
         <div>{{currentItem.title}}</div>
     </div>
 
+    <div v-if="currentInstrument.indexOf('selection') !== -1" class="controls">
+        <div v-show="selection">
+            <button class="ok-btn" @click="() => $emit('apply-selection')">Apply selection</button>
+            <div class="hint">Enter</div>
+        </div>
+        <div v-show="selection">
+            <button class="ok-btn" @click="() => $emit('redo-selection')">Reset selection</button>
+            <div class="hint">Ctrl + Z</div>
+        </div>
+        <div v-show="selection">
+            <button class="ok-btn" @click="() => $emit('crop-selection')">Crop to selection</button>
+            <div class="hint">Ctrl + T</div>
+        </div>
+        <div>
+            <button class="ok-btn" @click="() => $emit('select-all')">Select all</button>
+            <div class="hint">Ctrl + A</div>
+        </div>
+
+    </div>
+
     <div class="settings">
         <div v-for="s in actualSettings" :key="s.k">
             <div class="caption">{{s.label}}:</div>
             <RangeInput :min="s.min" :max="s.max" :step="s.step" :horizontal="true"
             v-model="currentBrush[s.k]"
             @input="v => set({[s.k]: v})" />
-        </div>
-
-        <div class="input-checkbox" v-if="currentBrush.overlay !== undefined">
-            <div class="caption">Overlay</div>
-            <input type="checkbox" 
-            :checked="currentBrush.overlay" 
-            @input="e => set({overlay: !!e.target.checked})" >
         </div>
 
         <div class="shapes" 
@@ -65,6 +78,13 @@
                         :class="{active: currentBrush.texture == texture}"
                         @click.stop="() => set({texture})">
                         <img :src="texture.src">                
+                    </div>
+                    <div class="texture add-texture" 
+                        :class="{active: currentBrush.texture == false}"
+                        @click.stop="() => $refs.addTexture.click()"
+                    > <input 
+                        type="file" 
+                        ref="addTexture" accept="image/*">
                     </div>
                 </SideList>
             </div>
@@ -164,6 +184,7 @@ import GradientCreator from "./GradientCreator";
 
 export default {
   name: 'Instruments',
+  props: ['selection'],
   components: {
       SideList, GradientCreator
     },
@@ -214,6 +235,13 @@ export default {
         }
   },
   mounted() {
+    this.$refs.addTexture.addEventListener("change", e => {
+        let file = e.target.files[0];
+        if(file.type.indexOf("image") != -1) {
+            //
+        }        
+    });
+
   },
   methods: {
       createGradient() {
@@ -449,6 +477,23 @@ export default {
     }
 }
 
+
+.controls {
+    text-align: center;
+    button.ok-btn {
+        border: 2px black solid;
+        padding: 5px;
+        margin: 10px auto 0;
+        font: $font-btn-small;
+    }
+    .hint {
+        font: $font-hint;
+        width: 100%;
+        margin-top: 1px;
+        margin-bottom: 5px;
+        text-align: center;
+    }
+}
 
 
 .footer {

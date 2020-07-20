@@ -8,14 +8,14 @@
         @click="showSizesForm=!showSizesForm">
             <img src="../assets/img/change-sizes.png" title="Change sizes" />
             <div class="menu-form" v-show="showSizesForm">
-                <div>
+                <div @click.stop>
                     <div>Width:</div>  
                     <input type="number" 
                     min="1" step="1" 
                     v-model="sizesModel.width" 
                     @keyup.enter="applySizes">
                 </div> 
-                <div>
+                <div @click.stop>
                     <div>Height:</div>
                     <input type="number" 
                     min="1" step="1" 
@@ -35,6 +35,57 @@
             type="file" 
             ref="importImage" accept="image/*">
             <img src="../assets/img/load-image.png" title="Import image" />
+        </div>    
+        <div class="btn"
+        @click="() => showFiltersList = !showFiltersList">
+            <img src="../assets/img/filters.png" title="Image filters" />
+            <div class="menu-itemlist" v-show="showFiltersList">
+                <div class="menu-item" 
+                v-for="filter in filters" 
+                :key="filter.k"
+                @click="() => selectFilter(filter)">
+                    <img :src="filter.img">
+                    <div>{{filter.label}}</div>
+                </div>
+            </div>
+            <div class="menu-form" v-show="!!currentFilter">
+                <template v-if="currentFilter.k == 'blur'">
+                    <div>
+                        <div>Radius:</div>  
+                        <input type="number" 
+                        min="1" step=".1" 
+                        v-model="currentFilter.settings.radius" 
+                        @change="() => $emit('preview-filter', currentFilter)"
+                        @keyup.enter="() => $emit('preview-filter', currentFilter)">
+                    </div>
+                </template>
+                <template v-if="currentFilter.k == 'bright-contr'">
+                    <div>
+                        <div>Brightness:</div>  
+                        <input type="range" 
+                        min="0" step=".1" max="5" 
+                        v-model="currentFilter.settings.brightness" 
+                        @change="() => $emit('preview-filter', currentFilter)"
+                        @keyup.enter="() => $emit('preview-filter', currentFilter)">
+                    </div>
+                    <div>
+                        <div>Contrast:</div>  
+                        <input type="range" 
+                        min="0" step=".1" max="5" 
+                        v-model="currentFilter.settings.contrast" 
+                        @change="() => $emit('preview-filter', currentFilter)"
+                        @keyup.enter="() => $emit('preview-filter', currentFilter)">
+                    </div>
+                </template>
+                <div class="footer">
+                    <button class="ok-btn"
+                    @click.stop="applyCurrentFilter" 
+                    @keyup.enter="applyCurrentFilter">Ok</button>
+                    <button class="ok-btn"
+                    @click.stop="cancelFilter" 
+                    @keyup.enter="cancelFilter">Cancel</button>
+                </div>                          
+            </div>
         </div>    
          <div class="btn" 
          @click="() => $emit('save-image')" 
@@ -56,6 +107,16 @@ export default {
   data() {
       return {
           showSizesForm: false,
+          showFiltersList: false,
+          currentFilter: false,
+          filters: [
+              {k: "invert", label: "Invert", img: require("../assets/img/filter-invert.png")},
+              {k: "grayscale", label: "Grayscale", img: require("../assets/img/filter-grayscale.png")},
+              {k: "sepia", label: "Sepia", img: require("../assets/img/filter-sepia.png")},
+              {k: "blur", label: "Blur",  img: require("../assets/img/filter-blur.png"), preview: true, settings: {radius: 1}, },
+              {k: "bright-contr", label: "Brightness and contrast",  img: require("../assets/img/filter-bright-contr.png"), 
+              preview: true, settings: {brightness: 1, contrast: 1 }},
+          ],
           sizesModel: {width: 1, height: 1}
       }
   },
@@ -77,6 +138,19 @@ export default {
 
   },
   methods: {
+      selectFilter(filter) {
+           if(filter.preview) 
+            this.currentFilter = Object.assign({}, filter);
+           else this.$emit('apply-filter', filter);
+      },
+      applyCurrentFilter() {          
+          this.$emit('apply-filter', this.currentFilter);
+          this.currentFilter = false;
+      },
+      cancelFilter() {
+          this.$emit('cancel-preview-filter');
+          this.currentFilter = false;
+      },
       loadImage() {
           this.$refs.importImage.click();
       },
@@ -147,13 +221,33 @@ export default {
             font: $font-input;
         }
     }
+    .menu-itemlist {
+        font: $font-menu;
+        .menu-item {
+            display: flex;            
+            justify-content: stretch;
+            padding: 3px;
+            & > div {
+                white-space: nowrap;
+                padding: 5px 1px;
+                flex: 1 1 100%;
+            }
+            img {
+                width: 32px;
+                height: 32px;
+                margin-right: 3px;
+            }
+        }
+    }
+    .menu-form {
+        font: $font-menu-form;
+    }
     .menu-form, .menu-itemlist {
         position: absolute;
         top: calc(100% + 5px);
         left: 0;
-        background: $color-bg;
+        background: $color-bg;        
         border: $window-border;
-        font: $font-menu;
         z-index: 1000000;
     }
 

@@ -1,7 +1,13 @@
 <template>
   <div id="app">    
     <div class="panel left">
-      <Instruments />
+      <Instruments
+        :selection="selection && selection.started"
+        @apply-selection="applySelection"
+        @redo-selection="redoSelection"
+        @select-all="() => selectArea([[0,0], [sizes.width, sizes.height]])"
+        @crop-selection="cropSelection"
+       />
     </div>
     <div id="center">
       <div class="panel top">
@@ -11,12 +17,15 @@
           @change-sizes="setSize"
           @save-image="saveToFile"
           @import-image="pasteImageFromFile"
+          @apply-filter="applyFilter"
+          @cancel-preview-filter="cancelPreviewFilter"
+          @preview-filter="previewFilter"
         />
       </div>
           <div id="canvas-container" ref="container">
             <div id="canvas" 
             ref="canvas" 
-            :style="{...canvasSizes, transform: getTransform() }">
+            :style="{width: canvasSizes.width, height: canvasSizes.height, transform: getTransform() }">
               <canvas v-for="(l, i) in layers" 
               :key="l.id" 
               :style="{
@@ -25,8 +34,6 @@
                 visibility: l.visible ? 'visible' : 'hidden',
                 zIndex: i + 100 + (i > layers.indexOf(currentLayer) ? 10 : 0),
               }" 
-              :width="sizes.width" 
-              :height="sizes.height" 
               :ref="'layerEl' + l.id"></canvas>
               <canvas
               :style="{
@@ -34,8 +41,6 @@
                 opacity: currentLayer ? currentLayer.opacity + '%' : 0,
                 zIndex: 101 + layers.indexOf(currentLayer)
               }" 
-              :width="sizes.width" 
-              :height="sizes.height" 
               ref="temporary"
               ></canvas>
               <canvas
@@ -45,20 +50,14 @@
                 zIndex: 102 + layers.indexOf(currentLayer),
                 clipPath: selection ? 'url(#selectionClipPath)' : ''
               }" 
-              :width="sizes.width" 
-              :height="sizes.height" 
               ref="brush"
               ></canvas>
               <canvas 
               :style="canvasSizes"
-              :width="sizes.width" 
-              :height="sizes.height" 
               ref="selectionImg"
               ></canvas>
               <canvas 
               :style="canvasSizes"
-              :width="sizes.width" 
-              :height="sizes.height" 
               ref="selection"
               ></canvas>
               <div id="cursor" :style="cursorStyles" :class="[currentInstrument, ...cursorClasses]"></div>
@@ -80,9 +79,12 @@
         />
     </div>
     <svg style="position: fixed; z-index: -1;">
-    <clipPath id="selectionClipPath">
-      <path id="sClip" fill="black"/>
-    </clipPath>
+      <defs>
+        <clipPath id="selectionClipPath">
+          <path id="sClip" fill="black"/>
+        </clipPath>        
+      </defs>
+    
   </svg>
   </div>
 </template>
@@ -100,6 +102,8 @@ import Instruments from "./components/Instruments";
 import ColorPicker from "./components/ColorPicker";
 import Layers from "./components/Layers";
 import TopPanel from "./components/TopPanel";
+
+import FilterMixin from "./mixins/FilterMixin";
 
 import {getRgba, getGlColor} from "./functions/color-functions";
 import {fill} from "./functions/pixel-functions";
@@ -120,7 +124,10 @@ export default {
       cursorStyles: {},
       canvasSizes: {},
       canvasStyles: {},
-      sizes: {},
+      sizes: {
+        width: 800,
+        height: 600
+      },
       lastPoint: null,
       currentLayer: null,
       history: new History(10),
@@ -133,6 +140,7 @@ export default {
   components: {
     Instruments, ColorPicker, Layers, TopPanel
   },
+  mixins: [FilterMixin],
   computed: {
     ...mapState(['currentInstrument', 'currentColor']),
     historySize() {
@@ -174,6 +182,9 @@ export default {
     }
   },
   mounted() {
+    if(navigator.languages[0].indexOf("ru") == 0)
+      this.$i18n.locale = "ru";
+    document.getElementsByTagName("title")[0].innerText = this.$t("title");
     this.brush = new Brush(this.$refs.brush);
     this.setBrushParams();
     this.setSize({
@@ -271,6 +282,10 @@ export default {
               e.preventDefault();
               
               this.selectArea([[0,0], [this.sizes.width, this.sizes.height]]);
+              break;
+            case "KeyT":
+              e.preventDefault();
+              this.cropSelection();
               break;
             case "KeyX":
               this.copySelection(true);
@@ -582,6 +597,30 @@ export default {
         this.selection = null;           
       }
     },
+    redoSelection() {
+      if(this.selection) {
+        this.selection.drop();
+        this.selection = null;
+        let sshot = this.history.remove();
+        sshot.layer.ctx.putImageData(sshot.state, 0, 0);
+      }
+      
+    },
+    cropSelection() {
+      if(this.selection && this.selection.started) {
+        let bbox = this.selection.bbox.slice();
+        let rect = [bbox[0], bbox[1].map((b,i) => Math.round(b - bbox[0][i]))];
+        this.applySelection();
+
+         this.setSize({
+          width: rect[1][0],
+          height: rect[1][1]
+        }, false, rect[0]); 
+
+        
+      }
+
+    },
     fill(point) {
       let data = this.currentLayer.ctx.getImageData(0, 0, this.sizes.width, this.sizes.height).data;
       let positions = new Int8Array( this.sizes.width * this.sizes.height );
@@ -634,6 +673,11 @@ export default {
     },
     selectArea([p1, p2]) {
       this.$store.commit("selectInstrument", "selection-rect");
+      this.history.append({
+              instrument: this.currentInstrument,
+              layer: this.currentLayer,
+              state:  this.currentLayer.ctx.getImageData(0, 0, this.sizes.width, this.sizes.height)
+            });
       
       this.selection = new Selection(p1, this.selImgCtx, this.selCtx);
       this.selection.setPoint(p2);
@@ -718,21 +762,45 @@ export default {
         }        
       }
     },
-    setSize({width, height}, init = false) {
+    setSize({width, height}, init = false, origin = [0, 0]) {
       if(!init) {
         this.history.append({
           instrument: "set-size",
           layer: this.currentLayer,
           prev: Object.assign({}, this.sizes)
-        })
+        });
       }
       width = Math.round(width)
       height - Math.round(height)
-      this.sizes = {width, height};
-      this.canvasSizes = {
-        width: width + "px",
-        height: height + "px"
-      };
+
+      console.log(origin)
+      
+      if(this.tempCtx) {
+        this.tempCtx.clearRect(0, 0, this.sizes.width, this.sizes.height);
+         this.tempCtx.canvas.width = width;
+         this.tempCtx.canvas.height = height;
+      }
+      this.layers.forEach(layer => {
+          this.tempCtx.clearRect(0, 0, this.sizes.width, this.sizes.height);
+          this.tempCtx.drawImage(layer.ctx.canvas, ...origin, width, height, 0, 0, width, height);
+          layer.ctx.clearRect(0, 0, this.sizes.width, this.sizes.height);
+          layer.ctx.canvas.width = width;
+          layer.ctx.canvas.height = height;
+          layer.ctx.canvas.style.width = width + "px";
+          layer.ctx.canvas.style.height = height + "px";
+          layer.ctx.drawImage(this.tempCtx.canvas, 0, 0, width, height);
+        }); 
+       
+
+       this.sizes = {width, height};
+      this.canvasSizes.width =  width + "px";
+      this.canvasSizes.height = height + "px";
+
+      ["temporary", "brush", "selectionImg", "selection"].forEach(s => {
+        this.$refs[s].width = width;
+        this.$refs[s].height = height;
+      });
+      
       this.canvasStyles = {
         ...this.canvasStyles, 
         ...this.canvasSizes
@@ -768,6 +836,8 @@ export default {
       setTimeout(() => {
         let ref = this.$refs['layerEl' + layer.id];
         if(Array.isArray(ref)) ref = ref[0];
+        ref.width = this.sizes.width;
+        ref.height = this.sizes.height;
         this.currentLayer.ctx = ref.getContext("2d");
 
         if(paste) {
