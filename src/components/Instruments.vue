@@ -79,13 +79,15 @@
                         @click.stop="() => set({texture})">
                         <img :src="texture.src">                
                     </div>
-                    <div class="texture add-texture" 
-                        :class="{active: currentBrush.texture == false}"
-                        @click.stop="() => $refs.addTexture.click()"
-                    > <input 
-                        type="file" 
-                        ref="addTexture" accept="image/*">
-                    </div>
+                    <template slot=footer>
+                        <button class="add-texture" 
+                            :class="{active: currentBrush.texture == false}"
+                            @click.stop="() => $refs.addTexture.click()"
+                        >Import texture<input @change="importAsset"
+                            type="file" id="texture-input"
+                            ref="addTexture" accept="image/*">
+                        </button>
+                    </template>
                 </SideList>
             </div>
             <div v-if="currentBrush.texture">
@@ -93,6 +95,46 @@
                     <img :src="currentBrush.texture.src"> 
                 </div>
             </div>
+        </div>
+
+        <div class="textures" v-if="currentBrush.pattern !== undefined">
+            <div class="side-list-header">
+                <div class="caption">Pattern</div>
+                <SideList>
+                    <div class="texture notexture" 
+                        :class="{active: currentBrush.pattern == false}"
+                        @click.stop="() => set({pattern: false})"
+                        ></div>
+                    <div class="texture"
+                        v-for="pattern in patterns" 
+                        :key="pattern.k" 
+                        :class="{active: currentBrush.pattern == pattern}"
+                        @click.stop="() => set({pattern})">
+                        <img :src="pattern.src">                
+                    </div>
+                    <template slot=footer>
+                        <button class="add-texture" 
+                            :class="{active: currentBrush.pattern == false}"
+                            @click.stop="() => $refs.addPattern.click()"
+                        >Import pattern<input @change="importAsset"
+                            type="file" id="pattern-input"
+                            ref="addPattern" accept="image/*">
+                        </button>
+                    </template>
+                </SideList>
+            </div>
+            <div v-if="currentBrush.pattern">
+                <div class="texture current">
+                    <img :src="currentBrush.pattern.src"> 
+                </div>
+            </div>
+
+            <div class="gradient-length" v-if="!!currentBrush.pattern">
+                <div class="caption">Scale</div>
+                    <RangeInput :min=".1" :step=".01" :max="10" :horizontal="true"
+                    v-model="currentBrush.patternScale"
+                    @input="v => set({patternScale: v})" />
+            </div>   
         </div>
 
         <div class="gradients"
@@ -205,6 +247,7 @@ export default {
                 {name: "eraser", icon: require("@/assets/img/eraser.png"), title: "Eraser"},
                 {name: "picker", icon: require("@/assets/img/picker.png"), title: "Color picker"},
                 {name: "fill", icon: require("@/assets/img/fill.png"), title: "Filling tool"},
+              //  {name: "pen", icon: require("@/assets/img/pen.png"), title: "Pen"},
               ]
           }, {
             group: "selection",
@@ -219,7 +262,7 @@ export default {
       }
   },
   computed: {
-      ...mapState(['currentInstrument', 'types', 'textures', 'shapes', 'gradients', 'currentColor', 'colorBG']),
+      ...mapState(['currentInstrument', 'types', 'textures', 'patterns', 'shapes', 'gradients', 'currentColor', 'colorBG']),
       actualSettings() {
           return this.settings.filter(s => this.currentBrush[s.k] != undefined);
       },
@@ -235,15 +278,24 @@ export default {
         }
   },
   mounted() {
-    this.$refs.addTexture.addEventListener("change", e => {
-        let file = e.target.files[0];
-        if(file.type.indexOf("image") != -1) {
-            //
-        }        
-    });
+   
 
   },
   methods: {
+      importAsset(e) {
+          const type = e.target.id.replace("-input", "");
+          Array.from(e.target.files).forEach(file => {
+              let img = new Image();
+                img.onload = () => {
+                    this.$store.commit("addAsset", [type, {
+                        k: Date.now(),
+                        src: img.src
+                    }]);
+                }
+                img.src = URL.createObjectURL(file);    
+          });
+
+      },
       createGradient() {
           this.gradientToEdit = {
               gradient: [this.currentColor, this.colorBG],

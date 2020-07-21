@@ -6,7 +6,7 @@ Vue.use(Vuex)
 
 export default new Vuex.Store({
   state: {
-    currentInstrument: "brush",
+    currentInstrument: "fill",
     currentColor: "rgb(0,0,0)",
     colorBG: "rgb(255,255,255)",
     currentLayer: 0,
@@ -26,6 +26,11 @@ export default new Vuex.Store({
       {k: "tex32", src: require("./assets/img/texture3.png") },
       {k: "tex42", src: require("./assets/img/texture4.png") },
       {k: "tex52", src: require("./assets/img/texture5.png") },
+    ],
+    patterns: [
+      {k: "pat1",src: require("./assets/img/pat1.png") },
+      {k: "pat2",src: require("./assets/img/pat2.jpg") },
+      {k: "pat3",src: require("./assets/img/pat3.png") }
     ],
     shapes: [
       {k: "round"}, {k: "rect"}
@@ -69,7 +74,12 @@ export default new Vuex.Store({
         },  
       },
       fill: {
-        tolerance: 30
+        tolerance: 30,
+        pattern: false,
+        patternScale: 1
+      },
+      pen: {
+        width: 10
       },
       "selection-rect": {},
       "selection-polygon": {},
@@ -172,6 +182,12 @@ export default new Vuex.Store({
       let pallete = state.userPref.palletes.find(p => p.id == id);
       pallete.colors.splice(pallete.colors.indexOf(color), 1);
       state.userPref.palletes = state.userPref.palletes.slice();
+    },
+    addAsset(state, [type, obj]) {
+      let arr = type + "s";
+      if(state[arr]) {
+        state[arr].push(obj);
+      }
     }
 
 

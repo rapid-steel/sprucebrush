@@ -16,7 +16,7 @@
           @new-drawing="newDrawing"
           @change-sizes="setSize"
           @save-image="saveToFile"
-          @import-image="pasteImageFromFile"
+          @import-image="e => pasteImageFromFile(...e)"
           @apply-filter="applyFilter"
           @cancel-preview-filter="cancelPreviewFilter"
           @preview-filter="previewFilter"
@@ -35,14 +35,6 @@
                 zIndex: i + 100 + (i > layers.indexOf(currentLayer) ? 10 : 0),
               }" 
               :ref="'layerEl' + l.id"></canvas>
-              <canvas
-              :style="{
-                ...canvasSizes, 
-                opacity: currentLayer ? currentLayer.opacity + '%' : 0,
-                zIndex: 101 + layers.indexOf(currentLayer)
-              }" 
-              ref="temporary"
-              ></canvas>
               <canvas
               :style="{
                 ...canvasSizes, 
@@ -134,7 +126,8 @@ export default {
       cursorClasses: [],
       zoom: 1,
       selection: null,
-      texture: null     
+      texture: null,
+      canvasPattern: null
     }
   },
   components: {
@@ -160,6 +153,30 @@ export default {
       handler(val, prev) {
         this.setCursor();
         this.setBrushParams();
+
+        if(val.pattern) {
+          if(!this.canvasPattern || 
+            val.pattern.src !== this.canvasPattern.img.src ||
+            val.patternScale !== this.canvasPattern.scale) {
+            this.canvasPattern = {
+              scale: val.patternScale,
+              img: new Image()
+            };
+            this.canvasPattern.img.onload = () => {
+              let c = document.createElement("canvas");
+              c.width = val.patternScale * this.canvasPattern.img.width;
+              c.height = val.patternScale * this.canvasPattern.img.height;
+              let ctx = c.getContext("2d");
+              ctx.drawImage(this.canvasPattern.img, 
+              0, 0, this.canvasPattern.img.width, this.canvasPattern.img.height, 
+              0, 0, c.width, c.height );
+
+              this.canvasPattern.pattern = 
+              this.tempCtx.createPattern(c, "repeat");
+            }
+            this.canvasPattern.img.src = val.pattern.src;
+          }
+        } else this.canvasPattern = null;
       }
     },
     currentInstrument() {
@@ -174,8 +191,7 @@ export default {
           
           if(this.selection) {
             this.currentLayer.ctx.drawImage(this.$refs.selectionImg, 0, 0, this.sizes.width, this.sizes.height);
-          } 
-          
+          }
           
         }        
       
@@ -185,13 +201,19 @@ export default {
     if(navigator.languages[0].indexOf("ru") == 0)
       this.$i18n.locale = "ru";
     document.getElementsByTagName("title")[0].innerText = this.$t("title");
+
+
+    this.tempCtx = document.createElement("canvas").getContext("2d");
+    this.tempCtx2 = document.createElement("canvas").getContext("2d");
+
+
     this.brush = new Brush(this.$refs.brush);
     this.setBrushParams();
     this.setSize({
       width: 800,
       height: 600
     }, true);
-    this.tempCtx = this.$refs.temporary.getContext("2d");
+    
     this.selImgCtx = this.$refs.selectionImg.getContext("2d");
     this.selCtx = this.$refs.selection.getContext("2d");
 
@@ -549,17 +571,41 @@ export default {
         );
         this.$forceUpdate();
     },
-    pasteImageFromFile(file) {
+    pasteImageFromFile(file, mode = "leave") {
       let img = new Image();
       img.onload = () => {
-        this.appendLayer("", {
-        img,
-        x: (this.sizes.width - img.width) / 2,
-        y: (this.sizes.height - img.height) / 2,
-      });
+        if(mode == "resize-canvas") {
+          this.setSize({
+            width: img.width,
+            height: img.height,
+            origin: [
+               (this.sizes.width - img.width) / 2,
+               (this.sizes.height - img.height) / 2
+            ]
+          });
+        }
+
+
+        if(mode == "leave") {
+          this.appendLayer("", {
+            img,
+            x: (this.sizes.width - img.width) / 2,
+            y: (this.sizes.height - img.height) / 2,
+            width: img.width,
+            height: img.height
+          });
+        } else {
+          this.appendLayer("", {
+            img,
+            x: 0,
+            y: 0,
+            width: this.sizes.width,
+            height: this.sizes.height
+          });
+        } 
+
       }
-      img.src = URL.createObjectURL(file);             
-      console.log(file)
+      img.src = URL.createObjectURL(file);          
     },
     copySelection(clip = false) {
       if(this.selection && this.selection.ready) {
@@ -614,8 +660,9 @@ export default {
 
          this.setSize({
           width: rect[1][0],
-          height: rect[1][1]
-        }, false, rect[0]); 
+          height: rect[1][1],
+          origin: rect[0]
+        }, false); 
 
         
       }
@@ -631,21 +678,37 @@ export default {
           (point.y * this.sizes.width + point.x) * 4 + 4
         )
       );             
+
      let data1 = fill([[point.x, point.y]], positions, data, color, color0, this.sizes.width, this.sizes.height, this.currentBrush.tolerance);
+
      if(this.selection) {
         this.tempCtx2.putImageData(
           new ImageData(data1, this.sizes.width), 0, 0, 0, 0, this.sizes.width, this.sizes.height);        
+        if(this.currentBrush.pattern && this.canvasPattern) {    
+          this.tempCtx2.globalCompositeOperation = "source-in";
+          this.tempCtx2.fillStyle = this.canvasPattern.pattern;
+          this.tempCtx2.fillRect( 0, 0, this.sizes.width, this.sizes.height);
+          this.tempCtx2.globalCompositeOperation = "source-over"; 
+        } 
         this.tempCtx.save();      
         this.selection.drawClipPath(this.tempCtx);
         this.tempCtx.clip();
-        this.tempCtx.drawImage(this.$refs.temporary, 0, 0);
+        this.tempCtx.drawImage(this.tempCtx.canvas, 0, 0);
         this.tempCtx.restore();
 
 
-     } else {
-        this.currentLayer.ctx.putImageData(
+     } 
+       this.tempCtx.putImageData(
           new ImageData(data1, this.sizes.width), 0, 0, 0, 0, this.sizes.width, this.sizes.height);
-     }
+
+       if(this.currentBrush.pattern && this.canvasPattern) {    
+          this.tempCtx.globalCompositeOperation = "source-in";
+          this.tempCtx.fillStyle = this.canvasPattern.pattern;
+          this.tempCtx.fillRect( 0, 0, this.sizes.width, this.sizes.height);
+          this.tempCtx.globalCompositeOperation = "source-over"; 
+       } 
+        
+     
       
       this.applyTemp();
     },
@@ -690,7 +753,7 @@ export default {
             const currentCanvas = this.$refs["layerEl" + this.currentLayer.id][0];
             currentCanvas.style.opacity = 1;
             this.currentLayer.ctx.globalCompositeOperation = "copy";
-            this.currentLayer.ctx.drawImage(this.$refs.temporary, 0, 0);
+            this.currentLayer.ctx.drawImage(this.tempCtx.canvas, 0, 0);
             this.brush.dropLine();
 
           } else if(this.currentInstrument == "brush")  {            
@@ -713,6 +776,8 @@ export default {
             this.brush.render();
             img.src = this.brush.canvas.toDataURL("image/png", 1);           
               
+          } else if(this.currentInstrument == "fill") {
+            this.currentLayer.ctx.drawImage(this.tempCtx.canvas, 0, 0);
           }
                
         
@@ -762,7 +827,7 @@ export default {
         }        
       }
     },
-    setSize({width, height}, init = false, origin = [0, 0]) {
+    setSize({width, height, resizeMode, originMode, origin}, init = false) {
       if(!init) {
         this.history.append({
           instrument: "set-size",
@@ -772,34 +837,59 @@ export default {
       }
       width = Math.round(width)
       height - Math.round(height)
-
-      console.log(origin)
-      
-      if(this.tempCtx) {
-        this.tempCtx.clearRect(0, 0, this.sizes.width, this.sizes.height);
-         this.tempCtx.canvas.width = width;
-         this.tempCtx.canvas.height = height;
+      if(resizeMode == undefined) resizeMode = origin ? "move" : "resize";
+      if(resizeMode == "move" && originMode !== undefined) {
+        let [y, x] = originMode.split("-");
+        origin = [0, 0]
+        origin[0] = {
+          left: 0,
+          center: (this.sizes.width - width) / 2,
+          right: this.sizes.width - width
+        }[x];
+        origin[1] = {
+          top: 0,
+          center: (this.sizes.height- height) / 2,
+          bottom: this.sizes.height - height
+        }[y];
       }
+      
+      ["brush", "selectionImg", "selection"].forEach(s => {
+        this.$refs[s].width = width;
+        this.$refs[s].height = height;
+        this.$refs[s].style.width = width + "px";
+        this.$refs[s].style.height = height + "px";
+      });     
+      ["tempCtx", "tempCtx2"].forEach(s => {
+        this[s].canvas.width = width;
+        this[s].canvas.height = height;
+        this[s].canvas.style.width = width + "px";
+        this[s].canvas.style.height = height + "px";
+      })
+
+      let rect = resizeMode == "move" ? 
+        [...origin, width, height] 
+      : [0, 0, this.sizes.width, this.sizes.height];
+
       this.layers.forEach(layer => {
           this.tempCtx.clearRect(0, 0, this.sizes.width, this.sizes.height);
-          this.tempCtx.drawImage(layer.ctx.canvas, ...origin, width, height, 0, 0, width, height);
+          this.tempCtx.drawImage(layer.ctx.canvas, ...rect, 0, 0, width, height);
           layer.ctx.clearRect(0, 0, this.sizes.width, this.sizes.height);
+                  
           layer.ctx.canvas.width = width;
           layer.ctx.canvas.height = height;
           layer.ctx.canvas.style.width = width + "px";
           layer.ctx.canvas.style.height = height + "px";
+          
           layer.ctx.drawImage(this.tempCtx.canvas, 0, 0, width, height);
+          
         }); 
        
 
-       this.sizes = {width, height};
+      this.sizes = {width, height};
       this.canvasSizes.width =  width + "px";
       this.canvasSizes.height = height + "px";
 
-      ["temporary", "brush", "selectionImg", "selection"].forEach(s => {
-        this.$refs[s].width = width;
-        this.$refs[s].height = height;
-      });
+      
       
       this.canvasStyles = {
         ...this.canvasStyles, 
@@ -841,7 +931,7 @@ export default {
         this.currentLayer.ctx = ref.getContext("2d");
 
         if(paste) {
-          this.currentLayer.ctx.drawImage(paste.img, paste.x, paste.y);
+          this.currentLayer.ctx.drawImage(paste.img, paste.x, paste.y, paste.width, paste.height);
         }
         
         if(prev)
