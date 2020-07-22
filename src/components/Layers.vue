@@ -11,18 +11,35 @@
             :class="{current: currentLayer && l.id == currentLayer.id, visible: l.visible}"
             @click.ctrl.stop="() => $emit('layer-to-selection', l.id)"
             @click.exact.stop="() => $emit('select-layer', l.id)"
-            ><input type="text" v-model="l.name" class="layer-name"> 
-            <img class="img-icon" src="@/assets/img/opacity.svg" />
-            <RangeInput 
-            :min="0" 
-            :max="100" 
-            v-model="l.opacity" />
-            <button class="visible"
-                :disabled="layers.length == 1" 
-                @click.stop="() => $emit('toggle-layer', l.id)" />
-            <button class="delete"
-                :disabled="layers.length == 1" 
-                @click.stop="() => $emit('remove-layer', l.id)" />
+            >
+            <div>
+                <input type="text" v-model="l.name" class="layer-name"> 
+                <img class="img-icon" src="@/assets/img/opacity.svg" />
+                <RangeInput 
+                :min="0" 
+                :max="100" 
+                v-model="l.opacity" 
+                @input="() => $emit('update:opacity')"
+                />
+                <button class="visible"
+                    :disabled="layers.length == 1" 
+                    @click.stop="() => $emit('toggle-layer', l.id)" />
+                <button class="delete"
+                    :disabled="layers.length == 1" 
+                    @click.stop="() => $emit('remove-layer', l.id)" />
+            </div>
+            <div>                
+                <img class="img-icon" src="@/assets/img/compose.svg" />
+                <v-select 
+                :options="blendModes"            
+                v-model="l.blend"
+                @input="() => $emit('update:blend')"
+                :disabled="!l.visible"
+                :clearable="false"
+                :appendToBody="true"
+                :searchable="false"  />
+            </div>
+
             </div>
         </draggable>      
 
@@ -39,6 +56,26 @@ export default {
   props: ['layers', 'currentLayer'],
   data() {
       return {
+          blendModes: [
+              'source-over',
+              'lighter',
+              'xor', 
+              'darken',
+              'multiply',
+              'lighten',
+              'screen',
+              'overlay',
+              'color-dodge',
+              'color-burn',
+              'hard-light',
+              'soft-light',
+              'difference',
+              'exclusion',
+              'hue',
+              'saturation',
+              'color',
+              'luminosity'
+          ]
       }
   },
   computed: {
@@ -99,11 +136,31 @@ export default {
 .layer {
     padding: 5px;
     margin: 1px;
-    border: $layer-border;    
-    display: flex;
-    align-items: center;;
-    max-width: 100%;
     opacity: .5;
+    border: $layer-border;  
+    max-width: 100%;
+    overflow-y: hidden;
+    & > div {       
+        display: flex;
+        align-items: center;;
+        justify-content: flex-end;
+        max-width: 100%;        
+        height: 30px;
+
+    }
+
+    .v-select {
+         .vs__dropdown-toggle {
+             max-height: 25px;
+             height: 25px;
+         }
+        font: $font-select-small;
+        flex: 1 1 140px;
+        max-width: 140px;
+        margin-left: 3px;
+        height: 25px;
+    }
+    
     input[type=number] {
         border: $layer-border;
         border-radius: 0;
@@ -161,5 +218,10 @@ export default {
         }
     }
 }
+
+.vs__dropdown-option {
+    font: $font-select-small;
+}
+
 
 </style>

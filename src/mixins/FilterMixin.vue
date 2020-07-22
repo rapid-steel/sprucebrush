@@ -20,6 +20,28 @@ const filterFunctions = {
     },
     'bright-contr': (ctx, settings) => {
         ctx.filter = `brightness(${settings.brightness})contrast(${settings.contrast})`
+    },
+    posterize: (ctx, settings) => {
+        let levels = [];
+        for(let i = 0; i < settings.levels; i++) {
+            levels.push(i / (settings.levels - 1));
+        }
+        levels = levels.join(" ");
+        document.getElementById("posterize")
+        .querySelectorAll("feComponentTransfer > *")
+        .forEach(f => {
+            f.setAttribute("tableValues", levels);
+        })
+        ctx.filter = `url(#posterize)`;
+    },
+    pixelate: (ctx, settings) => {
+        const filter = document.getElementById("pixelate");
+        filter.querySelector("feFlood").setAttribute("x", settings.size / 2 - 2);
+        filter.querySelector("feFlood").setAttribute("y", settings.size / 2 - 2);
+        filter.querySelector("feComposite").setAttribute("width", settings.size);
+        filter.querySelector("feComposite").setAttribute("height", settings.size);
+        filter.querySelector("feMorphology").setAttribute("radius", settings.size / 2);
+        ctx.filter = `url(#pixelate)`;
     }
 
 };
@@ -33,27 +55,27 @@ export default {
               layer: this.currentLayer,
               state:  this.currentLayer.ctx.getImageData(0, 0, this.sizes.width, this.sizes.height)
             });
-            
+            this.tempCtx.clearRect(0,0,this.sizes.width, this.sizes.height);
+            filterFunctions[filter.k](this.tempCtx, filter.settings);
             this.tempCtx.drawImage(this.currentLayer.ctx.canvas, 0,0,this.sizes.width, this.sizes.height);
 
             this.currentLayer.ctx.clearRect(0,0,this.sizes.width, this.sizes.height);
-            filterFunctions[filter.k](this.currentLayer.ctx, filter.settings);
+            
             this.currentLayer.ctx.drawImage(this.tempCtx.canvas, 0,0,this.sizes.width, this.sizes.height);
             this.currentLayer.ctx.filter = "none";     
             this.tempCtx.clearRect(0,0,this.sizes.width, this.sizes.height);
-                   
-
+            this.render();
         },
-        previewFilter(filter) {    
-            this.currentLayer.ctx.canvas.style.opacity = 0;        
+        previewFilter(filter) {      
             this.tempCtx.clearRect(0,0,this.sizes.width, this.sizes.height);
             filterFunctions[filter.k](this.tempCtx, filter.settings);
             this.tempCtx.drawImage(this.currentLayer.ctx.canvas, 0,0,this.sizes.width, this.sizes.height);
             this.tempCtx.filter = "none";
 
+            this.render(true);       
+
         },
         cancelPreviewFilter() {
-            this.currentLayer.ctx.canvas.style.opacity = this.currentLayer.opacity;   
             this.tempCtx.filter = "none";
             this.tempCtx.clearRect(0,0,this.sizes.width, this.sizes.height);
         }

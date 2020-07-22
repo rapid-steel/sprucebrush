@@ -6,7 +6,7 @@ Vue.use(Vuex)
 
 export default new Vuex.Store({
   state: {
-    currentInstrument: "fill",
+    currentInstrument: "brush",
     currentColor: "rgb(0,0,0)",
     colorBG: "rgb(255,255,255)",
     currentLayer: 0,

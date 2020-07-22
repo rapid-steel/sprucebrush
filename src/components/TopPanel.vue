@@ -1,13 +1,19 @@
 <template>
     <div class="menu-tabs">
+        <div class="underlay" 
+        v-if="menuOpen"
+        @click.stop="() => setDisplay('', false)"></div>
+
         <div class="btn" @click="$emit('new-drawing')">
             <img src="../assets/img/new-drawing.png" title="New drawing" />
         </div>
         <div class="btn" 
-        :class="{active:showSizesForm}"
-        @click="showSizesForm=!showSizesForm">
+            :class="{active: display.sizesForm}"
+            @click="() => setDisplay('sizesForm', !display.sizesForm)">
             <img src="../assets/img/change-sizes.png" title="Change sizes" />
-            <div class="menu-form" v-show="showSizesForm" @click.stop>
+            <div class="menu-form" 
+            v-show="display.sizesForm" 
+            @click.stop>
                 <div>
                     <div>Width:</div>  
                     <input type="number" 
@@ -52,13 +58,15 @@
             </div>
         </div>
         <div class="btn" 
-        :class="{active:showImportMenu}"
-        @click="() => showImportMenu = !showImportMenu">
+        :class="{active: display.importMenu}"
+        @click="() => setDisplay('importMenu', !display.importMenu)">
             <input 
             type="file" @change="importImage"
             ref="importImage" accept="image/*">
             <img src="../assets/img/load-image.png" title="Import image" />
-            <div class="menu-itemlist" v-show="showImportMenu" @click.stop>
+            <div class="menu-itemlist" 
+            v-show="display.importMenu" 
+            @click.stop>
                 <div class="menu-item big"
                     v-for="mode in importModes"
                     :key="mode.k"
@@ -71,10 +79,11 @@
             </div>
         </div>    
         <div class="btn"
-        :class="{active:showFiltersList}"
-        @click="() => showFiltersList = !showFiltersList">
+        :class="{active: display.filtersList}"
+        @click="() => setDisplay('filtersList', !display.filtersList)">
             <img src="../assets/img/filters.png" title="Image filters" />
-            <div class="menu-itemlist" v-show="showFiltersList">
+            <div class="menu-itemlist" 
+            v-show="display.filtersList">
                 <div class="menu-item" 
                 v-for="filter in filters" 
                 :key="filter.k"
@@ -83,7 +92,7 @@
                     <div>{{filter.label}}</div>
                 </div>
             </div>
-            <div class="menu-form" v-show="!!currentFilter">
+            <div class="menu-form" v-show="!!currentFilter" @click.stop>
                 <template v-if="currentFilter.k == 'blur'">
                     <div>
                         <div>Radius:</div>  
@@ -108,6 +117,26 @@
                         <input type="range" 
                         min="0" step=".1" max="5" 
                         v-model="currentFilter.settings.contrast" 
+                        @change="() => $emit('preview-filter', currentFilter)"
+                        @keyup.enter="() => $emit('preview-filter', currentFilter)">
+                    </div>
+                </template>
+                <template v-if="currentFilter.k == 'posterize'">
+                    <div>
+                        <div>Number of color levels:</div>  
+                        <input type="number" 
+                        :min="2" :step="1" :max="20" 
+                        v-model="currentFilter.settings.levels" 
+                        @change="() => $emit('preview-filter', currentFilter)"
+                        @keyup.enter="() => $emit('preview-filter', currentFilter)">
+                    </div>
+                </template>
+                <template v-if="currentFilter.k == 'pixelate'">
+                    <div>
+                        <div>Pixel size:</div>  
+                        <input type="number" 
+                        :min="2" :step="1" :max="100" 
+                        v-model="currentFilter.settings.size" 
                         @change="() => $emit('preview-filter', currentFilter)"
                         @keyup.enter="() => $emit('preview-filter', currentFilter)">
                     </div>
@@ -141,9 +170,12 @@ export default {
   props: ["sizes"],
   data() {
       return {
-          showSizesForm: false,
-          showImportMenu: false,
-          showFiltersList: false,
+          menuOpen: false,
+          display: {
+              sizesForm: false,
+              importMenu: false,
+              filtersList: false
+          },
           currentFilter: false,
           importMode: "leave",
           importModes: [
@@ -157,8 +189,16 @@ export default {
               {k: "grayscale", label: "Grayscale", img: require("../assets/img/filter-grayscale.png")},
               {k: "sepia", label: "Sepia", img: require("../assets/img/filter-sepia.png")},
               {k: "blur", label: "Blur",  img: require("../assets/img/filter-blur.png"), preview: true, settings: {radius: 1}, },
-              {k: "bright-contr", label: "Brightness and contrast",  img: require("../assets/img/filter-bright-contr.png"), 
+              {k: "bright-contr", 
+              label: "Brightness and contrast",  
+              img: require("../assets/img/filter-bright-contr.png"), 
               preview: true, settings: {brightness: 1, contrast: 1 }},
+              {k: "posterize", label: "Posterization",  
+              img: require("../assets/img/filter-posterize.png"), 
+              preview: true, settings: {levels: 4}, },
+              {k: "pixelate", label: "Pixelation",  
+              img: require("../assets/img/filter-pixelate.png"), 
+              preview: true, settings: {size: 10}, },
           ],
           sizesModel: {width: 1, height: 1, originMode: "center-center", resizeMode: "move"},
           originModes: [
@@ -179,6 +219,11 @@ export default {
       Object.assign(this.sizesModel, this.sizes); 
   },
   methods: {
+      setDisplay(k, v) {
+          for(let el in this.display) 
+            this.display[el] = k == el && v;
+          this.menuOpen = v;
+      },
       selectFilter(filter) {
            if(filter.preview) 
             this.currentFilter = Object.assign({}, filter);
@@ -206,7 +251,7 @@ export default {
       applySizes() {
           if(this.sizesModel.width && this.sizesModel.height) {
             this.$emit("change-sizes", this.sizesModel);
-            this.showSizesForm = false;
+            this.display.sizesForm = false;
           }
           
       }
@@ -222,6 +267,7 @@ export default {
     justify-content: flex-start;
     width: 100%;    
     position: relative;
+    z-index: 100;
     
     .btn {
         flex: 1 0 $btn-top-size;

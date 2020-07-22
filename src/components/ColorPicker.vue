@@ -24,10 +24,15 @@
         </div> 
         <div class="colors">
             <div class="colors-selected">
-                <div class="color-selected foreground" 
-                :style="{backgroundColor: currentColor}"></div>
                 <div class="color-selected background" 
+                :class="{editing: colorToEdit === 'bg'}"
+                @click="() => $emit('update:colorToEdit', 'bg')"
                 :style="{backgroundColor: colorBG}"></div>
+                <div class="color-selected foreground" 
+                :class="{editing: colorToEdit === 'fg'}"
+                @click="() => $emit('update:colorToEdit', 'fg')"
+                :style="{backgroundColor: currentColor}"></div>
+                
             </div>
             <div class="pallete">
                 <div class="add-color">
@@ -58,12 +63,12 @@ export default {
   name: 'Instruments',
   data() {
       return {
-          colorToEdit: "fg",
           colorSelected: false,
           pallete: null,
           namePallete: false
       }
   },
+  props: ['colorToEdit'],
   computed: {
       ...mapState(['currentColor', 'colorBG']),
       palletes() { 
@@ -177,8 +182,6 @@ export default {
         }
     }
     .add-color {
-        
-        line-height: 40px;
         cursor: pointer;
         flex: 2 0 100%;
         height: 30px;
@@ -204,22 +207,25 @@ export default {
         left:  0;
         z-index: -2; 
         box-shadow: 0 0 0 2px $color-accent3;
-
     }
 }
 
 .color-selected {
+    position: absolute;
     border-radius: 50%;
     border: 2px $color-bg solid;
     width: $color-selected-size;
     height: $color-selected-size;
 
     &.background {
-        position: absolute;
+        
         top:  $color-selected-size * .5;
         left:  $color-selected-size * .5;
-        z-index: -1; 
+        z-index: 0; 
         box-shadow: 0 0 0 2px $color-accent3;
+    }
+    &.editing {
+        border-color: $color-accent2;
     }
 }
 .select-pallete {

@@ -183,14 +183,14 @@ function createFragShader(programType) {
 const DEBUG = process.env.NODE_ENV !== 'production';
 
 export default class Brush {
-    constructor(canvas) {
+    constructor() {
         this.points = [];
         this.vertices = [];
         this.indexes = [];
         this.pressures = [];
 
-        this.canvas = canvas;
-        this.gl = canvas.getContext("webgl", {
+        this.canvas = new OffscreenCanvas(100, 100);
+        this.gl = this.canvas.getContext("webgl", {
            // preserveDrawingBuffer: true, 
            premultipliedAlpha: true,
             depth: false
@@ -436,8 +436,6 @@ export default class Brush {
     setSizes({width, height}) {
         this.canvas.width = width;
         this.canvas.height = height;
-        this.canvas.style.width = width + "px";
-        this.canvas.style.height = height + "px";
         this.gl.viewport(0, 0, width, height);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT  | this.gl.DEPTH_BUFFER_BIT);
 

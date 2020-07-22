@@ -26,30 +26,24 @@
             <div id="canvas" 
             ref="canvas" 
             :style="{width: canvasSizes.width, height: canvasSizes.height, transform: getTransform() }">
-              <canvas v-for="(l, i) in layers" 
-              :key="l.id" 
-              :style="{
-                ...canvasSizes, 
-                opacity: l.opacity + '%', 
-                visibility: l.visible ? 'visible' : 'hidden',
-                zIndex: i + 100 + (i > layers.indexOf(currentLayer) ? 10 : 0),
-              }" 
-              :ref="'layerEl' + l.id"></canvas>
               <canvas
               :style="{
                 ...canvasSizes, 
-                opacity: currentInstrument == 'eraser' ? 0 : currentLayer ? currentLayer.opacity + '%' : 0,
-                zIndex: 102 + layers.indexOf(currentLayer),
-                clipPath: selection ? 'url(#selectionClipPath)' : ''
+                zIndex: 100
               }" 
-              ref="brush"
-              ></canvas>
+              ref="blender"></canvas>
               <canvas 
-              :style="canvasSizes"
+              :style="{
+                ...canvasSizes,
+                zIndex: layers.length + 120
+              }"
               ref="selectionImg"
               ></canvas>
               <canvas 
-              :style="canvasSizes"
+              :style="{
+                ...canvasSizes,
+                zIndex: layers.length + 120
+              }"
               ref="selection"
               ></canvas>
               <div id="cursor" :style="cursorStyles" :class="[currentInstrument, ...cursorClasses]"></div>
@@ -58,7 +52,7 @@
 
     </div>
     <div class="panel right">
-       <Color-Picker />
+       <Color-Picker :colorToEdit.sync="colorToEdit" />
         <Layers 
           :layers="layers" 
           :currentLayer="currentLayer"
@@ -68,6 +62,8 @@
           @reorder-layer="reorderLayer"
           @toggle-layer="toggleLayer"
           @remove-layer="removeLayer"
+          @update:opacity="render"
+          @update:blend="render"
         />
     </div>
     <svg style="position: fixed; z-index: -1;">
@@ -75,6 +71,26 @@
         <clipPath id="selectionClipPath">
           <path id="sClip" fill="black"/>
         </clipPath>        
+         <filter id="outline">
+          <feMorphology operator="dilate" radius="1" result="dil" />
+          <feComposite in2="SourceGraphic" in="dil" operator="xor" result="comp"/>
+        </filter>
+        <filter id="posterize">
+          <feComponentTransfer color-interpolation-filters="sRGB">
+              <feFuncR type="discrete" tableValues="0 1" />
+              <feFuncG type="discrete" tableValues="0 1" />
+              <feFuncB type="discrete" tableValues="0 1" />
+          </feComponentTransfer>
+        </filter>
+        <filter id="pixelate" x="0" y="0">
+          <feFlood x="4" y="4" height="2" width="2"/>          
+          <feComposite width="10" height="10"/>          
+          <feTile result="a"/>          
+          <feComposite in="SourceGraphic" in2="a" 
+                      operator="in"/>          
+          <feMorphology operator="dilate"
+                        radius="5"/>
+        </filter>
       </defs>
     
   </svg>
@@ -102,6 +118,7 @@ import {fill} from "./functions/pixel-functions";
 
 
 
+
 function getPressure(event) {
   if(event.pointerType == "mouse") {
     return event.pressure > 0 ? 1 : 0;
@@ -122,12 +139,16 @@ export default {
       },
       lastPoint: null,
       currentLayer: null,
+      currentLayerIndex: 0,
+
       history: new History(10),
       cursorClasses: [],
       zoom: 1,
       selection: null,
       texture: null,
-      canvasPattern: null
+      canvasPattern: null,
+      colorToEdit: "fg",
+      backgroundColor: "#ffffff"
     }
   },
   components: {
@@ -203,11 +224,11 @@ export default {
     document.getElementsByTagName("title")[0].innerText = this.$t("title");
 
 
-    this.tempCtx = document.createElement("canvas").getContext("2d");
-    this.tempCtx2 = document.createElement("canvas").getContext("2d");
+    this.tempCtx =  (document.createElement("canvas")).getContext("2d");
+    this.tempCtx2 = (new OffscreenCanvas(800, 600)).getContext("2d");
 
-
-    this.brush = new Brush(this.$refs.brush);
+    this.blender = this.$refs.blender.getContext("2d");
+    this.brush = new Brush();
     this.setBrushParams();
     this.setSize({
       width: 800,
@@ -220,6 +241,10 @@ export default {
     this.newDrawing();
     this.initControls();
     this.setCursor();
+
+    window.addEventListener("resize", () => {
+      this.$forceUpdate();
+    })
   },
   methods: {
     setBrushParams() {
@@ -260,7 +285,7 @@ export default {
           id: l.id,
           opacity: l.opacity
         });
-        this.$refs['layerEl' +l.id][0].toBlob(blob => {
+        l.canvas.toBlob(blob => {
           zip.file(l.id + ".png", blob);
           inc++;
           if(inc == this.layers.length) {
@@ -275,14 +300,8 @@ export default {
 
     },
     saveToFile() {
-      let c = document.createElement("canvas");
-      c.width = this.sizes.width;
-      c.height = this.sizes.height;
-      let ctx = c.getContext("2d");
-      this.layers.forEach(l => {
-        ctx.drawImage(this.$refs['layerEl' +l.id][0], 0, 0);
-      });
-      c.toBlob(blob => {
+      this.render()
+      this.blender.canvas.toBlob(blob => {
         saveAs(blob, "img.png");
     });
     },
@@ -340,15 +359,15 @@ export default {
               if(sshot) {
                 if(sshot.instrument == "append-layer") {
                   this.layers.splice(this.layers.indexOf(sshot.layer), 1);
-                  this.currentLayer = sshot.prev;
+                  this.selectLayer(sshot.prev.id);
                 } else if(sshot.instrument == "remove-layer") {
                   this.layers.push(sshot.layer);
-                  this.currentLayer = sshot.layer;
+                  this.selectLayer(sshot.layer.id);
                   setTimeout(() => {
                     let ref = this.$refs['layerEl' + sshot.layer.id];
-                  if(Array.isArray(ref)) ref = ref[0];
-                  this.currentLayer.ctx = ref.getContext("2d");
-                  this.currentLayer.ctx.putImageData(sshot.state, 0, 0);
+                    if(Array.isArray(ref)) ref = ref[0];
+                    this.currentLayer.ctx = ref.getContext("2d");
+                    this.currentLayer.ctx.putImageData(sshot.state, 0, 0);
 
                   }, 50);                   
 
@@ -358,8 +377,9 @@ export default {
                     this.selection = null;
                   }
                   sshot.layer.ctx.putImageData(sshot.state, 0, 0);
-                  this.currentLayer = sshot.layer;
+                  this.selectLayer(sshot.layer.id);
                 }
+                this.render();
               }             
               break;        
               case "NumpadAdd":
@@ -432,6 +452,7 @@ export default {
             if(this.currentInstrument == "brush") {
               this.draw(this.lastPoint);           
             } else if(this.currentInstrument == "eraser") {
+
               this.erase(this.lastPoint);
             }                       
           }
@@ -565,9 +586,11 @@ export default {
 
     },
     pickColor() {
-      const data = Array.from(this.currentLayer.ctx.getImageData(this.lastPoint.x, this.lastPoint.y, 1, 1).data);
+      const data = Array.from(this.blender.getImageData(this.lastPoint.x, this.lastPoint.y, 1, 1).data);
+      if(data.find(n => !!n))
         this.$store.commit("selectColor", 
-          (this.cursorStyles["background-color"] = `rgba(${data.join(",")})`)
+          [  this.colorToEdit,
+            (this.cursorStyles["background-color"] = `rgb(${data.slice(0,3).join(",")})`)]
         );
         this.$forceUpdate();
     },
@@ -641,6 +664,7 @@ export default {
         this.currentLayer.ctx.drawImage(this.$refs.selectionImg, 0, 0, this.sizes.width, this.sizes.height);
         this.selection.drop();
         this.selection = null;           
+        this.render();
       }
     },
     redoSelection() {
@@ -649,6 +673,7 @@ export default {
         this.selection = null;
         let sshot = this.history.remove();
         sshot.layer.ctx.putImageData(sshot.state, 0, 0);
+        this.render();
       }
       
     },
@@ -750,59 +775,84 @@ export default {
     applyTemp() {
      
          if(this.currentInstrument == "eraser") {
-            const currentCanvas = this.$refs["layerEl" + this.currentLayer.id][0];
-            currentCanvas.style.opacity = 1;
+
             this.currentLayer.ctx.globalCompositeOperation = "copy";
             this.currentLayer.ctx.drawImage(this.tempCtx.canvas, 0, 0);
             this.brush.dropLine();
 
           } else if(this.currentInstrument == "brush")  {            
             this.currentLayer.ctx.globalCompositeOperation = "source-over";
-            const img = new Image();
-            
-            img.onload = () => {
-               if(this.selection) {
-                 this.currentLayer.ctx.save();
-                 this.selection.drawClipPath(this.currentLayer.ctx);
-                 this.currentLayer.ctx.clip();
-                } 
-              this.currentLayer.ctx.drawImage(img, 0, 0, this.sizes.width, this.sizes.height);   
-              if(this.selection) 
-                this.currentLayer.ctx.restore();
-              this.brush.dropLine();   
-              
-            }
             this.brush.update = false;
             this.brush.render();
-            img.src = this.brush.canvas.toDataURL("image/png", 1);           
+
+            if(this.selection) {
+                this.currentLayer.ctx.save();
+                this.selection.drawClipPath(this.currentLayer.ctx);
+                this.currentLayer.ctx.clip();
+            } 
+            this.currentLayer.ctx.drawImage(this.brush.canvas, 0, 0, this.sizes.width, this.sizes.height);   
+            if(this.selection) 
+              this.currentLayer.ctx.restore();
+
+            
+            this.brush.dropLine();   
+
+ 
               
           } else if(this.currentInstrument == "fill") {
             this.currentLayer.ctx.drawImage(this.tempCtx.canvas, 0, 0);
-          }
-               
+          }             
         
           
           this.tempCtx.clearRect(0,0,this.sizes.width, this.sizes.height);
+          this.render();
             
+    },
+    render(temp) {
+      this.blender.clearRect(0,0, this.sizes.width, this.sizes.height);
+      this.blender.fillStyle = this.backgroundColor;
+      this.blender.fillRect(0,0, this.sizes.width, this.sizes.height);
+      
+      this.layers.forEach(l => {
+        if(l.visible) {
+          this.blender.globalCompositeOperation = l.blend;
+          this.blender.globalAlpha = l.opacity / 100;
+          if(temp && l == this.currentLayer) {
+            this.blender.drawImage(this.tempCtx.canvas, 0, 0);
+          } else {          
+            this.blender.drawImage(l.ctx.canvas, 0, 0);
+          }       
+
+        }
+        
+      });
+      
     },
     draw(point) {
       this.brush.addPoint([point.x, point.y], point.pressure);
+      this.brush.onNextRedraw = () => {
+         
+          this.tempCtx.globalCompositeOperation = "copy";
+          this.tempCtx.drawImage(this.currentLayer.ctx.canvas, 0, 0);
+
+          this.tempCtx.globalCompositeOperation = "source-over";
+          this.tempCtx.drawImage(this.brush.canvas, 0, 0);
+
+          this.render(true);
+      };
     },
-    erase(point1) {
-      this.draw(point1);
+    erase(point) {
+      this.brush.addPoint([point.x, point.y], point.pressure);
 
       this.brush.onNextRedraw = () => {
-          const img = new Image();  
-          img.onload = () => {
-             const currentCanvas = this.$refs["layerEl" + this.currentLayer.id][0];
-            currentCanvas.style.opacity = 0;
-            this.tempCtx.globalCompositeOperation = "copy";
-            this.tempCtx.drawImage(currentCanvas, 0, 0);
-            
-            this.tempCtx.globalCompositeOperation = "destination-out";
-            this.tempCtx.drawImage(img, 0, 0);
-          }
-          img.src = this.brush.canvas.toDataURL("image/png", 1);
+         
+          this.tempCtx.globalCompositeOperation = "copy";
+          this.tempCtx.drawImage(this.currentLayer.ctx.canvas, 0, 0);
+
+          this.tempCtx.globalCompositeOperation = "destination-out";
+          this.tempCtx.drawImage(this.brush.canvas, 0, 0);
+
+          this.render(true);
       };
 
      
@@ -853,17 +903,15 @@ export default {
         }[y];
       }
       
-      ["brush", "selectionImg", "selection"].forEach(s => {
+      ["blender", "selectionImg", "selection"].forEach(s => {
         this.$refs[s].width = width;
         this.$refs[s].height = height;
         this.$refs[s].style.width = width + "px";
         this.$refs[s].style.height = height + "px";
       });     
-      ["tempCtx", "tempCtx2"].forEach(s => {
+      ["tempCtx", "tempCtx2", "brush"].forEach(s => {
         this[s].canvas.width = width;
         this[s].canvas.height = height;
-        this[s].canvas.style.width = width + "px";
-        this[s].canvas.style.height = height + "px";
       })
 
       let rect = resizeMode == "move" ? 
@@ -877,8 +925,6 @@ export default {
                   
           layer.ctx.canvas.width = width;
           layer.ctx.canvas.height = height;
-          layer.ctx.canvas.style.width = width + "px";
-          layer.ctx.canvas.style.height = height + "px";
           
           layer.ctx.drawImage(this.tempCtx.canvas, 0, 0, width, height);
           
@@ -896,6 +942,8 @@ export default {
         ...this.canvasSizes
       };
       this.brush.setSizes(this.sizes);
+
+      this.render();
     },
     newDrawing(title = "New drawing") {
       this.layers = [];
@@ -916,37 +964,38 @@ export default {
       const layer = {
         id: Date.now(), 
         name, 
-        ref: null,
         opacity: 100,
-        visible: true
+        visible: true,
+        blend: "source-over"
       };
-      this.layers.push(layer);
+      layer.ctx = (new OffscreenCanvas(this.sizes.width, this.sizes.height)).getContext("2d");
+      this.layers = this.layers.slice(0, this.currentLayerIndex+1)
+      .concat([layer])
+      .concat(this.layers.slice(this.currentLayerIndex+1));
       let prev = this.currentLayer;
-      this.currentLayer = layer;
-      setTimeout(() => {
-        let ref = this.$refs['layerEl' + layer.id];
-        if(Array.isArray(ref)) ref = ref[0];
-        ref.width = this.sizes.width;
-        ref.height = this.sizes.height;
-        this.currentLayer.ctx = ref.getContext("2d");
+      this.selectLayer(layer.id);
 
-        if(paste) {
-          this.currentLayer.ctx.drawImage(paste.img, paste.x, paste.y, paste.width, paste.height);
-        }
-        
-        if(prev)
-          this.history.append({
-            instrument: "append-layer",
-            layer: this.currentLayer,
-            state:  this.currentLayer.ctx.getImageData(0, 0, this.sizes.width, this.sizes.height),
-            prev
-          });
-      }, 100);
+     
+
+      if(paste) {
+        this.currentLayer.ctx.drawImage(paste.img, paste.x, paste.y, paste.width, paste.height);
+      }
+      
+      if(prev)
+        this.history.append({
+          instrument: "append-layer",
+          layer: this.currentLayer,
+          state:  this.currentLayer.ctx.getImageData(0, 0, this.sizes.width, this.sizes.height),
+          prev
+        });
+
+        this.render();
       
     },
     selectLayer(id) {
-      this.currentLayer = this.layers.find(l => l.id == id);
-      console.log(this.layers, this.currentLayer, id)
+      this.currentLayerIndex = this.layers.findIndex(l => l.id == id);
+      this.currentLayer = this.layers[this.currentLayerIndex];
+      this.render();
     },
     reorderLayer({oldIndex, newIndex}) {
       let oldIndex1 = this.layers.length - oldIndex - 1;
@@ -957,10 +1006,12 @@ export default {
         ...reordered,
         ...this.layers.slice(newIndex1)
       ];
+      this.render();
     },
     toggleLayer(id) {
       const layer = this.layers.find(l => l.id === id);
       layer.visible = !layer.visible;
+      this.render();
     },
     removeLayer(id) {
       let ind = this.layers.findIndex(l => l.id === id);
@@ -977,6 +1028,8 @@ export default {
         }
 
         this.layers.splice(ind, 1);
+
+        this.render();
 
     }
   }
@@ -1001,6 +1054,15 @@ input[type=number] {
 
 *:focus {
     outline: none;
+}
+
+
+.underlay {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
 }
 
 
@@ -1039,6 +1101,8 @@ input[type=number] {
     background-size: 100% 100%;
     background-repeat: no-repeat;
     background-color: grey;
+    max-width: calc(100vw - 360px);
+    max-height: calc(100vh - 80px);
     #canvas {
       transform-origin: 0 0;
       background: white;
@@ -1068,8 +1132,15 @@ input[type=number] {
         border-radius: 50%;
       }      
       &.texture {
-        background-size: cover;
+        max-width: unset;
+        background: {
+          repeat: no-repeat;
+          position: center;
+          size: 100% 100%;
+        };
+        
         border-color: transparent;
+        filter: url(#outline);
       }
     }
 
