@@ -5,36 +5,36 @@
         @click.stop="() => setDisplay('', false)"></div>
 
         <div class="btn" @click="$emit('new-drawing')">
-            <img src="../assets/img/new-drawing.png" title="New drawing" />
+            <img src="../assets/img/new-drawing.png" :title="$t('topPanel.newDrawing.title')" />
         </div>
         <div class="btn" 
             :class="{active: display.sizesForm}"
             @click="() => setDisplay('sizesForm', !display.sizesForm)">
-            <img src="../assets/img/change-sizes.png" title="Change sizes" />
+            <img src="../assets/img/change-sizes.png" :title="$t('topPanel.sizesForm.title')" />
             <div class="menu-form" 
             v-show="display.sizesForm" 
             @click.stop>
                 <div>
-                    <div>Width:</div>  
+                    <div>{{$t('topPanel.sizesForm.width')}}:</div>  
                     <input type="number" 
                     min="1" step="1" 
                     v-model="sizesModel.width" 
                     @keyup.enter="applySizes">
                 </div> 
                 <div>
-                    <div>Height:</div>
+                    <div>{{$t('topPanel.sizesForm.height')}}:</div>
                     <input type="number" 
                     min="1" step="1" 
                     v-model="sizesModel.height" 
                     @keyup.enter="applySizes">
                 </div>     
-                <div>Transform existing content:</div>
+                <div>{{$t('topPanel.sizesForm.transform')}}:</div>
                 <div id="resize-mode">
                     <div 
                         :class="{active: sizesModel.resizeMode == 'resize'}"
                         @click="() => sizesModel.resizeMode = 'resize'">
                         <div><img src="../assets/img/resize-mode.png" ></div>
-                        <div>Resize</div>
+                        <div>{{$t('topPanel.sizesForm.resize')}}</div>
                     </div>
                     <div 
                         :class="{active: sizesModel.resizeMode == 'move'}"
@@ -47,13 +47,13 @@
                             </div>
                             <img src="../assets/img/move-mode.png" >                            
                         </div>
-                        <div>Move</div>
+                        <div>{{$t('topPanel.sizesForm.move')}}</div>
                     </div>
                 </div>
                 <div class="footer">
                     <button class="ok-btn"
                     @click.stop="applySizes" 
-                    @keyup.enter="applySizes">Ok</button>
+                    @keyup.enter="applySizes">{{$t('common.ok')}}</button>
                 </div>                          
             </div>
         </div>
@@ -63,7 +63,7 @@
             <input 
             type="file" @change="importImage"
             ref="importImage" accept="image/*">
-            <img src="../assets/img/load-image.png" title="Import image" />
+            <img src="../assets/img/load-image.png" :title="$t('topPanel.importMenu.title')" />
             <div class="menu-itemlist" 
             v-show="display.importMenu" 
             @click.stop>
@@ -73,7 +73,7 @@
                     @click.stop="() => loadImage(mode)"
                 >
                     <img :src="mode.img">
-                    <div>{{mode.label}}</div>
+                    <div>{{$t('topPanel.importMenu.' + mode.k)}}</div>
                 </div>
 
             </div>
@@ -81,7 +81,7 @@
         <div class="btn"
         :class="{active: display.filtersList}"
         @click="() => setDisplay('filtersList', !display.filtersList)">
-            <img src="../assets/img/filters.png" title="Image filters" />
+            <img src="../assets/img/filters.png" :title="$t('topPanel.filtersList.title')" />
             <div class="menu-itemlist" 
             v-show="display.filtersList">
                 <div class="menu-item" 
@@ -89,13 +89,13 @@
                 :key="filter.k"
                 @click="() => selectFilter(filter)">
                     <img :src="filter.img">
-                    <div>{{filter.label}}</div>
+                    <div>{{$t('topPanel.filtersList.' + filter.k + ".title")}}</div>
                 </div>
             </div>
             <div class="menu-form" v-show="!!currentFilter" @click.stop>
                 <template v-if="currentFilter.k == 'blur'">
                     <div>
-                        <div>Radius:</div>  
+                        <div>{{$t('topPanel.filtersList.blur.radius')}}:</div>  
                         <input type="number" 
                         min="1" step=".1" 
                         v-model="currentFilter.settings.radius" 
@@ -105,7 +105,7 @@
                 </template>
                 <template v-if="currentFilter.k == 'bright-contr'">
                     <div>
-                        <div>Brightness:</div>  
+                        <div>{{$t('topPanel.filtersList.bright-contr.brightness')}}:</div>  
                         <input type="range" 
                         min="0" step=".1" max="5" 
                         v-model="currentFilter.settings.brightness" 
@@ -113,7 +113,7 @@
                         @keyup.enter="() => $emit('preview-filter', currentFilter)">
                     </div>
                     <div>
-                        <div>Contrast:</div>  
+                        <div>{{$t('topPanel.filtersList.bright-contr.contrast')}}:</div>  
                         <input type="range" 
                         min="0" step=".1" max="5" 
                         v-model="currentFilter.settings.contrast" 
@@ -123,7 +123,7 @@
                 </template>
                 <template v-if="currentFilter.k == 'posterize'">
                     <div>
-                        <div>Number of color levels:</div>  
+                        <div>{{$t('topPanel.filtersList.posterize.levels')}}:</div>  
                         <input type="number" 
                         :min="2" :step="1" :max="20" 
                         v-model="currentFilter.settings.levels" 
@@ -133,7 +133,7 @@
                 </template>
                 <template v-if="currentFilter.k == 'pixelate'">
                     <div>
-                        <div>Pixel size:</div>  
+                        <div>{{$t('topPanel.filtersList.pixelate.size')}}:</div>  
                         <input type="number" 
                         :min="2" :step="1" :max="100" 
                         v-model="currentFilter.settings.size" 
@@ -153,7 +153,7 @@
         </div>    
          <div class="btn" 
          @click="() => $emit('save-image')" 
-         title="Save as image">
+         :title="$t('topPanel.saveImage.title')">
             <img src="../assets/img/save-image.png" />
         </div>    
     </div>
@@ -179,24 +179,23 @@ export default {
           currentFilter: false,
           importMode: "leave",
           importModes: [
-              {k: "leave", img: require("../assets/img/import-leave.png"), label: "Keep sizes, place to center"},
-              {k: "resize-img", img: require("../assets/img/import-resize-img.png"), label: "Adjust image size to canvas"},
-              {k: "resize-canvas", img: require("../assets/img/import-resize-canvas.png"), label: "Adjust canvas size to image"}
+              {k: "leave", img: require("../assets/img/import-leave.png")},
+              {k: "resize-img", img: require("../assets/img/import-resize-img.png")},
+              {k: "resize-canvas", img: require("../assets/img/import-resize-canvas.png")}
 
           ],
           filters: [
-              {k: "invert", label: "Invert", img: require("../assets/img/filter-invert.png")},
-              {k: "grayscale", label: "Grayscale", img: require("../assets/img/filter-grayscale.png")},
-              {k: "sepia", label: "Sepia", img: require("../assets/img/filter-sepia.png")},
-              {k: "blur", label: "Blur",  img: require("../assets/img/filter-blur.png"), preview: true, settings: {radius: 1}, },
-              {k: "bright-contr", 
-              label: "Brightness and contrast",  
+              {k: "invert",  img: require("../assets/img/filter-invert.png")},
+              {k: "grayscale",  img: require("../assets/img/filter-grayscale.png")},
+              {k: "sepia",  img: require("../assets/img/filter-sepia.png")},
+              {k: "blur",   img: require("../assets/img/filter-blur.png"), preview: true, settings: {radius: 1}, },
+              {k: "bright-contr",  
               img: require("../assets/img/filter-bright-contr.png"), 
               preview: true, settings: {brightness: 1, contrast: 1 }},
-              {k: "posterize", label: "Posterization",  
+              {k: "posterize", 
               img: require("../assets/img/filter-posterize.png"), 
               preview: true, settings: {levels: 4}, },
-              {k: "pixelate", label: "Pixelation",  
+              {k: "pixelate", 
               img: require("../assets/img/filter-pixelate.png"), 
               preview: true, settings: {size: 10}, },
           ],

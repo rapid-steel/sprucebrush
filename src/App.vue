@@ -94,6 +94,7 @@
       </defs>
     
   </svg>
+  <img id="logo" src="./assets/img/пушинка.png">
   </div>
 </template>
 
@@ -219,8 +220,7 @@ export default {
     }
   },
   mounted() {
-    if(navigator.languages[0].indexOf("ru") == 0)
-      this.$i18n.locale = "ru";
+    //if(navigator.languages[0].indexOf("ru") == 0)this.$i18n.locale = "ru";
     document.getElementsByTagName("title")[0].innerText = this.$t("title");
 
 
@@ -1038,6 +1038,7 @@ export default {
 
 <style lang="scss">
 @import '~vue-select/dist/vue-select.css';
+@import "./assets/styles/colors.scss";
 
 input[type=file] {
     width: 0;
@@ -1188,5 +1189,15 @@ input[type=number] {
       }
     }
   }
+}
+
+#logo {
+  position: fixed;
+  width: $logo_size;
+  height: $logo_size;
+  bottom: 0;
+  right: 0;
+  opacity: .5;
+
 }
 </style>
