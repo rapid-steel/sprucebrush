@@ -62,13 +62,13 @@ function createFragShader(programType) {
          varying vec2 texPos;
 
          #ifdef TEXCOLOR
-         float maxc(vec3 color) {
+         float maxc(vec4 color) {
             float m = color.r > color.g ? color.r : color.g;
             m = color.b > m ? color.b : m;
             return m;
          }
 
-         float minc(vec3 color) {
+         float minc(vec4 color) {
             float m = color.r < color.g ? color.r : color.g;
             m = color.b < m ? color.b : m;
             return m;
@@ -83,12 +83,12 @@ function createFragShader(programType) {
                 #endif
 
                 #ifdef TEXCOLOR
-                gl_FragColor.a = (maxc(gl_FragColor.rgb) + minc(gl_FragColor.rgb)) * 0.5;
+                gl_FragColor.a = (maxc(gl_FragColor) + minc(gl_FragColor)) * 0.5;
                 gl_FragColor.rgb = color;
                 #endif
 
                 #ifdef WIDTHGRAD
-                gl_FragColor.rgb = texture2D(gradient_texture, texPos);                
+                gl_FragColor.rgb = texture2D(gradient_texture, texPos).rgb;                
                 #endif               
                 
                 gl_FragColor.a *= opacity;
