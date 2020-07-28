@@ -1,4 +1,5 @@
-
+import ToolWebGL from "./ToolWebGL";
+const DEBUG = process.env.NODE_ENV !== 'production';
 
 
 const vertexShader =   `
@@ -36,9 +37,7 @@ function createFragShader(programType) {
         type.linearGradient = programType.indexOf("lingrad") !== -1;
         type.radialGradient = programType.indexOf("radgrad") !== -1;
         type.colors =  parseInt(programType.slice(programType.indexOf("grad")+ 4));
-
-    }
-
+    }    
     let code = `
     #ifdef GL_OES_standard_derivatives
     #extension GL_OES_standard_derivatives : enable
@@ -126,7 +125,7 @@ function createFragShader(programType) {
                 `;
             }
         } else if(type.radialGradient) {
-            if(type.round) {
+            if(type.round || type.texture) {
                 mainFunc += `
                 float offset = length(cxy);
                 `;
@@ -180,110 +179,42 @@ function createFragShader(programType) {
 
 
 
-const DEBUG = process.env.NODE_ENV !== 'production';
 
-export default class Brush {
+
+
+export default class Brush extends ToolWebGL {
     constructor() {
+        super();
         this.points = [];
-        this.vertices = [];
-        this.indexes = [];
-        this.pressures = [];
 
         this.canvas = new OffscreenCanvas(100, 100);
         this.gl = this.canvas.getContext("webgl", {
-           // preserveDrawingBuffer: true, 
            premultipliedAlpha: true,
             depth: false
         });
-
-        this.gl.getExtension("OES_standard_derivatives");
-        this.gl.clearColor(0, 0, 0, 0);
-        this.gl.enable(this.gl.SAMPLE_ALPHA_TO_COVERAGE);
-        this.gl.enable(this.gl.SAMPLE_COVERAGE);
-        this.gl.enable(this.gl.BLEND);
-        this.gl.blendFuncSeparate(
-            this.gl.SRC_ALPHA, 
-            this.gl.ONE_MINUS_SRC_ALPHA, 
-            this.gl.ONE, 
-            this.gl.ONE_MINUS_SRC_ALPHA
-        );
-        this.gl.depthMask(false);        
-
-        this.gl.clear(this.gl.COLOR_BUFFER_BIT  | this.gl.DEPTH_BUFFER_BIT);
-
     
-        this.vertex_buffer = this.gl.createBuffer();
-        this.index_buffer = this.gl.createBuffer();
-        this.pressure_buffer = this.gl.createBuffer();
-
-
-        this.programsLoaded = {};
-
+        this.buffers = {
+            vertices: { attrib: "coordinates", size: 2, type: this.gl.FLOAT },
+            pressures: { attrib: "pressure", size: 1, type: this.gl.FLOAT },
+            indexes:  { attrib: "index",  size: 1, type: this.gl.FLOAT }
+        };
         this.params = {
             spacing: .05,
             radius: 1,
             overlay: false
         };
+
+        this.PRIMITIVE_TYPE = this.gl.POINTS;
+        this.vertexShader = vertexShader;
+        this.createFragShader = createFragShader;
         this.pointStep = this.params.radius * this.params.spacing;
-        this.paramCache = {};
-        this.update = false;
         this.index = 0;
+
+        this._init();
        
     }
     setProgram(programType) {
-        this.programType = programType;
-
-        if(!this.programsLoaded[programType]) {
-            if(this.program) {
-                const coord = this.gl.getAttribLocation(this.program, "coordinates");
-                this.gl.disableVertexAttribArray(coord); 
-                const press = this.gl.getAttribLocation(this.program, "pressure");
-                this.gl.disableVertexAttribArray(press);    
-                const ind = this.gl.getAttribLocation(this.program, "index");
-                this.gl.disableVertexAttribArray(ind);              
-            }
-
-            const fragCode = createFragShader(programType);
-
-            const vertShader = this.gl.createShader(this.gl.VERTEX_SHADER);
-            this.gl.shaderSource(vertShader, vertexShader);
-            this.gl.compileShader(vertShader);
-            if(DEBUG) 
-                console.log(this.gl.getShaderInfoLog(vertShader));
-    
-            const fragShader = this.gl.createShader(this.gl.FRAGMENT_SHADER);
-    
-            this.gl.shaderSource(fragShader, fragCode);
-            this.gl.compileShader(fragShader);
-            if(DEBUG) 
-                console.log(this.gl.getShaderInfoLog(fragShader));
-    
-            const program = this.gl.createProgram();
-            this.gl.attachShader(program, vertShader); 
-            this.gl.attachShader(program, fragShader);
-            this.gl.linkProgram(program);
-
-            this.programsLoaded[programType] = program;
-
-        }
-        this.program = this.programsLoaded[programType];      
-        this.gl.useProgram(this.program);   
-            
-        
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertex_buffer);
-        const coord = this.gl.getAttribLocation(this.program, "coordinates");
-        this.gl.vertexAttribPointer(coord, 2, this.gl.FLOAT, false, 0, 0);
-        this.gl.enableVertexAttribArray(coord);
-
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.pressure_buffer);
-        const press = this.gl.getAttribLocation(this.program, "pressure");
-        this.gl.vertexAttribPointer(press, 1, this.gl.FLOAT, false, 0, 0);
-        this.gl.enableVertexAttribArray(press);
-
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.index_buffer);
-        const ind = this.gl.getAttribLocation(this.program, "index");
-        this.gl.vertexAttribPointer(ind, 1, this.gl.FLOAT, false, 0, 0);
-        this.gl.enableVertexAttribArray(ind);
+         this._createProgram(programType);
 
         this.programParams = {
             radius: "1f",
@@ -311,11 +242,8 @@ export default class Brush {
             this.programParams.color = "3fv";
         }
 
-
-        //this.setAttributes();
-
     }
-    addPoint(coords, pressure) {
+    addPoint({coords, pressure}) {
         
         if(this.vertices.length === 0) {
             this.vertices.push(coords[0]);
@@ -350,31 +278,7 @@ export default class Brush {
         }
 
     }
-    dropLine() {
-        this.update = false;
-        this.points = [];
-        this.vertices = [];
-        this.indexes = [];
-        this.pressures = [];
-        requestAnimationFrame(() => {
-            this.gl.clear(this.gl.COLOR_BUFFER_BIT  | this.gl.DEPTH_BUFFER_BIT);
-        });
-    }
-    loadTexture(texture) {
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-
-        img.onload = () => {
-            const glTexture = this.gl.createTexture();
-            this.gl.activeTexture(this.gl.TEXTURE0);  // this is the 0th texture
-            this.gl.bindTexture(this.gl.TEXTURE_2D, glTexture);
-
-            this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, img);
-            this.gl.generateMipmap(this.gl.TEXTURE_2D);
-
-        }
-        img.src = texture.src;
-    }
+   
     setParams(params) {
         let cacheTexture = this.paramCache.texture;
         for(let param in params) {
@@ -406,7 +310,6 @@ export default class Brush {
             }
         } 
           
-
                     
 
         this.setAttributes();
@@ -432,38 +335,5 @@ export default class Brush {
                             
             }   
         }
-    }
-    setSizes({width, height}) {
-        this.canvas.width = width;
-        this.canvas.height = height;
-        this.gl.viewport(0, 0, width, height);
-        this.gl.clear(this.gl.COLOR_BUFFER_BIT  | this.gl.DEPTH_BUFFER_BIT);
-
-        this.setParams({
-            width2: this.canvas.width / 2,
-            height2: this.canvas.height / 2
-        });
-    }
-    animate() {
-        if(this.update) {
-            this.render();
-            if(this.onNextRedraw) {
-                this.onNextRedraw();
-                this.onNextRedraw = null;
-            }
-            requestAnimationFrame(() => this.animate());
-        }
-        
-    }
-    render() {
-        this.gl.clear(this.gl.COLOR_BUFFER_BIT  | this.gl.DEPTH_BUFFER_BIT);
-
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertex_buffer);
-        this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this.vertices), this.gl.DYNAMIC_DRAW);
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.pressure_buffer);
-        this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this.pressures), this.gl.DYNAMIC_DRAW);
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.index_buffer);
-        this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this.indexes), this.gl.DYNAMIC_DRAW);
-        this.gl.drawArrays(this.gl.POINTS, 0, this.indexes.length);
-     }
+    }   
 }

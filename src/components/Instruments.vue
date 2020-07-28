@@ -13,24 +13,24 @@
     </div>
     <div class="current-instrument">        
         <img :src="currentItem.icon">
-        <div>{{currentItem.title}}</div>
+        <div>{{$t('instruments.instruments.' + currentInstrument)}}</div>
     </div>
 
     <div v-if="currentInstrument.indexOf('selection') !== -1" class="controls">
         <div v-show="selection">
-            <button class="ok-btn" @click="() => $emit('apply-selection')">Apply selection</button>
+            <button class="ok-btn" @click="() => $emit('apply-selection')">{{$t('instruments.selection.apply')}}</button>
             <div class="hint">Enter</div>
         </div>
         <div v-show="selection">
-            <button class="ok-btn" @click="() => $emit('redo-selection')">Reset selection</button>
+            <button class="ok-btn" @click="() => $emit('reset-selection')">{{$t('instruments.selection.reset')}}</button>
             <div class="hint">Ctrl + Z</div>
         </div>
         <div v-show="selection">
-            <button class="ok-btn" @click="() => $emit('crop-selection')">Crop to selection</button>
+            <button class="ok-btn" @click="() => $emit('crop-selection')">{{$t('instruments.selection.crop')}}</button>
             <div class="hint">Ctrl + T</div>
         </div>
         <div>
-            <button class="ok-btn" @click="() => $emit('select-all')">Select all</button>
+            <button class="ok-btn" @click="() => $emit('select-all')">{{$t('instruments.selection.all')}}</button>
             <div class="hint">Ctrl + A</div>
         </div>
 
@@ -38,7 +38,7 @@
 
     <div class="settings">
         <div v-for="s in actualSettings" :key="s.k">
-            <div class="caption">{{s.label}}:</div>
+            <div class="caption">{{$t('instruments.settings.' + s.k)}}:</div>
             <RangeInput :min="s.min" :max="s.max" :step="s.step" :horizontal="true"
             v-model="currentBrush[s.k]"
             @input="v => set({[s.k]: v})" />
@@ -47,7 +47,7 @@
         <div class="shapes" 
             :class="{disabled: !!currentBrush.texture}" 
             v-if="currentBrush.shape !== undefined">
-            <div class="caption">Shape</div>
+            <div class="caption">{{$t('instruments.settings.shape')}}</div>
             <div v-if="!currentBrush.texture">
                 <div v-for="shape in shapes" 
                 :key="shape.k" 
@@ -57,7 +57,7 @@
                 </div>
             </div>
             <div class="input-checkbox" v-if="currentBrush.pixel !== undefined && !currentBrush.texture">
-                <div class="caption">Pixel</div>
+                <div class="caption">{{$t('instruments.settings.pixel')}}</div>
                 <input type="checkbox" 
                 :checked="currentBrush.pixel" 
                 @input="e => set({pixel: !!e.target.checked})" >
@@ -66,7 +66,7 @@
 
         <div class="textures" v-if="currentBrush.texture !== undefined">
             <div class="side-list-header">
-                <div class="caption">Texture</div>
+                <div class="caption">{{$t('instruments.settings.texture')}}</div>
                 <SideList>
                     <div class="texture notexture" 
                         :class="{active: currentBrush.texture == false}"
@@ -83,7 +83,7 @@
                         <button class="add-texture" 
                             :class="{active: currentBrush.texture == false}"
                             @click.stop="() => $refs.addTexture.click()"
-                        >Import texture<input @change="importAsset"
+                        >{{$t('instruments.settings.importTexture')}}<input @change="importAsset"
                             type="file" id="texture-input"
                             ref="addTexture" accept="image/*">
                         </button>
@@ -95,11 +95,18 @@
                     <img :src="currentBrush.texture.src"> 
                 </div>
             </div>
+             <div class="input-checkbox"  v-if="currentBrush.texture && currentBrush.textureColor !== undefined">
+                <div class="caption">{{$t('instruments.settings.textureColor')}}</div>
+                <input type="checkbox" 
+                :checked="currentBrush.textureColor" 
+                @input="e => set({textureColor: !!e.target.checked})" >
+            </div>
+
         </div>
 
         <div class="textures" v-if="currentBrush.pattern !== undefined">
             <div class="side-list-header">
-                <div class="caption">Pattern</div>
+                <div class="caption">{{$t('instruments.settings.pattern')}}</div>
                 <SideList>
                     <div class="texture notexture" 
                         :class="{active: currentBrush.pattern == false}"
@@ -116,7 +123,7 @@
                         <button class="add-texture" 
                             :class="{active: currentBrush.pattern == false}"
                             @click.stop="() => $refs.addPattern.click()"
-                        >Import pattern<input @change="importAsset"
+                        >{{$t('instruments.settings.importPattern')}}<input @change="importAsset"
                             type="file" id="pattern-input"
                             ref="addPattern" accept="image/*">
                         </button>
@@ -142,11 +149,11 @@
             :class="{disabled: !!currentBrush.radialGradient}" 
         >
             <div class="side-list-header">
-                <div class="caption">Linear gradient</div>
+                <div class="caption">{{$t('instruments.settings.linearGradient')}}</div>
                 <SideList>
                     <div class="gradient nogradient"
                         :class="{active: currentBrush.linearGradient == false}"
-                        @click.stop="() => set({linearGradient: false})">None
+                        @click.stop="() => set({linearGradient: false})">{{$t('instruments.settings.none')}}
                     </div>
                     <div v-for="(gradient,i) in gradients" 
                         :key="i" class="gradient"
@@ -155,7 +162,7 @@
                         @click.stop="() => set({linearGradient: gradient, radialGradient: false})">
                     </div>
                     <template slot=footer>
-                        <button class="create-gradient" @click="createGradient">Create gradient</button>
+                        <button class="create-gradient" @click="createGradient">{{$t('instruments.settings.createGradient')}}</button>
                     </template>
                 </SideList>
             </div>
@@ -166,7 +173,7 @@
             </div>
 
             <div class="gradient-length" v-if="currentBrush.linearGradient">
-                <div class="caption">Length</div>
+                <div class="caption">{{$t('instruments.settings.length')}}</div>
                     <RangeInput :min="10" :max="100000" :horizontal="true"
                     v-model="currentBrush.linearGradientLength"
                     @input="v => set({linearGradientLength: v})" />
@@ -178,21 +185,22 @@
             :class="{disabled: !!currentBrush.linearGradient}" 
         >
             <div class="side-list-header">
-                <div class="caption">Radial gradient</div>
+                <div class="caption">{{$t('instruments.settings.radialGradient')}}</div>
                 <SideList>
                     <div
                         class="gradient nogradient"
                         :class="{active: currentBrush.radialGradient == false}"
                         @click.stop="() => set({radialGradient: false})"
-                        >None</div>
+                        >{{$t('instruments.settings.none')}}</div>
                     <div v-for="(gradient,i) in gradients" 
                         :key="i" class="gradient"
                         :class="{active: currentBrush.radialGradient == gradient}"
                         :style="gradient | gradientBG"
-                        @click.stop="() => set({radialGradient: gradient, linearGradient: false})">
+                        @click.stop="() => set({radialGradient: gradient, 
+                        ...(currentBrush.linearGradient ? {linearGradient: false} : {})})">
                     </div>
                     <template slot=footer>
-                        <button class="create-gradient" @click="createGradient">Create gradient</button>
+                        <button class="create-gradient" @click="createGradient">{{$t('instruments.settings.createGradient')}}</button>
                     </template>
                 </SideList>
             </div>
@@ -202,6 +210,7 @@
                 </div>
             </div>
         </div>
+        
     </div>
 
     
@@ -234,27 +243,29 @@ export default {
       return {
           gradientToEdit: null,
           settings: [
-              {k: "radius", label: "Diameter", min: 1, max: 1000, step: 1},
-              {k: "opacity", label: "Opacity", min: .01, max: 1, step: .01},
+              {k: "radius", min: 1, max: 1000, step: 1},
+              {k: "lineWidth", min: 1, max: 1000, step: 1},
+              {k: "opacity",  min: .01, max: 1, step: .01},
          //     {k: "hardness", label: "Hardness", min: .01, max: 1, step: .01},
-              {k: "spacing", label: "Spacing", min: 0.001, max: 10, step: .001},
-              {k: "tolerance", label: "Tolerance", min: 1, max: 255, step: 1}
+              {k: "spacing",  min: 0.001, max: 10, step: .001},
+              {k: "tolerance", min: 1, max: 255, step: 1}
           ],
           instruments: [{
               group: "drawing",
               items: [
-                {name: "brush", icon: require("@/assets/img/brush.png"), title: "Brush"},
-                {name: "eraser", icon: require("@/assets/img/eraser.png"), title: "Eraser"},
-                {name: "picker", icon: require("@/assets/img/picker.png"), title: "Color picker"},
-                {name: "fill", icon: require("@/assets/img/fill.png"), title: "Filling tool"},
+                {name: "brush", icon: require("@/assets/img/brush.png")},
+                {name: "eraser", icon: require("@/assets/img/eraser.png")},
+                {name: "picker", icon: require("@/assets/img/picker.png")},
+                {name: "fill", icon: require("@/assets/img/fill.png")},
+                {name: "marker", icon: require("@/assets/img/marker.png")},
               //  {name: "pen", icon: require("@/assets/img/pen.png"), title: "Pen"},
               ]
           }, {
             group: "selection",
             items: [
-                {name: "selection-rect", icon: require("@/assets/img/selection-rect.png"), title: "Rectangular selection"},
-                {name: "selection-polygon", icon: require("@/assets/img/selection-polygon.png"), title: "Polygonal selection"},
-                {name: "selection-lasso", icon: require("@/assets/img/selection-lasso.png"), title: "Freehand selection"},
+                {name: "selection-rect", icon: require("@/assets/img/selection-rect.png")},
+                {name: "selection-polygon", icon: require("@/assets/img/selection-polygon.png")},
+                {name: "selection-lasso", icon: require("@/assets/img/selection-lasso.png")},
             ]
           }
               
@@ -262,7 +273,10 @@ export default {
       }
   },
   computed: {
-      ...mapState(['currentInstrument', 'types', 'textures', 'patterns', 'shapes', 'gradients', 'currentColor', 'colorBG']),
+      ...mapState(['currentInstrument', 'types', 'patterns', 'shapes', 'gradients', 'currentColor', 'colorBG']),
+      textures() {
+          return this.$store.state.textures[this.currentBrush.textype];
+      },
       actualSettings() {
           return this.settings.filter(s => this.currentBrush[s.k] != undefined);
       },
@@ -287,10 +301,51 @@ export default {
           Array.from(e.target.files).forEach(file => {
               let img = new Image();
                 img.onload = () => {
-                    this.$store.commit("addAsset", [type, {
-                        k: Date.now(),
-                        src: img.src
-                    }]);
+                    if(type.indexOf("texture") !== -1) {
+                        let width = Math.pow(2, Math.ceil(Math.log2(img.width)));
+                        let height = Math.pow(2, Math.ceil(Math.log2(img.height)));
+                        let dw = width - img.width;
+                        let dh = height - img.height;
+                        let imgWidth, imgHeight;
+                        if(dw <= dh) {
+                            imgWidth = width;                            
+                            imgHeight = (1 + dw / img.width) * img.height;
+                            dw = 0;
+                            dh =  imgHeight - img.height;
+                        } else {
+                            imgHeight = height;
+                            imgWidth = (1 + dh / img.height) * img.width;
+                            dh = 0;
+                            dw = imgWidth - img.width;
+                        }
+                        dw /= 2;
+                        dh /= 2;
+
+                        console.log(width, height, imgWidth, imgHeight)
+
+
+                        let ctx = new OffscreenCanvas(width, height).getContext("2d");
+                        ctx.drawImage(img, dw, dh, imgWidth, imgHeight);
+                        img = new Image();
+                        img.onload = () => {
+
+                            this.$store.commit("addAsset", [type, {
+                                k: Date.now(),
+                                src: img.src
+                            }]);
+                        };
+                        ctx.canvas.convertToBlob({
+                            type: "image/png"
+                        })
+                        .then(blob => img.src = URL.createObjectURL(blob));  
+                        
+
+                    } else {
+                        this.$store.commit("addAsset", [type, {
+                            k: Date.now(),
+                            src: img.src
+                        }]);
+                    }
                 }
                 img.src = URL.createObjectURL(file);    
           });

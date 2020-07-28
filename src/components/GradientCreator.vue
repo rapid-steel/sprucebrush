@@ -17,13 +17,13 @@
                         ></div>
                         <div class="controls">
                             <button :disabled="!i" class="move-left" 
-                            title="Move color to left"
+                            :title="$t('gradientCreator.moveLeft')"
                             @click.stop="() => move(-1, i)"></button>
                             <button :disabled="maxI==1" class="remove" 
-                            title="Remove color"
+                            :title="$t('gradientCreator.remove')"
                             @click.stop="() => remove(i)"></button>
                             <button :disabled="i==maxI" class="move-right" 
-                            title="Move color to right"
+                            :title="$t('gradientCreator.moveRight')"
                             @click.stop="() => move(1, i)"></button>    
                         </div>                    
                     
@@ -37,8 +37,8 @@
 
 
         <div class="footer">
-            <button @click="() => $emit('save', gradient)">Save</button>
-            <button @click="() => $emit('close')">Close</button>
+            <button @click="() => $emit('save', gradient)">{{$t('common.save')}}</button>
+            <button @click="() => $emit('close')">{{$t('common.close')}}</button>
         </div>
         
     </div>

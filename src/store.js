@@ -6,27 +6,28 @@ Vue.use(Vuex)
 
 export default new Vuex.Store({
   state: {
-    currentInstrument: "brush",
+    currentInstrument: "marker",
     currentColor: "rgb(0,0,0)",
     colorBG: "rgb(255,255,255)",
     currentLayer: 0,
-    textures: [
-      {k: "tex1", src: require("./assets/img/texture1.png") },
-      {k: "tex2", src: require("./assets/img/texture2.png") },
-      {k: "tex3", src: require("./assets/img/texture3.png") },
-      {k: "tex4", src: require("./assets/img/texture4.png") },
-      {k: "tex5", src: require("./assets/img/texture5.png") },
-      {k: "tex11", src: require("./assets/img/texture6.png") },
-      {k: "tex21", src: require("./assets/img/texture7.png") },
-      {k: "tex31", src: require("./assets/img/texture8.png") },
-      {k: "tex41", src: require("./assets/img/texture9.png") },
-      {k: "tex51", src: require("./assets/img/texture10.png") },
-      {k: "tex12", src: require("./assets/img/texture1.png") },
-      {k: "tex22", src: require("./assets/img/texture2.png") },
-      {k: "tex32", src: require("./assets/img/texture3.png") },
-      {k: "tex42", src: require("./assets/img/texture4.png") },
-      {k: "tex52", src: require("./assets/img/texture5.png") },
-    ],
+    textures: {
+      brush: [
+        {k: "tex1", src: require("./assets/img/texture1.png") },
+        {k: "tex2", src: require("./assets/img/texture2.png") },
+        {k: "tex3", src: require("./assets/img/texture3.png") },
+        {k: "tex4", src: require("./assets/img/texture4.png") },
+        {k: "tex5", src: require("./assets/img/texture5.png") },
+        {k: "tex11", src: require("./assets/img/texture6.png") },
+        {k: "tex21", src: require("./assets/img/texture7.png") },
+        {k: "tex31", src: require("./assets/img/texture8.png") },
+        {k: "tex41", src: require("./assets/img/texture9.png") },
+        {k: "tex51", src: require("./assets/img/texture10.png") },
+      ],
+      marker: [
+        {k: "texm1", src: require("./assets/img/texm1.jpg") },
+        {k: "texm2", src: require("./assets/img/texm2.png") },
+      ]
+    },
     patterns: [
       {k: "pat1",src: require("./assets/img/pat1.png") },
       {k: "pat2",src: require("./assets/img/pat2.jpg") },
@@ -45,6 +46,7 @@ export default new Vuex.Store({
 
       },
       brush: {
+        textype: "brush",
         hardness: 1,
         radius: 50,
         opacity: 1,
@@ -62,6 +64,7 @@ export default new Vuex.Store({
         overlay: false,
       },
       eraser: {
+        textype: "brush",
         radius: 5,
         opacity: 1,
         shape: "round",
@@ -78,8 +81,20 @@ export default new Vuex.Store({
         pattern: false,
         patternScale: 1
       },
+      marker: {
+        textype: "marker",
+        lineWidth: 20,
+        opacity: 1,
+        texture: false,
+        textureColor: false,
+        radialGradient: false,
+        overlay: false,
+        pressure: {
+          radius: 1,
+          opacity: 0
+        },  
+      },
       pen: {
-        width: 10
       },
       "selection-rect": {},
       "selection-polygon": {},
@@ -151,8 +166,7 @@ export default new Vuex.Store({
       state.gradients[index] = gradient;
       state.gradients = state.gradients.slice();
     },
-    addPallete(state) {
-      let name = "New pallete";
+    addPallete(state, name) {
       let e = state.userPref.palletes.filter(p => 
         p.name.replace(/[0-9]/ig, "").trim().toLowerCase() == name.toLowerCase()
       ).length;

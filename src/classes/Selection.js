@@ -104,9 +104,9 @@ export default class Selection {
     detectAction(p) {
       this.action = this.getAction(p); 
     }
-    getAction(p) {
-      let x1 = (p.x - this.center[0]);
-      let y1 = (p.y - this.center[1]);
+    getAction([x,y]) {
+      let x1 = (x - this.center[0]);
+      let y1 = (y - this.center[1]);
       let x0 = this.center[0] + x1 * Math.cos(-this.angle) - y1 * Math.sin(-this.angle);
       let y0 = this.center[1] + x1 * Math.sin(-this.angle) + y1 * Math.cos(-this.angle);
       let action = null;
@@ -126,15 +126,15 @@ export default class Selection {
       }
       return action;
     }
-    applyTransform(p, recAction = false) {
+    applyTransform(coords, recAction = false) {
       if(recAction) {
-        this.movePoint = [p.x, p.y];
-        this.detectAction(p);
+        this.movePoint = coords;
+        this.detectAction(coords);
       }
   
 
       
-      let [dx, dy] = [p.x, p.y].map((c,i) => c - this.movePoint[i]);
+      let [dx, dy] = coords.map((c,i) => c - this.movePoint[i]);
       if(this.action.move) {
         this.origin[0] += dx;
         this.origin[1] += dy;
@@ -240,7 +240,7 @@ export default class Selection {
       if(this.action.rotate) {
         
         let c1 = this.movePoint.map((c,i) => c - this.center[i]);
-        let c2 = [p.x, p.y].map((c,i) => c - this.center[i]);
+        let c2 = coords.map((c,i) => c - this.center[i]);
         let a1 = Math.atan(c1[1] / c1[0]);
         if(c1[0] < 0) a1 += Math.PI
         let a2 = Math.atan(c2[1] / c2[0]);
@@ -258,7 +258,7 @@ export default class Selection {
       this.drawImage();
       this.drawSelection();
   
-      this.movePoint = [p.x, p.y];
+      this.movePoint = coords;
     }
     calculateControls() {
 

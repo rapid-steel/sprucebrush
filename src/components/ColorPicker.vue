@@ -2,7 +2,7 @@
     <div class="color-picker">
         <color-picker :value="colorVal" @color-change="select" :width="180" :height="180"></color-picker>      
         <div class="select-pallete">
-            <button class="" @click.stop="addPallete">+</button>
+            <button class="add" @click.stop="addPallete"></button>
             <button class="edit" @click.stop="() => namePallete = !namePallete"></button>
              <button class="delete"
                         :disabled="palletes.length==1" 
@@ -36,9 +36,9 @@
             </div>
             <div class="pallete">
                 <div class="add-color">
-                    <button 
+                    <button class="add"
                     v-show="!colorSelected" 
-                    @click="() => addColor(colorVal)">+</button>
+                    @click="() => addColor(colorVal)"></button>
                     <button class="delete"
                         :disabled="!colorSelected" 
                         @click.stop="deleteSelected" />
@@ -108,7 +108,7 @@ export default {
           this.colorSelected = false;
       },
       addPallete() {
-          this.$store.commit("addPallete");
+          this.$store.commit("addPallete", this.$t("colorPicker.newPallete"));
           this.pallete = this.palletes[this.palletes.length-1];
           this.colorSelected = false;
       },
@@ -143,6 +143,9 @@ export default {
                 size: 60% 60%;
                 position: 50% 65%;
                 repeat: no-repeat;
+            }
+            &.add {
+                background-image: url("../assets/img/plus.svg");
             }
             &.delete {
                 background-image: url("../assets/img/trash.svg");

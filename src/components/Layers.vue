@@ -1,15 +1,21 @@
 <template>
     <div id="layers">
         <div>
-            <button @click="() => $emit('add-layer', 'Layer ' + (1+layers.length))">+</button>
-            <div class="caption">Layers</div>
+            <button class="add" @click="() => $emit('add-layer')"></button>
+            <button class="copy" @click="() => $emit('copy-layer')"></button>
+            <button class="merge" @click="() => $emit('merge-layers', layers.map(l => l.id))"></button>
+            <div class="caption">{{$t('layers.layers')}}</div>
         </div>
         <draggable :list="layersReverse" group="layers" @end="e => $emit('reorder-layer', e)" >
-            <div v-for="l in layersReverse" 
+            <div v-for="(l,i) in layersReverse" 
             :key="l.id"
             class="layer"
-            :class="{current: currentLayer && l.id == currentLayer.id, visible: l.visible}"
-            @click.ctrl.stop="() => $emit('layer-to-selection', l.id)"
+            :class="{
+                current: currentLayer && l.id == currentLayer.id, 
+                selected: multipleSelection.indexOf(l.id) !== -1, 
+                visible: l.visible}"
+            @click.ctrl.stop="() => selectMultiple(l.id)"
+            @click.shift.stop="() => $emit('layer-to-selection', l.id)"
             @click.exact.stop="() => $emit('select-layer', l.id)"
             >
             <div>
@@ -29,6 +35,9 @@
                     @click.stop="() => $emit('remove-layer', l.id)" />
             </div>
             <div>                
+                <button class="merge"
+                    v-if="i != layersReverse.length - 1"
+                    @click.stop="() => $emit('merge-layers', layersReverse.slice(i, i+2).map(l => l.id))" />
                 <img class="img-icon" src="@/assets/img/compose.svg" />
                 <v-select 
                 :options="blendModes"            
@@ -75,7 +84,8 @@ export default {
               'saturation',
               'color',
               'luminosity'
-          ]
+          ],
+          multipleSelection: []
       }
   },
   computed: {
@@ -87,8 +97,9 @@ export default {
 
   },
   methods: {
-      select(color) {
-
+      
+      selectMultiple(id) {
+          this.multipleSelection.push(id);          
       }
   }
 }
@@ -110,13 +121,19 @@ export default {
         align-items: center;
         & > button {
             cursor: pointer;
-            width: 40px;
-            flex: 0 0 40px;
-            height: 40px;
+            width: 30px;
+            flex: 0 0 30px;
+            height: 30px;
             border: none;
-            background: $color-bg;
-            color: $color-text;
-            font: $font-layer-button;
+            background: {
+                color: transparent;            
+                size: 60% 60%;
+                position: center;
+                repeat: no-repeat;
+            }
+            &.add { background-image: url("../assets/img/plus.svg"); }
+            &.copy { background-image: url("../assets/img/copy.svg"); }
+            &.merge { background-image: url("../assets/img/merge.svg"); }
             margin: 1px;
         }
         .caption {
@@ -178,8 +195,7 @@ export default {
         height: 13px;
         display: inline-block;
     }
-    .visible, 
-    .delete {
+    button {
         width: 20px;
         height: 20px;
         background: {
@@ -189,14 +205,18 @@ export default {
             repeat: no-repeat;
         }
         border: none;
+        &.delete {
+            background-image: url("../assets/img/trash.svg");
+            background-size: 70% 70%;
+        }
+        &.visible {
+            background-image: url("../assets/img/visible.svg");
+        }
+        &.merge {
+            background-image: url("../assets/img/merge.svg");
+        }
     }
-    .delete {
-        background-image: url("../assets/img/trash.svg");
-        background-size: 70% 70%;
-    }
-    .visible {
-        background-image: url("../assets/img/visible.svg");
-    }
+    
     .layer-name {
         width: 150px;
         overflow: hidden;
@@ -210,6 +230,9 @@ export default {
         &:focus {
             background: white;
         }
+    }
+    &.selected {
+        background:$color-accent3;
     }
     &.current {
         background:$color-accent;

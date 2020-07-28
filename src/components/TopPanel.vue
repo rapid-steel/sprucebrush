@@ -121,6 +121,49 @@
                         @keyup.enter="() => $emit('preview-filter', currentFilter)">
                     </div>
                 </template>
+                   <template v-if="currentFilter.k == 'hue-saturate'">
+                    <div>
+                        <div>{{$t('topPanel.filtersList.hue-saturate.hue')}}:</div>  
+                        <input type="range" 
+                        min="-180" step="1" max="180" 
+                        v-model="currentFilter.settings.hue" 
+                        @change="() => $emit('preview-filter', currentFilter)"
+                        @keyup.enter="() => $emit('preview-filter', currentFilter)">
+                    </div>
+                    <div>
+                        <div>{{$t('topPanel.filtersList.hue-saturate.saturation')}}:</div>  
+                        <input type="range" 
+                        min="0" step="1" max="200" 
+                        v-model="currentFilter.settings.saturation" 
+                        @change="() => $emit('preview-filter', currentFilter)"
+                        @keyup.enter="() => $emit('preview-filter', currentFilter)">
+                    </div>
+                    <div>
+                        <div>{{$t('topPanel.filtersList.hue-saturate.luminance')}}:</div>  
+                        <input type="range" 
+                        min="-1" step=".01" max="1" 
+                        v-model="currentFilter.settings.luminance" 
+                        @change="() => $emit('preview-filter', currentFilter)"
+                        @keyup.enter="() => $emit('preview-filter', currentFilter)">
+                    </div>
+                </template>
+                <template v-if="currentFilter.k == 'duotone'">               
+                    <div>
+                        <div>{{$t('topPanel.filtersList.duotone.colors')}}:</div> 
+                        <div class="colors">
+                            <div v-for="(color,i) in currentFilter.settings.colors" 
+                            :key="color" class="color"
+                            :class="{current: currentFilter.current == i}"
+                            :style="{background: color}"
+                            @click.stop="() => currentFilter.current = i"></div>
+                        </div>
+                    </div>
+                    <color-picker 
+                    v-model="currentFilter.settings.colors[currentFilter.current]"
+                    @input="() => $emit('preview-filter', currentFilter)"
+                    :width="180" :height="180" />
+                 
+                </template>
                 <template v-if="currentFilter.k == 'posterize'">
                     <div>
                         <div>{{$t('topPanel.filtersList.posterize.levels')}}:</div>  
@@ -137,6 +180,24 @@
                         <input type="number" 
                         :min="2" :step="1" :max="100" 
                         v-model="currentFilter.settings.size" 
+                        @change="() => $emit('preview-filter', currentFilter)"
+                        @keyup.enter="() => $emit('preview-filter', currentFilter)">
+                    </div>
+                </template>
+                <template v-if="currentFilter.k == 'ripple'">
+                    <div>
+                        <div>{{$t('topPanel.filtersList.ripple.frequency')}}:</div>  
+                        <input type="range" 
+                        min="-5" step=".1" max="0" 
+                        v-model="currentFilter.settings.frequency" 
+                        @change="() => $emit('preview-filter', currentFilter)"
+                        @keyup.enter="() => $emit('preview-filter', currentFilter)">
+                    </div>
+                    <div>
+                        <div>{{$t('topPanel.filtersList.ripple.scale')}}:</div>  
+                        <input type="range" 
+                        min="1" step="1" max="1000" 
+                        v-model="currentFilter.settings.scale" 
                         @change="() => $emit('preview-filter', currentFilter)"
                         @keyup.enter="() => $emit('preview-filter', currentFilter)">
                     </div>
@@ -165,48 +226,80 @@
 import {mapState} from "vuex";
 
 export default {
-  name: 'TopPanel',
-  components: {},
-  props: ["sizes"],
-  data() {
-      return {
-          menuOpen: false,
-          display: {
-              sizesForm: false,
-              importMenu: false,
-              filtersList: false
-          },
-          currentFilter: false,
-          importMode: "leave",
-          importModes: [
-              {k: "leave", img: require("../assets/img/import-leave.png")},
-              {k: "resize-img", img: require("../assets/img/import-resize-img.png")},
-              {k: "resize-canvas", img: require("../assets/img/import-resize-canvas.png")}
+    name: 'TopPanel',
+    components: {},
+    props: ["sizes"],
+    data() {
+        return {
+            menuOpen: false,
+            display: {
+                sizesForm: false,
+                importMenu: false,
+                filtersList: false
+            },
+            currentFilter: false,
+            importMode: "leave",
+            importModes: [
+                {k: "leave", img: require("../assets/img/import-leave.png")},
+                {k: "resize-img", img: require("../assets/img/import-resize-img.png")},
+                {k: "resize-canvas", img: require("../assets/img/import-resize-canvas.png")}
 
-          ],
-          filters: [
-              {k: "invert",  img: require("../assets/img/filter-invert.png")},
-              {k: "grayscale",  img: require("../assets/img/filter-grayscale.png")},
-              {k: "sepia",  img: require("../assets/img/filter-sepia.png")},
-              {k: "blur",   img: require("../assets/img/filter-blur.png"), preview: true, settings: {radius: 1}, },
-              {k: "bright-contr",  
-              img: require("../assets/img/filter-bright-contr.png"), 
-              preview: true, settings: {brightness: 1, contrast: 1 }},
-              {k: "posterize", 
-              img: require("../assets/img/filter-posterize.png"), 
-              preview: true, settings: {levels: 4}, },
-              {k: "pixelate", 
-              img: require("../assets/img/filter-pixelate.png"), 
-              preview: true, settings: {size: 10}, },
-          ],
-          sizesModel: {width: 1, height: 1, originMode: "center-center", resizeMode: "move"},
-          originModes: [
-              'top-left', 'top-center', 'top-right', 
-              'center-left', 'center-center', 'center-right', 
-              'bottom-left', 'bottom-center', 'bottom-right'
-            ]
-      }
-  },
+            ],
+            filters: [{
+                    k: "invert",  
+                    img: require("../assets/img/filter-invert.png")
+                },{
+                    k: "grayscale",  
+                    img: require("../assets/img/filter-grayscale.png")
+                },{
+                    k: "sepia",  
+                    img: require("../assets/img/filter-sepia.png")
+                },{
+                    k: "blur",   
+                    img: require("../assets/img/filter-blur.png"), 
+                    preview: true, 
+                    settings: {radius: 1}, 
+                },{
+                    k: "bright-contr",  
+                    img: require("../assets/img/filter-bright-contr.png"), 
+                    preview: true, 
+                    settings: {brightness: 1, contrast: 1 }
+                },{
+                    k: "hue-saturate",  
+                    img: require("../assets/img/filter-hue-saturate.png"), 
+                    preview: true, 
+                    settings: {hue: 0, saturation: 100, luminance: 0 }
+                },{
+                    k: "duotone",  
+                    img: require("../assets/img/filter-duotone.png"), 
+                    preview: true, 
+                    settings: {colors: ["#006aff", "#fa00a6"] },
+                    current: 0
+                },{
+                    k: "posterize", 
+                    img: require("../assets/img/filter-posterize.png"), 
+                    preview: true, 
+                    settings: {levels: 4}, 
+                },{
+                    k: "pixelate", 
+                    img: require("../assets/img/filter-pixelate.png"), 
+                    preview: true, 
+                    settings: {size: 10}, 
+                }, {
+                    k: "ripple",
+                    img: require("../assets/img/filter-ripple.png"), 
+                    preview: true,
+                    settings: {scale: 10, frequency: -1}
+                }
+            ],
+            sizesModel: {width: 1, height: 1, originMode: "center-center", resizeMode: "move"},
+            originModes: [
+                'top-left', 'top-center', 'top-right', 
+                'center-left', 'center-center', 'center-right', 
+                'bottom-left', 'bottom-center', 'bottom-right'
+                ]
+        }
+    },
   watch: {
       sizes() { 
           Object.assign(this.sizesModel, this.sizes); 
@@ -243,9 +336,13 @@ export default {
       importImage(e) {
         let file = e.target.files[0];    
         if(file.type.indexOf("image") != -1) {
-            this.$emit('import-image', [file, this.importMode.k]);
+            this.$emit('import-image', [file, this.importMode.k]);            
         }    
-
+      },
+      clearFileInput() {
+          this.$refs.importImage.value = "";
+          this.$refs.importImage.type = "";
+          this.$refs.importImage.type = "file";
       },
       applySizes() {
           if(this.sizesModel.width && this.sizesModel.height) {
@@ -303,6 +400,10 @@ export default {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            &.cpw_container {
+                flex: 5 0 180px;
+                margin-top: 25px!important;
+            }
         }
         .footer {
             justify-content: center;
@@ -314,6 +415,23 @@ export default {
             padding: 5px;
             font: $font-input;
         }
+
+        .colors {
+            flex: 2 1 100px;
+            justify-content: center;
+            .color {
+                width: 35px;
+                height: 35px;
+                border: 1px solid black;         
+                &:not(:last-child) { margin-right: 35px; } 
+                &.current {
+                    outline: 2px $color-selected solid;
+                }        
+            }
+
+        }
+
+
     }
     .menu-itemlist {
         font: $font-menu;
@@ -345,6 +463,8 @@ export default {
                     margin-right: 5px;
                 }
             }
+
+        
         }
     }
     .menu-form {
