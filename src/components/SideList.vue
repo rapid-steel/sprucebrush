@@ -1,7 +1,7 @@
 <template>
     <div class="side-list" :class="{open}">
-        <div class="arrow" @click="() => open = !open"></div>
-        <div class="expanded-list">
+        <div class="arrow" @click="toggle"></div>
+        <div class="expanded-list" @click.stop>
             <div class="content">
                 <slot />
             </div>
@@ -27,7 +27,17 @@ export default {
         }
     },
     methods: {
-        inc(e) {
+        toggle(e) {
+            e.preventDefault();
+            this.open = !this.open;
+            if(this.open) {
+                requestAnimationFrame(() => {
+                    this.h = this.toggle.bind(this);
+                    document.addEventListener("click", this.h);
+                });
+            } else {
+                document.removeEventListener("click", this.h);
+            }
         }
     }
 };
@@ -53,7 +63,7 @@ export default {
         left: 100%;
         top: 0;
         min-width: 240px;
-        z-index: 1000000;
+        z-index: $z-index_side-list;
         border: 1px solid black;
         background: $color-bg;
         .content {

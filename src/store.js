@@ -26,12 +26,15 @@ export default new Vuex.Store({
       marker: [
         {k: "texm1", src: require("./assets/img/texm1.jpg") },
         {k: "texm2", src: require("./assets/img/texm2.png") },
+        {k: "texm3", src: require("./assets/img/tex3m.png") },
+        
       ]
     },
     patterns: [
       {k: "pat1",src: require("./assets/img/pat1.png") },
       {k: "pat2",src: require("./assets/img/pat2.jpg") },
-      {k: "pat3",src: require("./assets/img/pat3.png") }
+      {k: "pat3",src: require("./assets/img/pat3.png") },
+      {k: "texm4", src: require("./assets/img/tex4m.jpg") },
     ],
     shapes: [
       {k: "round"}, {k: "rect"}
@@ -84,6 +87,8 @@ export default new Vuex.Store({
       marker: {
         textype: "marker",
         lineWidth: 20,
+        angleSmoothing: 10,
+        curveSmoothing: 3,
         opacity: 1,
         texture: false,
         textureColor: false,
@@ -197,10 +202,12 @@ export default new Vuex.Store({
       pallete.colors.splice(pallete.colors.indexOf(color), 1);
       state.userPref.palletes = state.userPref.palletes.slice();
     },
-    addAsset(state, [type, obj]) {
+    addAsset(state, [{type, textype = 0}, obj]) {
       let arr = type + "s";
       if(state[arr]) {
-        state[arr].push(obj);
+        if(textype) {
+          state[arr][textype].push(obj);
+        } else state[arr].push(obj);
       }
     }
 

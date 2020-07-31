@@ -232,6 +232,7 @@
 import {mapState} from "vuex";
 import SideList from "./SideList";
 import GradientCreator from "./GradientCreator";
+import {round2n} from "../functions/math-functions";
 
 export default {
   name: 'Instruments',
@@ -245,6 +246,8 @@ export default {
           settings: [
               {k: "radius", min: 1, max: 1000, step: 1},
               {k: "lineWidth", min: 1, max: 1000, step: 1},
+              {k: "curveSmoothing", min: 1, max: 25, step: 1},
+               {k: "angleSmoothing", min: 1, max: 25, step: 1},
               {k: "opacity",  min: .01, max: 1, step: .01},
          //     {k: "hardness", label: "Hardness", min: .01, max: 1, step: .01},
               {k: "spacing",  min: 0.001, max: 10, step: .001},
@@ -254,10 +257,10 @@ export default {
               group: "drawing",
               items: [
                 {name: "brush", icon: require("@/assets/img/brush.png")},
-                {name: "eraser", icon: require("@/assets/img/eraser.png")},
-                {name: "picker", icon: require("@/assets/img/picker.png")},
-                {name: "fill", icon: require("@/assets/img/fill.png")},
-                {name: "marker", icon: require("@/assets/img/marker.png")},
+                {name: "eraser", icon: require("@/assets/img/eraser.png")},               
+                {name: "marker", icon: require("@/assets/img/roller.png")},
+                 {name: "fill", icon: require("@/assets/img/fill.png")},
+                 {name: "picker", icon: require("@/assets/img/picker.png")},
               //  {name: "pen", icon: require("@/assets/img/pen.png"), title: "Pen"},
               ]
           }, {
@@ -298,40 +301,21 @@ export default {
   methods: {
       importAsset(e) {
           const type = e.target.id.replace("-input", "");
+          const textype = this.currentBrush.textype;
           Array.from(e.target.files).forEach(file => {
               let img = new Image();
                 img.onload = () => {
                     if(type.indexOf("texture") !== -1) {
-                        let width = Math.pow(2, Math.ceil(Math.log2(img.width)));
-                        let height = Math.pow(2, Math.ceil(Math.log2(img.height)));
-                        let dw = width - img.width;
-                        let dh = height - img.height;
-                        let imgWidth, imgHeight;
-                        if(dw <= dh) {
-                            imgWidth = width;                            
-                            imgHeight = (1 + dw / img.width) * img.height;
-                            dw = 0;
-                            dh =  imgHeight - img.height;
-                        } else {
-                            imgHeight = height;
-                            imgWidth = (1 + dh / img.height) * img.width;
-                            dh = 0;
-                            dw = imgWidth - img.width;
-                        }
-                        dw /= 2;
-                        dh /= 2;
-
-                        console.log(width, height, imgWidth, imgHeight)
-
-
-                        let ctx = new OffscreenCanvas(width, height).getContext("2d");
-                        ctx.drawImage(img, dw, dh, imgWidth, imgHeight);
+                        let {k, w1,h1, imgW, imgH, dw, dh} = round2n(img.width, img.height);
+                        let ctx = new OffscreenCanvas(w1, h1).getContext("2d");
+                        ctx.drawImage(img, dw, dh, imgW, imgH);
                         img = new Image();
                         img.onload = () => {
-
-                            this.$store.commit("addAsset", [type, {
+                            this.$store.commit("addAsset", [
+                                {type, textype}, {
                                 k: Date.now(),
-                                src: img.src
+                                src: img.src,
+                                ratio: k
                             }]);
                         };
                         ctx.canvas.convertToBlob({
@@ -341,7 +325,7 @@ export default {
                         
 
                     } else {
-                        this.$store.commit("addAsset", [type, {
+                        this.$store.commit("addAsset", [{type}, {
                             k: Date.now(),
                             src: img.src
                         }]);

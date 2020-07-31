@@ -1,12 +1,10 @@
 export default class Selection {
-    constructor(p1, imgCtx, selCtx) {
-      this.imgCtx = imgCtx;
+    constructor(p1, selCtx) {
+      this.imgCtx = new OffscreenCanvas(selCtx.canvas.width, selCtx.canvas.height).getContext("2d");
       this.selCtx = selCtx;
-      let sCopy = document.createElement("canvas");
+      let sCopy = new OffscreenCanvas(selCtx.canvas.width, selCtx.canvas.height);
       sCopy.width = this.imgCtx.canvas.width;
       sCopy.height = this.imgCtx.canvas.height;
-      sCopy.style.width = this.imgCtx.canvas.width + "px";
-      sCopy.style.height = this.imgCtx.canvas.height + "px";
       this.sourceCopy = sCopy.getContext("2d");
 
       this.ready = false;

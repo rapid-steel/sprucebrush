@@ -38,13 +38,6 @@
                 ...canvasSizes,
                 zIndex: layers.length + 120
               }"
-              ref="selectionImg"
-              ></canvas>
-              <canvas 
-              :style="{
-                ...canvasSizes,
-                zIndex: layers.length + 120
-              }"
               ref="selection"
               ></canvas>
               <div id="cursor" :style="cursorStyles" :class="[currentInstrument, ...cursorClasses]"></div>
@@ -225,10 +218,10 @@ export default {
             this.selection.startTransform(this.currentLayer.ctx);
           }
         }   
-        if(["brush", "eraser"].indexOf(this.currentInstrument) != -1) {
+        if(["brush", "eraser", "marker"].indexOf(this.currentInstrument) != -1) {
           
           if(this.selection) {
-            this.currentLayer.ctx.drawImage(this.$refs.selectionImg, 0, 0, this.sizes.width, this.sizes.height);
+            this.currentLayer.ctx.drawImage(this.selection.imgCtx.canvas, 0, 0, this.sizes.width, this.sizes.height);
           }
           
         }        
@@ -311,8 +304,7 @@ export default {
           down: () => {
               if(!this.selection) {
               this.selection = new Selection(
-                [ this.lastPoint.x, this.lastPoint.y ], 
-                this.selImgCtx, 
+                this.lastPoint.coords, 
                 this.selCtx);
             } else {
               this.selection.applyTransform(this.lastPoint.coords, true);              
@@ -326,11 +318,13 @@ export default {
                 this.selection.setPoint(this.lastPoint.coords);            
               } 
             }     
+            this.render();
           },
           up: () => {
             if(!this.selection.ready) {
               this.selection.startTransform(this.currentLayer.ctx);
             }
+             this.render();
           },
           out: () => {}
           
@@ -339,8 +333,7 @@ export default {
           down: () => {
             if(!this.selection) {
               this.selection = new SelectionPath(
-                this.lastPoint, 
-                this.selImgCtx, 
+                this.lastPoint.coords, 
                 this.selCtx);
             } else {
               if(!this.selection.started) {
@@ -349,6 +342,7 @@ export default {
                 this.selection.applyTransform(this.lastPoint.coords, true);     
               }            
             }       
+             this.render();
           },
           move: () => {
             if(this.selection) { 
@@ -357,11 +351,16 @@ export default {
               else if(this.pressure > 0)   
               this.selection.applyTransform(this.lastPoint.coords);  
             }
+             this.render();
           },
           up: () => {
-            if(!this.selection.ready) {
-              this.selection.startTransform(this.currentLayer.ctx);
-            }     
+             if(!this.selection.ready) {
+              if(Date.now() - this.prevClick.time < 300) {
+                this.selection.startTransform(this.currentLayer.ctx);
+              }
+            }
+             this.render();
+              
           },
           out: () => {}
         },
@@ -369,27 +368,27 @@ export default {
           down: () => {
             if(!this.selection) {
               this.selection = new SelectionPath(
-                this.lastPoint, 
-                this.selImgCtx, 
+                this.lastPoint.coords, 
                 this.selCtx);
             } else {
               this.selection.applyTransform(this.lastPoint.coords, true);    
             }       
+             this.render();
           },
           move: () => {
               if(this.selection){ 
               if(!this.selection.started) 
-                this.selection.addPoint(this.lastPoint); 
+                this.selection.addPoint(this.lastPoint.coords); 
               else if(this.pressure > 0)   
                 this.selection.applyTransform(this.lastPoint.coords);  
               }
+               this.render();
           },
           up: () => {
             if(!this.selection.ready) {
-              if(Date.now() - this.prevClick.time < 300) {
-                this.selection.startTransform(this.currentLayer.ctx);
-              }
-            }
+              this.selection.startTransform(this.currentLayer.ctx);
+            }  
+             this.render();
           },
           out: () => {}              
         }
@@ -397,7 +396,7 @@ export default {
     this.pointerActions = this.pointerActionsMap[this.currentInstrument];
   },
   mounted() {
-    //if(navigator.languages[0].indexOf("ru") == 0)this.$i18n.locale = "ru";
+    if(navigator.languages[0].indexOf("ru") == 0)this.$i18n.locale = "ru";
     document.getElementsByTagName("title")[0].innerText = this.$t("title");
 
 
@@ -415,7 +414,6 @@ export default {
       height: 600
     }, true);
     
-    this.selImgCtx = this.$refs.selectionImg.getContext("2d");
     this.selCtx = this.$refs.selection.getContext("2d");
 
     this.newDrawing();
@@ -637,7 +635,7 @@ export default {
     },
     setCursorSelAction() {
       if(this.selection.ready) {
-        let c = this.selection.getCursor(this.lastPoint);
+        let c = this.selection.getCursor(this.lastPoint.coords);
         this.cursorClasses = [];
         if(c.resize) {
           this.cursorClasses.push("resize");
@@ -755,7 +753,7 @@ export default {
           c.width = this.selection.bbox[1][0] - this.selection.bbox[0][0];
           c.height = this.selection.bbox[1][1] - this.selection.bbox[0][1];
           let ctx = c.getContext("2d");      
-          ctx.drawImage(this.$refs.selectionImg, 
+          ctx.drawImage(this.selection.imgCtx.canvas, 
             this.selection.bbox[0][0], this.selection.bbox[0][1],
             c.width, c.height,
             0, 0, c.width, c.height,
@@ -780,7 +778,7 @@ export default {
       if(this.selection && this.selection.started) {
         this.currentLayer.ctx.restore();
         this.currentLayer.ctx.globalCompositeOperation = "source-over";
-        this.currentLayer.ctx.drawImage(this.$refs.selectionImg, 0, 0, this.sizes.width, this.sizes.height);
+        this.currentLayer.ctx.drawImage(this.selection.imgCtx.canvas, 0, 0, this.sizes.width, this.sizes.height);
         this.selection.drop();
         this.selection = null;           
         this.render();
@@ -835,8 +833,10 @@ export default {
           this.tempCtx2.globalCompositeOperation = "source-over"; 
         } 
         this.tempCtx.save();      
+        this.selection.rotate(this.tempCtx);
         this.selection.drawClipPath(this.tempCtx);
         this.tempCtx.clip();
+        this.selection.rotate(this.tempCtx, -1);
         this.tempCtx.drawImage(this.tempCtx.canvas, 0, 0);
         this.tempCtx.restore();
 
@@ -850,9 +850,9 @@ export default {
           this.tempCtx.fillStyle = this.canvasPattern.pattern;
           this.tempCtx.fillRect( 0, 0, this.sizes.width, this.sizes.height);
           this.tempCtx.globalCompositeOperation = "source-over"; 
-       } 
-        
-     
+       }      
+
+       this.currentLayer.ctx.drawImage(this.tempCtx.canvas, 0, 0);
       
       this.applyTemp();
     },
@@ -886,7 +886,7 @@ export default {
               state:  this.currentLayer.ctx.getImageData(0, 0, this.sizes.width, this.sizes.height)
             });
       
-      this.selection = new Selection(p1, this.selImgCtx, this.selCtx);
+      this.selection = new Selection(p1,this.selCtx);
       this.selection.setPoint(p2);
       this.selection.startTransform(this.currentLayer.ctx);
 
@@ -905,10 +905,13 @@ export default {
         if(l.visible) {
           this.blender.globalCompositeOperation = l.blend;
           this.blender.globalAlpha = l.opacity / 100;
-          if(temp && l == this.currentLayer) {
-            this.blender.drawImage(this.tempCtx.canvas, 0, 0);
-          } else {          
-            this.blender.drawImage(l.ctx.canvas, 0, 0);
+          if(l == this.currentLayer) {
+            if(temp)
+              this.blender.drawImage(this.tempCtx.canvas, 0, 0);
+            else           
+              this.blender.drawImage(l.ctx.canvas, 0, 0);
+
+            if(this.selection) this.blender.drawImage(this.selection.imgCtx.canvas, 0, 0);
           }       
 
         }
@@ -923,8 +926,10 @@ export default {
 
       if(this.selection) {
           this.currentLayer.ctx.save();
+          this.selection.rotate(this.currentLayer.ctx);
           this.selection.drawClipPath(this.currentLayer.ctx);
           this.currentLayer.ctx.clip();
+          this.selection.rotate(this.currentLayer.ctx, -1);
       } 
       this.currentLayer.ctx.drawImage(tool.canvas, 0, 0, this.sizes.width, this.sizes.height);   
       if(this.selection) 
@@ -936,14 +941,18 @@ export default {
       tool.addPoint(point);
       tool.onNextRedraw = () => {
 
+           this.tempCtx.globalCompositeOperation = "copy";
+          this.tempCtx.drawImage(this.currentLayer.ctx.canvas, 0, 0);
+
           if(this.selection) {
                 this.tempCtx.save();
+                this.selection.rotate(this.tempCtx);
                 this.selection.drawClipPath(this.tempCtx);
                 this.tempCtx.clip();
+                this.selection.rotate(this.tempCtx, -1);
             } 
             
-          this.tempCtx.globalCompositeOperation = "copy";
-          this.tempCtx.drawImage(this.currentLayer.ctx.canvas, 0, 0);
+       
 
           this.tempCtx.globalCompositeOperation = "source-over";
           this.tempCtx.drawImage(tool.canvas, 0, 0);
@@ -959,14 +968,18 @@ export default {
 
       this.brush.onNextRedraw = () => {
 
-          if(this.selection) {
-                this.tempCtx.save();
-                this.selection.drawClipPath(this.tempCtx);
-                this.tempCtx.clip();
-            } 
-         
           this.tempCtx.globalCompositeOperation = "copy";
           this.tempCtx.drawImage(this.currentLayer.ctx.canvas, 0, 0);
+
+          if(this.selection) {
+                this.tempCtx.save();
+                this.selection.rotate(this.tempCtx);
+                this.selection.drawClipPath(this.tempCtx);
+                this.tempCtx.clip();
+                this.selection.rotate(this.tempCtx, -1);
+            } 
+         
+        
 
           this.tempCtx.globalCompositeOperation = "destination-out";
           this.tempCtx.drawImage(this.brush.canvas, 0, 0);
@@ -1029,7 +1042,7 @@ export default {
         }[y];
       }
       
-      ["blender", "selectionImg", "selection"].forEach(s => {
+      ["blender", "selection"].forEach(s => {
         this.$refs[s].width = width;
         this.$refs[s].height = height;
         this.$refs[s].style.width = width + "px";
@@ -1227,14 +1240,6 @@ input[type=number] {
 }
 
 
-.underlay {
-  position: fixed;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
-}
-
 
 #app {
   position: absolute;
@@ -1294,7 +1299,7 @@ input[type=number] {
     display: none;
     pointer-events: none;
     position: absolute;
-    z-index: 10000000000;
+    z-index: $z-index_canvas-cursor;
     transform: translate(-50%,-50%);
 
     &.brush, &.eraser, &.picker, &.marker {
@@ -1345,7 +1350,7 @@ input[type=number] {
         bottom: 50%;
         left: 50%;
         content: "";
-        z-index: 1000000;
+        z-index: $z-index_canvas-cursor;
         width: 20px;
         height: 20px;
         background-size: 100% 100%;        

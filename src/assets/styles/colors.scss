@@ -43,3 +43,10 @@ $gradient-list-size: 100px;
 $gradient-radial-size: 60px;
 $color-selected-size: 40px;
 $logo_size: 240px;
+
+
+$z-index_underlay:      99;
+$z-index_canvas:        100;
+$z-index_side-list:     1000000;
+$z-index_menu:          1000000;
+$z-index_canvas-cursor: 10000000;

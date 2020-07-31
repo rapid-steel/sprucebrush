@@ -42,6 +42,8 @@ export function sum(vec1, vec2) {
 
 export function normalized(vec1) {
     let d = Math.sqrt(vec1[0]*vec1[0] + vec1[1]*vec1[1]);
+    if(!d) return [0, 0];
+    else
       return [ 
           vec1[0] / d, 
           vec1[1] / d
@@ -61,3 +63,10 @@ export function angle(vec1, vec2) {
             dot(normalized(vec1), normalized(vec2))
         );
   }
+
+export   function average(vec1, vec2) {
+  let len = (length(vec1) + length(vec2)) / 2;
+  return normalized(
+    sum(vec1, vec2)
+  ).map(n => n * len);      
+}

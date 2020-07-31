@@ -1,15 +1,12 @@
 <template>
     <div class="menu-tabs">
-        <div class="underlay" 
-        v-if="menuOpen"
-        @click.stop="() => setDisplay('', false)"></div>
 
-        <div class="btn" @click="$emit('new-drawing')">
+        <div class="btn" @click.stop="$emit('new-drawing')">
             <img src="../assets/img/new-drawing.png" :title="$t('topPanel.newDrawing.title')" />
         </div>
         <div class="btn" 
             :class="{active: display.sizesForm}"
-            @click="() => setDisplay('sizesForm', !display.sizesForm)">
+            @click.stop="() => setDisplay('sizesForm', !display.sizesForm)">
             <img src="../assets/img/change-sizes.png" :title="$t('topPanel.sizesForm.title')" />
             <div class="menu-form" 
             v-show="display.sizesForm" 
@@ -59,7 +56,7 @@
         </div>
         <div class="btn" 
         :class="{active: display.importMenu}"
-        @click="() => setDisplay('importMenu', !display.importMenu)">
+        @click.stop="() => setDisplay('importMenu', !display.importMenu)">
             <input 
             type="file" @change="importImage"
             ref="importImage" accept="image/*">
@@ -80,7 +77,7 @@
         </div>    
         <div class="btn"
         :class="{active: display.filtersList}"
-        @click="() => setDisplay('filtersList', !display.filtersList)">
+        @click.stop="() => setDisplay('filtersList', !display.filtersList)">
             <img src="../assets/img/filters.png" :title="$t('topPanel.filtersList.title')" />
             <div class="menu-itemlist" 
             v-show="display.filtersList">
@@ -213,7 +210,7 @@
             </div>
         </div>    
          <div class="btn" 
-         @click="() => $emit('save-image')" 
+         @click.stop="() => $emit('save-image')" 
          :title="$t('topPanel.saveImage.title')">
             <img src="../assets/img/save-image.png" />
         </div>    
@@ -311,10 +308,20 @@ export default {
       Object.assign(this.sizesModel, this.sizes); 
   },
   methods: {
-      setDisplay(k, v) {
+      setDisplay(k, v = false) {
           for(let el in this.display) 
             this.display[el] = k == el && v;
           this.menuOpen = v;
+        if(this.menuOpen) {
+            if(!this.h)
+                requestAnimationFrame(() => {
+                    this.h = this.setDisplay.bind(this);
+                    document.addEventListener("click", this.h);
+                });
+        } else {
+            document.removeEventListener("click", this.h);
+            this.h = false;
+        }
       },
       selectFilter(filter) {
            if(filter.preview) 
@@ -363,7 +370,7 @@ export default {
     justify-content: flex-start;
     width: 100%;    
     position: relative;
-    z-index: 100;
+    z-index: $z-index_menu;
     
     .btn {
         flex: 1 0 $btn-top-size;
@@ -476,7 +483,7 @@ export default {
         left: 0;
         background: $color-bg;        
         border: $window-border;
-        z-index: 1000000;
+        z-index: $z-index_menu;
     }
 
 }
