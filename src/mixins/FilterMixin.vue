@@ -68,7 +68,9 @@ const filterFunctions = {
         filter.querySelector("feTurbulence").setAttribute("baseFrequency", Math.pow(10, settings.frequency));
         filter.querySelector("feDisplacementMap").setAttribute("scale", settings.scale);
         ctx.filter = `url(#ripple)`;
-
+    },
+    stereo: (ctx, settings) => {
+        ctx.filter = `url(#stereo)`;
     }
 
 };

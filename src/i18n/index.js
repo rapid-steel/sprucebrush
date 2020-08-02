@@ -40,7 +40,8 @@ export default new VueI18n({
                     blur: {  title: "Blur", radius: "Radius" },
                     pixelate: { title: "Pixelation", size: "Pixel size"},
                     posterize: { title: "Posterization", levels: "Number of levels"},
-                    ripple: {title: "Ripple", scale: "Scale", frequency: "Frequency"}
+                    ripple: {title: "Ripple", scale: "Scale", frequency: "Frequency"},
+                    stereo: { title: "3D anaglyth effect"}
                 },
                 saveImage: {title: "Save image"}
             },

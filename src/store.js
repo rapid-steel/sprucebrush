@@ -22,13 +22,14 @@ export default new Vuex.Store({
         {k: "tex31", src: require("./assets/img/texture8.png") },
         {k: "tex41", src: require("./assets/img/texture9.png") },
         {k: "tex51", src: require("./assets/img/texture10.png") },
+        {k: "tex61", src: require("./assets/img/texture11.png") },
       ],
       marker: [
         {k: "texm1", src: require("./assets/img/texm1.jpg") },
         {k: "texm2", src: require("./assets/img/texm2.png") },
         {k: "texm3", src: require("./assets/img/tex3m.png") },
-        {k: "texm4", src: require("./assets/img/tex4m.jpg") },
         {k: "texm5", src: require("./assets/img/tex5m.png") },
+        {k: "texm6", src: require("./assets/img/tex6m.png") },
         
       ]
     },

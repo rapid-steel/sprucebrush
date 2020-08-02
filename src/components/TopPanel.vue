@@ -287,6 +287,9 @@ export default {
                     img: require("../assets/img/filter-ripple.png"), 
                     preview: true,
                     settings: {scale: 10, frequency: -1}
+                },{
+                    k: "stereo",
+                    img: require("../assets/img/filter-stereo.png")
                 }
             ],
             sizesModel: {width: 1, height: 1, originMode: "center-center", resizeMode: "move"},

@@ -103,6 +103,24 @@
               <feDisplacementMap in2="ripple" in="SourceGraphic"
               scale="100" xChannelSelector="R" yChannelSelector="B"/>
           </filter>
+          <filter id="stereo">                
+                <feOffset in="SourceGraphic" dx="-10" dy="0" result="R1"/>
+                <feOffset in="SourceGraphic" dx="10" dy="0" result="L1"/>
+               
+                <feComponentTransfer in="L1" result="L2">
+                    <feFuncR type="identity"></feFuncR>
+                    <feFuncG type="discrete" tableValues="0"></feFuncG>
+                    <feFuncB type="discrete" tableValues="0"></feFuncB>
+                  </feComponentTransfer>
+
+                  <feComponentTransfer in="R1" result="R2">
+                    <feFuncR type="discrete" tableValues="0"></feFuncR>
+                    <feFuncG type="identity"></feFuncG>
+                    <feFuncB type="identity"></feFuncB>
+                  </feComponentTransfer>
+
+                <feBlend in="L2" in2="R2" mode="screen" />
+            </filter>
       </defs>
     
   </svg>
