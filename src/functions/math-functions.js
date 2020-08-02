@@ -29,3 +29,9 @@ export function round2n(w, h) {
     }
     return {k, imgW, imgH, w1, h1, dw, dh};
 }
+
+export function n2(n) {
+    let k = 2; // eslint-disable-next-line
+    while(n >>>= 1) k <<= 1;
+    return k >>>= 1;
+}

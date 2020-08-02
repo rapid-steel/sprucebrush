@@ -174,7 +174,11 @@
 
             <div class="gradient-length" v-if="currentBrush.linearGradient">
                 <div class="caption">{{$t('instruments.settings.length')}}</div>
-                    <RangeInput :min="10" :max="100000" :horizontal="true"
+                    <RangeInput 
+                    :min="linearGradientLength[currentInstrument].min" 
+                    :max="linearGradientLength[currentInstrument].max" 
+                    :step="linearGradientLength[currentInstrument].step" 
+                    :horizontal="true"
                     v-model="currentBrush.linearGradientLength"
                     @input="v => set({linearGradientLength: v})" />
             </div>       
@@ -242,6 +246,10 @@ export default {
     },
   data() {
       return {
+          linearGradientLength: {
+              brush: {min: 10, max: 100000, step: 1},
+              marker: {min: .01, max: 100, step: .01}
+          },
           gradientToEdit: null,
           settings: [
               {k: "radius", min: 1, max: 1000, step: 1},
@@ -249,7 +257,7 @@ export default {
               {k: "curveSmoothing", min: 1, max: 25, step: 1},
                {k: "angleSmoothing", min: 1, max: 25, step: 1},
               {k: "opacity",  min: .01, max: 1, step: .01},
-         //     {k: "hardness", label: "Hardness", min: .01, max: 1, step: .01},
+         //     {k: "blurRadius", min: 0, max: 100, step: 1},
               {k: "spacing",  min: 0.001, max: 10, step: .001},
               {k: "tolerance", min: 1, max: 255, step: 1}
           ],

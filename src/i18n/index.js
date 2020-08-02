@@ -71,6 +71,7 @@ export default new VueI18n({
                 },
                 settings: {
                     radius: "Diameter", 
+                    blurRadius: "Softness",
                     lineWidth: "Width",
                     curveSmoothing: "Smooth curve",
                     angleSmoothing: "Smooth angle",

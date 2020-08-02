@@ -5,7 +5,7 @@ export default class ToolWebGL {
         this.gl.getExtension("OES_standard_derivatives");
         this.gl.clearColor(0, 0, 0, 0);
         this.gl.enable(this.gl.SAMPLE_ALPHA_TO_COVERAGE);
-        //this.gl.enable(this.gl.SAMPLE_COVERAGE);
+        this.gl.enable(this.gl.SAMPLE_COVERAGE);
         this.gl.enable(this.gl.BLEND);
         this.gl.blendFuncSeparate(
             this.gl.SRC_ALPHA, 
@@ -23,6 +23,9 @@ export default class ToolWebGL {
         }   
         this.programsLoaded = {};
         this.paramCache = {};
+        this.textures = {
+            BASE: 0
+        };
         this.update = false;
     }
     _createProgram(programType) {
@@ -71,19 +74,24 @@ export default class ToolWebGL {
             this.gl.enableVertexAttribArray(ptr);
         }
     }
-    loadTexture(texture) {
+    _createTexture(img, index) {
+        const glTexture = this.gl.createTexture();
+        this.gl.activeTexture(this.gl.TEXTURE0 + index); 
+        this.gl.bindTexture(this.gl.TEXTURE_2D, glTexture);
+        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, img);
+        this.gl.generateMipmap(this.gl.TEXTURE_2D);
+    }
+
+    _loadTexture(src, index) {
         const img = new Image();
         img.crossOrigin = "anonymous";
+        img.onload = () => 
+            this._createTexture(img, index);        
+        img.src = src;
 
-        img.onload = () => {
-            const glTexture = this.gl.createTexture();
-            this.gl.activeTexture(this.gl.TEXTURE0); 
-            this.gl.bindTexture(this.gl.TEXTURE_2D, glTexture);
-            this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, img);
-            this.gl.generateMipmap(this.gl.TEXTURE_2D);
-
-        }
-        img.src = texture.src;
+    }
+    createTexture(texture) {
+        this._loadTexture(texture.src, this.textures.BASE);
     }
     animate() {
         if(this.update) {

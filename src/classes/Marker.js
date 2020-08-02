@@ -1,5 +1,6 @@
 import ToolWebGL from "./ToolWebGL";
 import {vec, normal, length, invert, equal, angle, rotateY, average} from "../functions/vector-functions";
+import {n2} from "../functions/math-functions"
 
 const DEBUG = process.env.NODE_ENV !== 'production';
 
@@ -9,6 +10,7 @@ uniform float lineWidth;
 uniform float width2;
 uniform float height2;
 uniform float textureRatio;
+uniform float gradientRatio;
 
 attribute vec2 coordinates;
 attribute vec2 miter;
@@ -18,6 +20,7 @@ attribute float index;
 
 
 varying vec2 texPos;
+varying vec2 gradTexPos;
 
 void main(void) { 
     vec2 pos = coordinates + vec2(miter * lineWidth / 2.0);
@@ -32,19 +35,19 @@ void main(void) {
         texPos = vec2(1.0, 1.0); 
     }
 
-    
+    gradTexPos = vec2(texPos);
 
     texPos.y *= lineLength * textureRatio;
     texPos.y += mod(lineStart, 1.0 / textureRatio) * textureRatio;
+
+    gradTexPos.y *= lineLength * gradientRatio;
+    gradTexPos.y += mod(lineStart, 1.0 / gradientRatio) * gradientRatio;
 
     
     gl_Position = vec4(
         (pos.x - width2) / width2, 
         (height2 - pos.y) / height2, 
-        0.0, 1.0);
-
-    
-
+        0.0, 1.0);   
     
 }`;
 
@@ -53,53 +56,56 @@ function createFragShader(programType) {
     
     let code = programType.split("-").map(param => `#define ${param.toUpperCase()} \n`).join("");
     code += `
-         precision highp float;
-         uniform vec3 color;
-         uniform float opacity;
-         uniform float lineWidth;
-         uniform sampler2D texture;
-         uniform sampler2D gradient_texture;
+    #if (defined WIDTHGRAD || defined LENGTHGRAD || defined TEXCOLOR)
+    # define COLORFUNC
+    #endif
 
-        uniform float width2;
-        uniform float height2;
+    precision highp float;
+    uniform vec3 color;
+    uniform float opacity;
+    uniform float lineWidth;
+    uniform sampler2D texture;
+    uniform sampler2D gradientTexture;
+            
 
-         varying vec2 texPos;
+    uniform float width2;
+    uniform float height2;
 
-         float maxc(vec4 color) {
-            float m = color.r > color.g ? color.r : color.g;
-            m = color.b > m ? color.b : m;
-            return m * color.a;
-         }
+    varying vec2 texPos;
+    varying vec2 gradTexPos;
 
-         float minc(vec4 color) {
-            float m = color.r < color.g ? color.r : color.g;
-            m = color.b < m ? color.b : m;
-            return m * color.a;
-         }
+    #ifdef COLORFUNC
+    float maxc(vec4 color) {
+        float m = color.r > color.g ? color.r : color.g;
+        m = color.b > m ? color.b : m;
+        return m * color.a;
+    }
 
-            void main(void) {
-                gl_FragColor = vec4(color, 1.0);
+    float minc(vec4 color) {
+        float m = color.r < color.g ? color.r : color.g;
+        m = color.b < m ? color.b : m;
+        return m * color.a;
+    }
+    #endif
 
-                #ifdef TEXTURE
-                gl_FragColor = texture2D(texture, texPos);                
-                #endif
+    void main(void) {
+        gl_FragColor = vec4(color, 1.0);
 
-                #ifndef WIDTHGRAD
-                    #ifdef TEXCOLOR
-                    gl_FragColor.a = gl_FragColor.a - (maxc(gl_FragColor) + minc(gl_FragColor)) * 0.5;
-                    gl_FragColor.rgb = color;
-                    #endif
-                #endif
+        #ifdef TEXTURE
+        gl_FragColor = texture2D(texture, texPos);     
+        #endif           
 
-                #ifdef WIDTHGRAD
-                gl_FragColor.a = gl_FragColor.a - (maxc(gl_FragColor) + minc(gl_FragColor)) * 0.5;
-                gl_FragColor.rgb = texture2D(gradient_texture, texPos).rgb;                
-                #endif               
-                
-                gl_FragColor.a *= opacity;
-                
-            }
-    ` + programType.split("-").map(param => `#undef ${param.toUpperCase()} \n`).join("");
+        #ifdef COLORFUNC    
+        gl_FragColor.a = gl_FragColor.a - (maxc(gl_FragColor) + minc(gl_FragColor)) * 0.5;
+        # if (defined WIDTHGRAD || defined LENGTHGRAD)
+        gl_FragColor.rgb = texture2D(gradientTexture, gradTexPos).rgb;                
+        # elif defined TEXCOLOR
+        gl_FragColor.rgb = color;                
+        # endif      
+        #endif
+        gl_FragColor.a *= opacity;
+    }
+    ` //+ programType.split("-").map(param => `#undef ${param.toUpperCase()} \n`).join("");
    
     if(DEBUG) console.log(code);
     return code;
@@ -131,50 +137,65 @@ export default class Marker extends ToolWebGL {
             lineWidth: 1,
             curveSmoothing: 10,
             angleSmoothing: 10
-        };
+        };        
         this.PRIMITIVE_TYPE = this.gl.TRIANGLES;
         this.vertexShader = vertexShader;
         this.createFragShader = createFragShader;
 
         this._init();
-      //  this.gl.enable(this.gl.CULL_FACE);
-      //  this.gl.cullFace(this.gl.FRONT);
-
-       
+        this.textures.GRADIENT = 1;       
     }
-    createGradientTexture(gradient) {
+    createDashTexture(blurRadius) {
         const size = 1024;
         const ctx = new OffscreenCanvas(size, size).getContext("2d");
 
-        const canvasGradient = ctx.createLinearGradient(0, 0, size, 0);
+        if(blurRadius)
+            ctx.filter = `blur(${blurRadius}px)`;
+        ctx.fillStyle = "black";
+        ctx.fillRect(size >> 2, 0, size + (size >> 1) >> 1, size);
+
+
+        ctx.canvas.convertToBlob({type: "image/png"})
+        .then(blob => 
+            this._loadTexture(
+                URL.createObjectURL(blob), 
+                this.textures.BASE
+            ));  
+    }
+    createTexture(texture) {
+        const size = 1024;
+        const ctx = new OffscreenCanvas(size, size).getContext("2d");      
+
+        this._loadTexture(texture.src, this.textures.BASE);
+    }
+    createGradientTexture(gradient, direction = "x", [w, h] = [1, 1], loop) {
+        const k = 1024;
+        const ctx = new OffscreenCanvas(k*w, k*h).getContext("2d");
+        const position = {
+            x: [0, 0, k*w, 0],
+            y: [0, 0, 0, k*h]
+        }[direction];
+
+        const canvasGradient = ctx.createLinearGradient(...position);
+        if(loop) {
+            gradient = gradient.concat([gradient[0]]);
+        }
         gradient.forEach((c, i) => {
             canvasGradient.addColorStop(i / (gradient.length - 1), c);
         })
 
         ctx.fillStyle = canvasGradient;
-        ctx.fillRect(0, 0, size, size);
+        ctx.fillRect(0, 0, k*w, k*h);
 
-        const img = new Image();
-        img.crossOrigin = "anonymous";
-
-        img.onload = () => {
-            const glTexture = this.gl.createTexture();
-            this.gl.activeTexture(this.gl.TEXTURE1);  
-            this.gl.bindTexture(this.gl.TEXTURE_2D, glTexture);
-
-            this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, img);
-            this.gl.generateMipmap(this.gl.TEXTURE_2D);            
-        }
-        ctx.canvas.convertToBlob({
-            type: "image/png"
-        })
-        .then(blob => img.src = URL.createObjectURL(blob));  
+        ctx.canvas.convertToBlob({type: "image/png"})
+        .then(blob => 
+            this._loadTexture(
+                URL.createObjectURL(blob), 
+                this.textures.GRADIENT
+            ));  
     }
     setProgram(programType) {
-         this._createProgram(programType);
-            
-        
-
+        this._createProgram(programType);          
         this.programParams = {
             lineWidth: "1f",
             textureRatio: "1f",
@@ -183,9 +204,6 @@ export default class Marker extends ToolWebGL {
             opacity: "1f",
             color: "3fv"
         };
-
-
-        //this.setAttributes();
 
     }
     calcLine(line, index) {
@@ -334,18 +352,17 @@ export default class Marker extends ToolWebGL {
     }
     setParams(params) {
 
-        console.log(params)
-        let cacheTexture = this.paramCache.texture;
+        let oldCache = Object.assign({}, this.paramCache);
         for(let param in params) {
             this.paramCache[param] = params[param];
             if(this.params[param] !== undefined) {
                 this.params[param] = params[param];
             }         
         }
-        this.pointStep = this.params.radius * this.params.spacing;
+
         const programType = [ 
             this.paramCache.texture ? "texture" + (this.paramCache.textureColor ? "-texcolor" : "") : "notexture",
-            this.paramCache.radialGradient ? "widthgrad" : "nograd",
+            this.paramCache.radialGradient ? "widthgrad" : this.paramCache.linearGradient ? "lengthgrad" : "nograd",
             this.paramCache.dashed ? "dashed" : "solid"
         ].join("-");
 
@@ -354,20 +371,23 @@ export default class Marker extends ToolWebGL {
         }
 
         if(params.texture) {            
-            if(cacheTexture !== params.texture) {
-                this.loadTexture(params.texture);
-                let loc = this.gl.getUniformLocation(this.program, "texture");
-                this.gl[`uniform1i`](loc, 0);
-            }
-            let loc1 = this.gl.getUniformLocation(this.program, "textureRatio");
-            this.gl[`uniform1f`](loc1, params.texture.ratio || 1);
-        }   
+            if(oldCache.texture !== this.paramCache.texture) 
+                this.createTexture(this.paramCache.texture);
+        } 
+
         
         if(params.radialGradient) {            
-            this.createGradientTexture(params.radialGradient);
-            let loc = this.gl.getUniformLocation(this.program, "gradient_texture");
-            this.gl[`uniform1i`](loc, 1);            
-        }   
+           this.createGradientTexture(params.radialGradient, "x");      
+           this.gl.uniform1f(this.gl.getUniformLocation(this.program, "gradientRatio"), 1);
+        }  else   if(params.linearGradient) {            
+           const h = n2(this.paramCache.linearGradient.length - 1);
+           this.createGradientTexture(params.linearGradient, "y", [1, h], true);      
+
+           this.gl.uniform1f(
+            this.gl.getUniformLocation(this.program, "gradientRatio"), 
+              h /  this.paramCache.linearGradientLength              
+            );
+        }    
 
         this.setAttributes();
 
@@ -375,11 +395,18 @@ export default class Marker extends ToolWebGL {
     setAttributes() {
         for(let param in this.paramCache) {
              if(this.programParams[param]) {
-                let loc = this.gl.getUniformLocation(this.program, param);
-                let val = param == "texture" ? 0 : this.paramCache[param];
-                this.gl[`uniform${this.programParams[param]}`](loc, val);
-                            
+                let loc = this.gl.getUniformLocation(this.program, param);                
+                this.gl[`uniform${this.programParams[param]}`](loc, this.paramCache[param]);                            
             }   
         }
+        this.gl.uniform1i(
+            this.gl.getUniformLocation(this.program, "texture"), 
+            this.textures.BASE);
+        this.gl.uniform1i(
+            this.gl.getUniformLocation(this.program, "gradientTexture"), 
+            this.textures.GRADIENT);
+        this.gl.uniform1f(
+            this.gl.getUniformLocation(this.program, "textureRatio"), 
+            this.paramCache.texture ? this.paramCache.texture.ratio || 1 : 1);
     }
 }

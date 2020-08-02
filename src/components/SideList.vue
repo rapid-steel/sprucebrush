@@ -28,7 +28,6 @@ export default {
     },
     methods: {
         toggle(e) {
-            e.preventDefault();
             this.open = !this.open;
             if(this.open) {
                 requestAnimationFrame(() => {

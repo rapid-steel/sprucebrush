@@ -6,7 +6,7 @@ Vue.use(Vuex)
 
 export default new Vuex.Store({
   state: {
-    currentInstrument: "marker",
+    currentInstrument: "brush",
     currentColor: "rgb(0,0,0)",
     colorBG: "rgb(255,255,255)",
     currentLayer: 0,
@@ -27,6 +27,8 @@ export default new Vuex.Store({
         {k: "texm1", src: require("./assets/img/texm1.jpg") },
         {k: "texm2", src: require("./assets/img/texm2.png") },
         {k: "texm3", src: require("./assets/img/tex3m.png") },
+        {k: "texm4", src: require("./assets/img/tex4m.jpg") },
+        {k: "texm5", src: require("./assets/img/tex5m.png") },
         
       ]
     },
@@ -87,11 +89,14 @@ export default new Vuex.Store({
       marker: {
         textype: "marker",
         lineWidth: 20,
+        blurRadius: 5,
         angleSmoothing: 10,
         curveSmoothing: 3,
         opacity: 1,
         texture: false,
         textureColor: false,
+        linearGradient: false,
+        linearGradientLength: 1,
         radialGradient: false,
         overlay: false,
         pressure: {

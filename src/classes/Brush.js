@@ -304,7 +304,7 @@ export default class Brush extends ToolWebGL {
 
         if(params.texture) {            
             if(cacheTexture !== params.texture) {
-                this.loadTexture(params.texture);
+                this.createTexture(params.texture);
                 let loc = this.gl.getUniformLocation(this.program, "texture");
                 this.gl[`uniform1i`](loc, 0);
             }

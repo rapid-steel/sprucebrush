@@ -396,7 +396,7 @@ export default {
     this.pointerActions = this.pointerActionsMap[this.currentInstrument];
   },
   mounted() {
-    if(navigator.languages[0].indexOf("ru") == 0)this.$i18n.locale = "ru";
+    //if(navigator.languages[0].indexOf("ru") == 0)this.$i18n.locale = "ru";
     document.getElementsByTagName("title")[0].innerText = this.$t("title");
 
 
