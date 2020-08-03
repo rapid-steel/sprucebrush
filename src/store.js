@@ -37,7 +37,7 @@ export default new Vuex.Store({
       {k: "pat1",src: require("./assets/img/pat1.png") },
       {k: "pat2",src: require("./assets/img/pat2.jpg") },
       {k: "pat3",src: require("./assets/img/pat3.png") },
-      {k: "texm4", src: require("./assets/img/tex4m.jpg") },
+      {k: "pat4", src: require("./assets/img/pat4.png") },
     ],
     shapes: [
       {k: "round"}, {k: "rect"}
