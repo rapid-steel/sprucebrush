@@ -73,6 +73,7 @@ export default new Vuex.Store({
         textype: "brush",
         radius: 5,
         opacity: 1,
+        spacing: .05,  
         shape: "round",
         pixel: false,      
         texture: false,
@@ -177,6 +178,9 @@ export default new Vuex.Store({
       state.gradients[index] = gradient;
       state.gradients = state.gradients.slice();
     },
+    deleteGradient(state, i) {
+      state.gradients.splice(i, 1);
+    },
     addPallete(state, name) {
       let e = state.userPref.palletes.filter(p => 
         p.name.replace(/[0-9]/ig, "").trim().toLowerCase() == name.toLowerCase()
@@ -209,15 +213,21 @@ export default new Vuex.Store({
       state.userPref.palletes = state.userPref.palletes.slice();
     },
     addAsset(state, [{type, textype = 0}, obj]) {
-      let arr = type + "s";
-      if(state[arr]) {
-        if(textype) {
-          state[arr][textype].push(obj);
-        } else state[arr].push(obj);
+      let arr = state[type + "s"];
+      if(arr) {
+        if(textype) 
+          arr = arr[textype];
+        arr.push(obj);
       }
-    }
-
-
+    },
+    deleteAsset(state, [{type, textype = 0}, k]) {
+      let arr = state[type + "s"];
+      if(arr) {
+        if(textype) 
+          arr = arr[textype];
+        arr.splice(arr.findIndex(t => t.k == k), 1);
+      }
+    },
   },
   actions: {
     load({state}, {type, item}) {

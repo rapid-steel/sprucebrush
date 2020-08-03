@@ -2,44 +2,45 @@
     <div class="color-picker">
         <color-picker :value="colorVal" @color-change="select" :width="180" :height="180"></color-picker>      
         <div class="select-pallete">
-            <button class="add" @click.stop="addPallete"></button>
-            <button class="edit" @click.stop="() => namePallete = !namePallete"></button>
-             <button class="delete"
+            <button class="icon-btn add" @click.stop="addPallete"></button>
+            <button class="icon-btn edit" @click.stop="() => namePallete = !namePallete"></button>
+             <button class="icon-btn delete"
                         :disabled="palletes.length==1" 
                         @click.stop="deletePallete" />
             <v-select 
-            :options="palletes"
-            :label="'name'"
-            v-model="pallete"
-            :disabled="namePallete"
-            :clearable="false"
-            :searchable="false"  />
+                :options="palletes"
+                :label="'name'"
+                v-model="pallete"
+                :disabled="namePallete"
+                :clearable="false"
+                :searchable="false"  />
             <input type="text" 
-            id="rename-pallete"
-            v-show="namePallete" 
-            :value="pallete.name"
-            @blur="() => namePallete = false"
-            @keyup.enter="renamePallete"
-            @change="renamePallete">
+                id="rename-pallete"
+                v-show="namePallete" 
+                :value="pallete.name"
+                @blur="() => namePallete = false"
+                @keyup.enter="renamePallete"
+                @change="renamePallete">
         </div> 
         <div class="colors">
             <div class="colors-selected">
                 <div class="color-selected background" 
-                :class="{editing: colorToEdit === 'bg'}"
-                @click="() => $emit('update:colorToEdit', 'bg')"
-                :style="{backgroundColor: colorBG}"></div>
+                    :class="{editing: colorToEdit === 'bg'}"
+                    @click="() => $emit('update:colorToEdit', 'bg')"
+                    :style="{backgroundColor: colorBG}"></div>
                 <div class="color-selected foreground" 
-                :class="{editing: colorToEdit === 'fg'}"
-                @click="() => $emit('update:colorToEdit', 'fg')"
-                :style="{backgroundColor: currentColor}"></div>
-                
+                    :class="{editing: colorToEdit === 'fg'}"
+                    @click="() => $emit('update:colorToEdit', 'fg')"
+                    :style="{backgroundColor: currentColor}"></div>
+                <button class="icon-btn swap" 
+                @click.stop="swapColors"></button>                
             </div>
             <div class="pallete">
                 <div class="add-color">
-                    <button class="add"
+                    <button class="icon-btn add"
                     v-show="!colorSelected" 
                     @click="() => addColor(colorVal)"></button>
-                    <button class="delete"
+                    <button class="icon-btn delete"
                         :disabled="!colorSelected" 
                         @click.stop="deleteSelected" />
                 </div>
@@ -93,6 +94,11 @@ export default {
       addColor(color) {
           this.$store.commit("addColorToPallete", [this.pallete.id, color]);
       },
+      swapColors() {
+        const c = this.currentColor;
+        this.$store.commit("selectColor", ['fg', this.colorBG]);
+        this.$store.commit("selectColor", ['bg', c]);
+      },
       select(color, fromPallete) {
           if(fromPallete) 
             this.colorSelected = color;
@@ -132,26 +138,10 @@ export default {
 .color-picker {
     height: 400px;
         button {
-            width: 30px;
-            height: 30px;
-            border: none;
-            background: none;
-            line-height: 30px;
-            font: $font-layer-button;
-            background: {
-                color: transparent;            
-                size: 60% 60%;
-                position: 50% 65%;
-                repeat: no-repeat;
-            }
-            &.add {
-                background-image: url("../assets/img/plus.svg");
-            }
-            &.delete {
-                background-image: url("../assets/img/trash.svg");
-            }
-            &.edit {
-                background-image: url("../assets/img/edit.svg");
+            &.swap {
+                position: absolute;
+                top: 40px;
+                left: -5px;                
             }
             &:disabled {
                 opacity: 0;

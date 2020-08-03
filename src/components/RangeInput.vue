@@ -3,19 +3,20 @@
     :class="{horizontal}"
     ref="container"
     @mouseenter="setRangePosition"
+    @wheel="e => $emit('input', Math.max(min, Math.min(max, value+Math.sign(e.deltaY))))"     
     >
         <input type="number" 
             :min="min" 
             :max="max" 
             :step="step"
             :value="value"
+           
             @input="e => $emit('input', Math.max(min, Math.min(max, +e.target.value)))"
             @change="e => $emit('input', Math.max(min, Math.min(max, +e.target.value)))"
             >
         <div class="range"
-            :style="rangePosition"
-        >
-            <input type="range" 
+            :style="rangePosition">
+            <input type="range"             
             :min="min" 
             :max="max" 
             :step="step"

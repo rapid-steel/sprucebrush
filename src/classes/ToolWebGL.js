@@ -5,7 +5,7 @@ export default class ToolWebGL {
         this.gl.getExtension("OES_standard_derivatives");
         this.gl.clearColor(0, 0, 0, 0);
         this.gl.enable(this.gl.SAMPLE_ALPHA_TO_COVERAGE);
-        this.gl.enable(this.gl.SAMPLE_COVERAGE);
+       // this.gl.enable(this.gl.SAMPLE_COVERAGE);
         this.gl.enable(this.gl.BLEND);
         this.gl.blendFuncSeparate(
             this.gl.SRC_ALPHA, 

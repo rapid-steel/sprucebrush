@@ -1,54 +1,61 @@
 <template>
-    <div id="layers">
+    <div id="layers" :class="{disabled}">
         <div>
-            <button class="add" @click="() => $emit('add-layer')"></button>
-            <button class="copy" @click="() => $emit('copy-layer')"></button>
-            <button class="merge" @click="() => $emit('merge-layers', layers.map(l => l.id))"></button>
+            <button class="icon-btn add" 
+                @click="() => $emit('add-layer')"></button>
+            <button class="icon-btn copy" 
+                @click="() => $emit('copy-layer')"></button>
+            <button class="icon-btn merge" 
+                @click="() => $emit('merge-layers', layers.map(l => l.id))"></button>
             <div class="caption">{{$t('layers.layers')}}</div>
         </div>
-        <draggable :list="layersReverse" group="layers" @end="e => $emit('reorder-layer', e)" >
+        <draggable 
+            :list="layersReverse" 
+            group="layers" 
+            @end="e => $emit('reorder-layer', e)" >
             <div v-for="(l,i) in layersReverse" 
-            :key="l.id"
-            class="layer"
-            :class="{
-                current: currentLayer && l.id == currentLayer.id, 
-                selected: multipleSelection.indexOf(l.id) !== -1, 
-                visible: l.visible}"
-            @click.ctrl.stop="() => selectMultiple(l.id)"
-            @click.shift.stop="() => $emit('layer-to-selection', l.id)"
-            @click.exact.stop="() => $emit('select-layer', l.id)"
+                :key="l.id"
+                class="layer"
+                :class="{
+                    current: currentLayer && l.id == currentLayer.id, 
+                    selected: multipleSelection.indexOf(l.id) !== -1, 
+                    visible: l.visible
+                }"
+                @click.ctrl.stop="() => selectMultiple(l.id)"
+                @click.shift.stop="() => $emit('layer-to-selection', l.id)"
+                @click.exact.stop="() => $emit('select-layer', l.id)"
             >
-            <div>
-                <input type="text" v-model="l.name" class="layer-name"> 
-                <img class="img-icon" src="@/assets/img/opacity.svg" />
-                <RangeInput 
-                :min="0" 
-                :max="100" 
-                v-model="l.opacity" 
-                @input="() => $emit('update:opacity')"
-                />
-                <button class="visible"
-                    :disabled="layers.length == 1" 
-                    @click.stop="() => $emit('toggle-layer', l.id)" />
-                <button class="delete"
-                    :disabled="layers.length == 1" 
-                    @click.stop="() => $emit('remove-layer', l.id)" />
-            </div>
-            <div>                
-                <button class="merge"
-                    v-if="i != layersReverse.length - 1"
-                    @click.stop="() => $emit('merge-layers', layersReverse.slice(i, i+2).map(l => l.id))" />
-                <img class="img-icon" src="@/assets/img/compose.svg" />
-                <v-select 
-                :options="blendModes"            
-                v-model="l.blend"
-                @input="() => $emit('update:blend')"
-                :disabled="!l.visible"
-                :clearable="false"
-                :appendToBody="true"
-                :searchable="false"  />
-            </div>
-
+                <div>
+                    <input type="text" class="layer-name"
+                    v-model="l.name"> 
+                    <img class="img-icon" src="@/assets/img/opacity.svg" />
+                    <RangeInput 
+                    :min="0" 
+                    :max="100" 
+                    v-model="l.opacity" 
+                    @input="() => $emit('update:opacity')"
+                    />
+                    <button class="icon-btn small visible"
+                        :disabled="layers.length == 1" 
+                        @click.stop="() => $emit('toggle-layer', l.id)" />
+                    <button class="icon-btn small delete"
+                        :disabled="layers.length == 1" 
+                        @click.stop="() => $emit('remove-layer', l.id)" />
+                </div>
+                <div>                
+                    <button class="icon-btn small merge"
+                        v-if="i != layersReverse.length - 1"
+                        @click.stop="() => $emit('merge-layers', layersReverse.slice(i, i+2).map(l => l.id))" />
+                    <img class="img-icon" src="@/assets/img/compose.svg" />
+                    <v-select 
+                        :options="blendModes"            
+                        v-model="l.blend"
+                        @input="() => $emit('update:blend')"
+                        :disabled="!l.visible"
+                        :clearable="false"
+                        :appendToBody="true"
+                        :searchable="false"  />
+                </div>
             </div>
         </draggable>      
 
@@ -62,7 +69,7 @@ export default {
   components: {
       Draggable
   },
-  props: ['layers', 'currentLayer'],
+  props: ['layers', 'currentLayer', 'disabled'],
   data() {
       return {
           blendModes: [
@@ -113,6 +120,10 @@ export default {
     display: flex;
     flex-direction: column;
     align-items: stretch;
+    &.disabled {
+        pointer-events: none;
+        opacity: .5;
+    }
     & > * {
         background: $color-bg;
     }
@@ -120,20 +131,6 @@ export default {
         display: flex;
         align-items: center;
         & > button {
-            cursor: pointer;
-            width: 30px;
-            flex: 0 0 30px;
-            height: 30px;
-            border: none;
-            background: {
-                color: transparent;            
-                size: 60% 60%;
-                position: center;
-                repeat: no-repeat;
-            }
-            &.add { background-image: url("../assets/img/plus.svg"); }
-            &.copy { background-image: url("../assets/img/copy.svg"); }
-            &.merge { background-image: url("../assets/img/merge.svg"); }
             margin: 1px;
         }
         .caption {
@@ -195,28 +192,6 @@ export default {
         height: 13px;
         display: inline-block;
     }
-    button {
-        width: 20px;
-        height: 20px;
-        background: {
-            color: transparent;            
-            size: 80% 80%;
-            position: center;
-            repeat: no-repeat;
-        }
-        border: none;
-        &.delete {
-            background-image: url("../assets/img/trash.svg");
-            background-size: 70% 70%;
-        }
-        &.visible {
-            background-image: url("../assets/img/visible.svg");
-        }
-        &.merge {
-            background-image: url("../assets/img/merge.svg");
-        }
-    }
-    
     .layer-name {
         width: 150px;
         overflow: hidden;

@@ -93,9 +93,10 @@ export default new VueI18n({
                     none: "None"
                 },
                 selection: {
-                    apply: "Apply selection",
-                    reset: "Reset selection",
-                    crop: "Crop image to selection",
+                    apply: "Apply",
+                    reset: "Reset",
+                    crop: "Crop image",
+                    clipnewlayer: "Clip to new layer",
                     all: "Select all"
                 },
             }

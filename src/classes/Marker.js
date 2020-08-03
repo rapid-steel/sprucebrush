@@ -347,7 +347,7 @@ export default class Marker extends ToolWebGL {
         }
     }   
     dropLine() {
-        this.lines = [];
+        this.lines = [];        
         super.dropLine();
     }
     setParams(params) {

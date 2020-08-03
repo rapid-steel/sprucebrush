@@ -16,24 +16,18 @@
         <div>{{$t('instruments.instruments.' + currentInstrument)}}</div>
     </div>
 
-    <div v-if="currentInstrument.indexOf('selection') !== -1" class="controls">
-        <div v-show="selection">
-            <button class="ok-btn" @click="() => $emit('apply-selection')">{{$t('instruments.selection.apply')}}</button>
-            <div class="hint">Enter</div>
-        </div>
-        <div v-show="selection">
-            <button class="ok-btn" @click="() => $emit('reset-selection')">{{$t('instruments.selection.reset')}}</button>
-            <div class="hint">Ctrl + Z</div>
-        </div>
-        <div v-show="selection">
-            <button class="ok-btn" @click="() => $emit('crop-selection')">{{$t('instruments.selection.crop')}}</button>
-            <div class="hint">Ctrl + T</div>
-        </div>
-        <div>
-            <button class="ok-btn" @click="() => $emit('select-all')">{{$t('instruments.selection.all')}}</button>
-            <div class="hint">Ctrl + A</div>
-        </div>
-
+    <div v-if="currentInstrument.indexOf('selection') !== -1" 
+    class="controls">
+        <div 
+        v-for="action in selectionActions"
+        :key="action.k" 
+        v-show="action.show()"
+        >
+           <button class="ok-btn" 
+           @click="action.action">{{$t(action.k)}}</button>
+            <div class="hint" 
+            v-if="action.key">{{action.key}}</div>
+        </div>      
     </div>
 
     <div class="settings">
@@ -77,6 +71,8 @@
                         :key="texture.k" 
                         :class="{active: currentBrush.texture == texture}"
                         @click.stop="() => set({texture})">
+                        <button class="icon-btn small delete" 
+                        @click.stop="() => deleteAsset('texture', texture.k)"></button>
                         <img :src="texture.src">                
                     </div>
                     <template slot=footer>
@@ -92,6 +88,8 @@
             </div>
             <div v-if="currentBrush.texture">
                 <div class="texture current">
+                    <button class="icon-btn small cancel" 
+                    @click.stop="() => set({texture: false})"></button>
                     <img :src="currentBrush.texture.src"> 
                 </div>
             </div>
@@ -117,6 +115,8 @@
                         :key="pattern.k" 
                         :class="{active: currentBrush.pattern == pattern}"
                         @click.stop="() => set({pattern})">
+                         <button class="icon-btn small delete" 
+                        @click.stop="() => deleteAsset('pattern', pattern.k)"></button>
                         <img :src="pattern.src">                
                     </div>
                     <template slot=footer>
@@ -132,6 +132,8 @@
             </div>
             <div v-if="currentBrush.pattern">
                 <div class="texture current">
+                    <button class="icon-btn small cancel" 
+                    @click.stop="() => set({pattern: false})"></button>
                     <img :src="currentBrush.pattern.src"> 
                 </div>
             </div>
@@ -160,6 +162,10 @@
                         :class="{active: currentBrush.linearGradient == gradient}"
                         :style="gradient | gradientBG"
                         @click.stop="() => set({linearGradient: gradient, radialGradient: false})">
+                        <button class="icon-btn small edit" 
+                        @click.stop="() => editGradient(i)"></button>
+                        <button class="icon-btn small delete" 
+                        @click.stop="() => $store.commit('deleteGradient', i)"></button>
                     </div>
                     <template slot=footer>
                         <button class="create-gradient" @click="createGradient">{{$t('instruments.settings.createGradient')}}</button>
@@ -169,6 +175,8 @@
 
             <div v-if="currentBrush.linearGradient">
                 <div class="gradient current" :style="currentBrush.linearGradient | gradientBG">
+                    <button class="icon-btn small cancel" 
+                    @click.stop="() => set({linearGradient: false})"></button>
                 </div>
             </div>
 
@@ -202,6 +210,10 @@
                         :style="gradient | gradientBG"
                         @click.stop="() => set({radialGradient: gradient, 
                         ...(currentBrush.linearGradient ? {linearGradient: false} : {})})">
+                        <button class="icon-btn small edit" 
+                        @click.stop="() => editGradient(i)"></button>
+                        <button class="icon-btn small delete" 
+                        @click.stop="() => $store.commit('deleteGradient', i)"></button>
                     </div>
                     <template slot=footer>
                         <button class="create-gradient" @click="createGradient">{{$t('instruments.settings.createGradient')}}</button>
@@ -211,6 +223,8 @@
 
             <div v-if="currentBrush.radialGradient">
                 <div class="gradient current radial" :style="currentBrush.radialGradient | gradientBG('radial')">
+                    <button class="icon-btn small cancel" 
+                    @click.stop="() => set({radialGradient: false})"></button>
                 </div>
             </div>
         </div>
@@ -239,134 +253,170 @@ import GradientCreator from "./GradientCreator";
 import {round2n} from "../functions/math-functions";
 
 export default {
-  name: 'Instruments',
-  props: ['selection'],
-  components: {
-      SideList, GradientCreator
+    name: 'Instruments',
+    props: ['selection'],
+    components: {
+        SideList, GradientCreator
     },
-  data() {
-      return {
-          linearGradientLength: {
-              brush: {min: 10, max: 100000, step: 1},
-              marker: {min: .01, max: 100, step: .01}
-          },
-          gradientToEdit: null,
-          settings: [
-              {k: "radius", min: 1, max: 1000, step: 1},
-              {k: "lineWidth", min: 1, max: 1000, step: 1},
-              {k: "curveSmoothing", min: 1, max: 25, step: 1},
-               {k: "angleSmoothing", min: 1, max: 25, step: 1},
-              {k: "opacity",  min: .01, max: 1, step: .01},
-         //     {k: "blurRadius", min: 0, max: 100, step: 1},
-              {k: "spacing",  min: 0.001, max: 10, step: .001},
-              {k: "tolerance", min: 1, max: 255, step: 1}
-          ],
-          instruments: [{
-              group: "drawing",
-              items: [
-                {name: "brush", icon: require("@/assets/img/brush.png")},
-                {name: "eraser", icon: require("@/assets/img/eraser.png")},               
-                {name: "marker", icon: require("@/assets/img/roller.png")},
-                 {name: "fill", icon: require("@/assets/img/fill.png")},
-                 {name: "picker", icon: require("@/assets/img/picker.png")},
-              //  {name: "pen", icon: require("@/assets/img/pen.png"), title: "Pen"},
-              ]
-          }, {
-            group: "selection",
-            items: [
-                {name: "selection-rect", icon: require("@/assets/img/selection-rect.png")},
-                {name: "selection-polygon", icon: require("@/assets/img/selection-polygon.png")},
-                {name: "selection-lasso", icon: require("@/assets/img/selection-lasso.png")},
+    data() {
+        return {
+            selectionActions: [{
+                k: 'instruments.selection.apply', 
+                action: () => this.$emit('apply-selection'),
+                key: "Enter", 
+                show: () => this.selection
+            }, {
+                k: "instruments.selection.reset",
+                action: () => this.$emit('reset-selection'),
+                key: "Ctrl + Z", 
+                show: () => this.selection                
+            }, {
+                k: "instruments.selection.clipnewlayer",
+                action: () => this.$emit('clipnewlayer-selection'),
+                show: () => this.selection
+            },{
+                k: "instruments.selection.crop",
+                action: () => this.$emit('crop-selection'),
+                key: "Ctrl + T", 
+                show: () => this.selection
+            }, {
+                k: "instruments.selection.all",
+                action: () => this.$emit('select-all'),
+                key: "Ctrl + A", 
+                show: () => true
+            }],
+            linearGradientLength: {
+                brush: {min: 10, max: 100000, step: 1},
+                marker: {min: .01, max: 100, step: .01}
+            },
+            gradientToEdit: null,
+            settings: [
+                {k: "radius", min: 1, max: 1000, step: 1},
+                {k: "lineWidth", min: 1, max: 1000, step: 1},
+                {k: "curveSmoothing", min: 1, max: 25, step: 1},
+                {k: "angleSmoothing", min: 1, max: 25, step: 1},
+                {k: "opacity",  min: .01, max: 1, step: .01},
+            //     {k: "blurRadius", min: 0, max: 100, step: 1},
+                {k: "spacing",  min: 0.001, max: 10, step: .001},
+                {k: "tolerance", min: 1, max: 255, step: 1}
+            ],
+            instruments: [{
+                group: "drawing",
+                items: [
+                    {name: "brush", icon: require("@/assets/img/brush.png")},
+                    {name: "eraser", icon: require("@/assets/img/eraser.png")},               
+                    {name: "marker", icon: require("@/assets/img/roller.png")},
+                    {name: "fill", icon: require("@/assets/img/fill.png")},
+                    {name: "picker", icon: require("@/assets/img/picker.png")},
+                //  {name: "pen", icon: require("@/assets/img/pen.png"), title: "Pen"},
+                ]
+            }, {
+                group: "selection",
+                items: [
+                    {name: "selection-rect", icon: require("@/assets/img/selection-rect.png")},
+                    {name: "selection-polygon", icon: require("@/assets/img/selection-polygon.png")},
+                    {name: "selection-lasso", icon: require("@/assets/img/selection-lasso.png")},
+                ]
+            }
+                
             ]
-          }
-              
-          ]
-      }
-  },
-  computed: {
-      ...mapState(['currentInstrument', 'types', 'patterns', 'shapes', 'gradients', 'currentColor', 'colorBG']),
-      textures() {
-          return this.$store.state.textures[this.currentBrush.textype];
-      },
-      actualSettings() {
-          return this.settings.filter(s => this.currentBrush[s.k] != undefined);
-      },
-      currentItem() {
-          for(let i = 0; i < this.instruments.length; i++) {
-              let item = this.instruments[i].items.find(item => item.name == this.currentInstrument);
-              if(item) return item;
-          }
-          return {};
-      },
-      currentBrush() {
-        return this.$store.getters.currentSettings;
         }
-  },
-  mounted() {
-   
+    },
+    computed: {
+        ...mapState(['currentInstrument', 'types', 'patterns', 'shapes', 'gradients', 'currentColor', 'colorBG']),
+        textures() {
+            return this.$store.state.textures[this.currentBrush.textype];
+        },
+        actualSettings() {
+            return this.settings.filter(s => this.currentBrush[s.k] != undefined);
+        },
+        currentItem() {
+            for(let i = 0; i < this.instruments.length; i++) {
+                let item = this.instruments[i].items.find(item => item.name == this.currentInstrument);
+                if(item) return item;
+            }
+            return {};
+        },
+        currentBrush() {
+            return this.$store.getters.currentSettings;
+            }
+    },
+    mounted() {
+    
 
-  },
-  methods: {
-      importAsset(e) {
-          const type = e.target.id.replace("-input", "");
-          const textype = this.currentBrush.textype;
-          Array.from(e.target.files).forEach(file => {
-              let img = new Image();
-                img.onload = () => {
-                    if(type.indexOf("texture") !== -1) {
-                        let {k, w1,h1, imgW, imgH, dw, dh} = round2n(img.width, img.height);
-                        let ctx = new OffscreenCanvas(w1, h1).getContext("2d");
-                        ctx.drawImage(img, dw, dh, imgW, imgH);
-                        img = new Image();
-                        img.onload = () => {
-                            this.$store.commit("addAsset", [
-                                {type, textype}, {
+    },
+    methods: {
+        importAsset(e) {
+            const type = e.target.id.replace("-input", "");
+            const textype = this.currentBrush.textype;
+            Array.from(e.target.files).forEach(file => {
+                let img = new Image();
+                    img.onload = () => {
+                        if(type.indexOf("texture") !== -1) {
+                            let {k, w1,h1, imgW, imgH, dw, dh} = round2n(img.width, img.height);
+                            let ctx = new OffscreenCanvas(w1, h1).getContext("2d");
+                            ctx.drawImage(img, dw, dh, imgW, imgH);
+                            img = new Image();
+                            img.onload = () => {
+                                this.$store.commit("addAsset", [
+                                    {type, textype}, {
+                                    k: Date.now(),
+                                    src: img.src,
+                                    ratio: k
+                                }]);
+                            };
+                            ctx.canvas.convertToBlob({
+                                type: "image/png"
+                            })
+                            .then(blob => img.src = URL.createObjectURL(blob));  
+                            
+
+                        } else {
+                            this.$store.commit("addAsset", [{type}, {
                                 k: Date.now(),
-                                src: img.src,
-                                ratio: k
+                                src: img.src
                             }]);
-                        };
-                        ctx.canvas.convertToBlob({
-                            type: "image/png"
-                        })
-                        .then(blob => img.src = URL.createObjectURL(blob));  
-                        
-
-                    } else {
-                        this.$store.commit("addAsset", [{type}, {
-                            k: Date.now(),
-                            src: img.src
-                        }]);
+                        }
                     }
-                }
-                img.src = URL.createObjectURL(file);    
-          });
+                    img.src = URL.createObjectURL(file);    
+            });
 
-      },
-      createGradient() {
-          this.gradientToEdit = {
-              gradient: [this.currentColor, this.colorBG],
-              index: null
-          };
-      },
-      saveGradient() {
-          if(this.gradientToEdit.index == null) {
-              this.$store.commit("createGradient", this.gradientToEdit.gradient);
-          } else {
-              this.$store.commit("editGradient", this.gradientToEdit);
-          }
-          this.gradientToEdit = false;
-      },
-      select(instrument) {
-          this.$store.commit("selectInstrument", instrument.name);
-      },
-       set(settings) {
-          this.$store.commit("changeSettings", {
-              instrument: this.currentInstrument,
-              settings
-          });
-      }
-  }
+        },
+        deleteAsset(type, k) {
+             this.$store.commit("deleteAsset", [
+                {type, textype: type == 'texture' ? this.currentBrush.textype : 0}, k]);
+        },
+        createGradient() {
+            this.gradientToEdit = {
+                gradient: [this.currentColor, this.colorBG],
+                index: null
+            };
+        },
+        editGradient(i) {
+              this.gradientToEdit = {
+                gradient: this.gradients[i],
+                index: i
+            };
+
+        },
+        saveGradient() {
+            if(this.gradientToEdit.index == null) {
+                this.$store.commit("createGradient", this.gradientToEdit.gradient);
+            } else {
+                this.$store.commit("editGradient", this.gradientToEdit);
+            }
+            this.gradientToEdit = false;
+        },
+        select(instrument) {
+            this.$store.commit("selectInstrument", instrument.name);
+        },
+        set(settings) {
+            this.$store.commit("changeSettings", {
+                instrument: this.currentInstrument,
+                settings
+            });
+        }
+    }
 }
 </script>
 
@@ -543,11 +593,31 @@ export default {
     }
 }
 
+.gradient, 
 .texture {
+    position: relative;
+    .icon-btn {
+        position: absolute;
+        opacity: 0;
+        right: $icon-btn-size-small + 2.5px;
+        &:last-of-type {
+            right: 0;
+        }
+    }
+    &:hover {
+        .icon-btn { 
+            opacity: 1;      
+            z-index: 10;      
+        }
+    }
+}
+
+.texture {   
     height: $texture-size;
     flex: 1 0 $texture-size;
     max-width: $texture-size;
     margin: 2.5px;
+    
     &.active {
         box-shadow: 0 0 1px 2px $color-accent2;
     }

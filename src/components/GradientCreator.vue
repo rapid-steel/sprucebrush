@@ -16,13 +16,16 @@
                         @click.exact.stop="() => editColor = i"
                         ></div>
                         <div class="controls">
-                            <button :disabled="!i" class="move-left" 
+                            <button class="move-left" 
+                            :disabled="!i"
                             :title="$t('gradientCreator.moveLeft')"
                             @click.stop="() => move(-1, i)"></button>
-                            <button :disabled="maxI==1" class="remove" 
+                            <button class="remove" 
+                            :disabled="maxI==1"
                             :title="$t('gradientCreator.remove')"
                             @click.stop="() => remove(i)"></button>
-                            <button :disabled="i==maxI" class="move-right" 
+                            <button class="move-right" 
+                            :disabled="i==maxI"
                             :title="$t('gradientCreator.moveRight')"
                             @click.stop="() => move(1, i)"></button>    
                         </div>                    
@@ -37,7 +40,7 @@
 
 
         <div class="footer">
-            <button @click="() => $emit('save', gradient)">{{$t('common.save')}}</button>
+            <button @click="() => $emit('save', value)">{{$t('common.save')}}</button>
             <button @click="() => $emit('close')">{{$t('common.close')}}</button>
         </div>
         
@@ -71,7 +74,7 @@ export default {
       move(dir, i) {
           let min = dir > 0 ? i : i+dir;
           this.$emit('input', this.value.slice(0, min)
-          .concat([this.value[i+dir], this.value[i]])
+          .concat([this.value[min+1], this.value[min]])
           .concat(this.value.slice(min+2)));
       },
       remove(i) {
