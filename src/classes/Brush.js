@@ -16,13 +16,13 @@ varying float vRadius;
 
 void main(void) { 
     gl_Position = vec4(
-        (coordinates.x - width2) / width2, 
-        (height2 - coordinates.y) / height2, 
+        coordinates.x / width2 - 1.0, 
+        1.0 - coordinates.y / height2, 
         0.0, 1.0);
     gl_PointSize = radius * pressure;
     vPressure = pressure;      
     vIndex = index;    
-    vRadius = radius;
+    vRadius = gl_PointSize;
 }`;
 
 
@@ -189,7 +189,7 @@ export default class Brush extends ToolWebGL {
 
         this.canvas = new OffscreenCanvas(100, 100);
         this.gl = this.canvas.getContext("webgl", {
-           premultipliedAlpha: true,
+            premultipliedAlpha: true,
             depth: false
         });
     

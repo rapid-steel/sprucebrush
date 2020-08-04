@@ -1,14 +1,17 @@
-export function fill(pos, positions, pixels, color, color0, width, height, tolerance, pixels1) {
-    let pos1 = [];
-    pixels1 = pixels1 || new ImageData( width, height ).data;
-    
+const ctx = (new OffscreenCanvas(1,1));
+
+export function fill(pos, positions, pixels, color, color0, width, height, tolerance) {
+  let pos1 = [];
+  let pixels1 = new ImageData( width, height ).data;
+
+  do {
+    pos1 = [];
     pos.forEach(([x,y]) => {
       let p = y * width + x
       positions[p] = 1;
       for(let i = 0; i < 4; i++) {
         pixels1[p * 4 + i] = color[i] 
-      }
-      
+      }      
       [
         [x - 1, y],  [x - 1, y-1],
         [x, y -1],  [x - 1, y+1],
@@ -31,11 +34,10 @@ export function fill(pos, positions, pixels, color, color0, width, height, toler
           }
         }
       })                 
-    })
-    if(pos1.length) {
-        pixels1 = fill(pos1, positions, pixels, color, color0, width, height, tolerance, pixels1)
-        
-      }
+    })  
+    pos = pos1;
+  }
+  while(pos1.length);
   
     return pixels1;
   

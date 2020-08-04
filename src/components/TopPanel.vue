@@ -1,42 +1,48 @@
 <template>
     <div class="menu-tabs">
 
-        <div class="btn" @click.stop="$emit('new-drawing')">
-            <img src="../assets/img/new-drawing.png" :title="$t('topPanel.newDrawing.title')" />
+        <div class="btn" 
+            @click.stop="$emit('new-drawing')">
+            <img src="../assets/img/new-drawing.png" 
+                :title="$t('topPanel.newDrawing.title')" />
         </div>
         <div class="btn" 
             :class="{active: display.sizesForm}"
             @click.stop="() => setDisplay('sizesForm', !display.sizesForm)">
-            <img src="../assets/img/change-sizes.png" :title="$t('topPanel.sizesForm.title')" />
+            <img src="../assets/img/change-sizes.png" 
+                :title="$t('topPanel.sizesForm.title')" />
             <div class="menu-form" 
-            v-show="display.sizesForm" 
-            @click.stop>
+                v-show="display.sizesForm" 
+                @click.stop>
                 <div>
                     <div>{{$t('topPanel.sizesForm.width')}}:</div>  
                     <input type="number" 
-                    min="1" step="1" 
-                    v-model="sizesModel.width" 
-                    @keyup.enter="applySizes">
+                        min="1" step="1" 
+                        v-model="sizesModel.width" 
+                        @keyup.enter="applySizes">
                 </div> 
                 <div>
                     <div>{{$t('topPanel.sizesForm.height')}}:</div>
                     <input type="number" 
-                    min="1" step="1" 
-                    v-model="sizesModel.height" 
-                    @keyup.enter="applySizes">
+                        min="1" step="1" 
+                        v-model="sizesModel.height" 
+                        @keyup.enter="applySizes">
                 </div>     
                 <div>{{$t('topPanel.sizesForm.transform')}}:</div>
                 <div id="resize-mode">
                     <div 
                         :class="{active: sizesModel.resizeMode == 'resize'}"
                         @click="() => sizesModel.resizeMode = 'resize'">
-                        <div><img src="../assets/img/resize-mode.png" ></div>
+                        <div>
+                            <img src="../assets/img/resize-mode.png" >
+                        </div>
                         <div>{{$t('topPanel.sizesForm.resize')}}</div>
                     </div>
                     <div 
                         :class="{active: sizesModel.resizeMode == 'move'}"
                         @click="() => sizesModel.resizeMode = 'move'">
-                        <div id="origin-mode" :class="sizesModel.originMode.split('-')">
+                        <div id="origin-mode" 
+                            :class="sizesModel.originMode.split('-')">
                             <div v-for="m in originModes" 
                                 :key="m"
                                 :class="{active: sizesModel.originMode == m}"
@@ -49,101 +55,47 @@
                 </div>
                 <div class="footer">
                     <button class="ok-btn"
-                    @click.stop="applySizes" 
-                    @keyup.enter="applySizes">{{$t('common.ok')}}</button>
+                        @click.stop="applySizes" 
+                        @keyup.enter="applySizes">{{$t('common.ok')}}</button>
                 </div>                          
             </div>
         </div>
         <div class="btn" 
-        :class="{active: display.importMenu}"
-        @click.stop="() => setDisplay('importMenu', !display.importMenu)">
+            :class="{active: display.importMenu}"
+            @click.stop="() => setDisplay('importMenu', !display.importMenu)">
             <input 
-            type="file" @change="importImage"
-            ref="importImage" accept="image/*">
+            type="file" accept="image/*"
+            ref="importImage" 
+            @change="importImage">
             <img src="../assets/img/load-image.png" :title="$t('topPanel.importMenu.title')" />
             <div class="menu-itemlist" 
-            v-show="display.importMenu" 
-            @click.stop>
+                v-show="display.importMenu" 
+                @click.stop>
                 <div class="menu-item big"
                     v-for="mode in importModes"
                     :key="mode.k"
-                    @click.stop="() => loadImage(mode)"
-                >
+                    @click.stop="() => loadImage(mode)">
                     <img :src="mode.img">
                     <div>{{$t('topPanel.importMenu.' + mode.k)}}</div>
                 </div>
-
             </div>
         </div>    
         <div class="btn"
-        :class="{active: display.filtersList}"
-        @click.stop="() => setDisplay('filtersList', !display.filtersList)">
-            <img src="../assets/img/filters.png" :title="$t('topPanel.filtersList.title')" />
+            :class="{active: display.filtersList}"
+            @click.stop="() => setDisplay('filtersList', !display.filtersList)">
+            <img src="../assets/img/filters.png" 
+                :title="$t('topPanel.filtersList.title')" />
             <div class="menu-itemlist" 
-            v-show="display.filtersList">
+                v-show="display.filtersList">
                 <div class="menu-item" 
-                v-for="filter in filters" 
-                :key="filter.k"
-                @click="() => selectFilter(filter)">
+                    v-for="filter in filters" 
+                    :key="filter.k"
+                    @click="() => selectFilter(filter)">
                     <img :src="filter.img">
                     <div>{{$t('topPanel.filtersList.' + filter.k + ".title")}}</div>
                 </div>
             </div>
-            <div class="menu-form" v-show="!!currentFilter" @click.stop>
-                <template v-if="currentFilter.k == 'blur'">
-                    <div>
-                        <div>{{$t('topPanel.filtersList.blur.radius')}}:</div>  
-                        <input type="number" 
-                        min="1" step=".1" 
-                        v-model="currentFilter.settings.radius" 
-                        @change="() => $emit('preview-filter', currentFilter)"
-                        @keyup.enter="() => $emit('preview-filter', currentFilter)">
-                    </div>
-                </template>
-                <template v-if="currentFilter.k == 'bright-contr'">
-                    <div>
-                        <div>{{$t('topPanel.filtersList.bright-contr.brightness')}}:</div>  
-                        <input type="range" 
-                        min="0" step=".1" max="5" 
-                        v-model="currentFilter.settings.brightness" 
-                        @change="() => $emit('preview-filter', currentFilter)"
-                        @keyup.enter="() => $emit('preview-filter', currentFilter)">
-                    </div>
-                    <div>
-                        <div>{{$t('topPanel.filtersList.bright-contr.contrast')}}:</div>  
-                        <input type="range" 
-                        min="0" step=".1" max="5" 
-                        v-model="currentFilter.settings.contrast" 
-                        @change="() => $emit('preview-filter', currentFilter)"
-                        @keyup.enter="() => $emit('preview-filter', currentFilter)">
-                    </div>
-                </template>
-                   <template v-if="currentFilter.k == 'hue-saturate'">
-                    <div>
-                        <div>{{$t('topPanel.filtersList.hue-saturate.hue')}}:</div>  
-                        <input type="range" 
-                        min="-180" step="1" max="180" 
-                        v-model="currentFilter.settings.hue" 
-                        @change="() => $emit('preview-filter', currentFilter)"
-                        @keyup.enter="() => $emit('preview-filter', currentFilter)">
-                    </div>
-                    <div>
-                        <div>{{$t('topPanel.filtersList.hue-saturate.saturation')}}:</div>  
-                        <input type="range" 
-                        min="0" step="1" max="200" 
-                        v-model="currentFilter.settings.saturation" 
-                        @change="() => $emit('preview-filter', currentFilter)"
-                        @keyup.enter="() => $emit('preview-filter', currentFilter)">
-                    </div>
-                    <div>
-                        <div>{{$t('topPanel.filtersList.hue-saturate.luminance')}}:</div>  
-                        <input type="range" 
-                        min="-1" step=".01" max="1" 
-                        v-model="currentFilter.settings.luminance" 
-                        @change="() => $emit('preview-filter', currentFilter)"
-                        @keyup.enter="() => $emit('preview-filter', currentFilter)">
-                    </div>
-                </template>
+            <div class="menu-form" v-show="!!currentFilter" @click.stop>                   
                 <template v-if="currentFilter.k == 'duotone'">               
                     <div>
                         <div>{{$t('topPanel.filtersList.duotone.colors')}}:</div> 
@@ -156,48 +108,24 @@
                         </div>
                     </div>
                     <color-picker 
-                    v-model="currentFilter.settings.colors[currentFilter.current]"
-                    @input="() => $emit('preview-filter', currentFilter)"
-                    :width="180" :height="180" />
-                 
+                        v-model="currentFilter.settings.colors[currentFilter.current]"
+                        @input="() => $emit('preview-filter', currentFilter)"
+                        :width="180" 
+                        :height="180" />                 
                 </template>
-                <template v-if="currentFilter.k == 'posterize'">
-                    <div>
-                        <div>{{$t('topPanel.filtersList.posterize.levels')}}:</div>  
-                        <input type="number" 
-                        :min="2" :step="1" :max="20" 
-                        v-model="currentFilter.settings.levels" 
-                        @change="() => $emit('preview-filter', currentFilter)"
-                        @keyup.enter="() => $emit('preview-filter', currentFilter)">
-                    </div>
-                </template>
-                <template v-if="currentFilter.k == 'pixelate'">
-                    <div>
-                        <div>{{$t('topPanel.filtersList.pixelate.size')}}:</div>  
-                        <input type="number" 
-                        :min="2" :step="1" :max="100" 
-                        v-model="currentFilter.settings.size" 
-                        @change="() => $emit('preview-filter', currentFilter)"
-                        @keyup.enter="() => $emit('preview-filter', currentFilter)">
-                    </div>
-                </template>
-                <template v-if="currentFilter.k == 'ripple'">
-                    <div>
-                        <div>{{$t('topPanel.filtersList.ripple.frequency')}}:</div>  
-                        <input type="range" 
-                        min="-5" step=".1" max="0" 
-                        v-model="currentFilter.settings.frequency" 
-                        @change="() => $emit('preview-filter', currentFilter)"
-                        @keyup.enter="() => $emit('preview-filter', currentFilter)">
-                    </div>
-                    <div>
-                        <div>{{$t('topPanel.filtersList.ripple.scale')}}:</div>  
-                        <input type="range" 
-                        min="1" step="1" max="1000" 
-                        v-model="currentFilter.settings.scale" 
-                        @change="() => $emit('preview-filter', currentFilter)"
-                        @keyup.enter="() => $emit('preview-filter', currentFilter)">
-                    </div>
+                <template v-else>
+                    <div v-for="el in currentFilter.form" 
+                        :key="currentFilter.k + el.k">
+                        <div>{{$t(`topPanel.filtersList.${currentFilter.k}.${el.k}`)}}:</div>  
+                        <input 
+                            :type="el.type" 
+                            :min="el.min" 
+                            :step="el.step" 
+                            :max="el.max" 
+                            v-model="currentFilter.settings[el.k]" 
+                            @change="() => $emit('preview-filter', currentFilter)"
+                            @keyup.enter="() => $emit('preview-filter', currentFilter)">
+                    </div>                   
                 </template>
                 <div class="footer">
                     <button class="ok-btn"
@@ -256,16 +184,31 @@ export default {
                     img: require("../assets/img/filter-blur.png"), 
                     preview: true, 
                     settings: {radius: 1}, 
+                    form: [{
+                        k: "radius", type: "number", min: 1, step: .01
+                    }]
                 },{
-                    k: "bright-contr",  
+                    k: "brightness_contrast",  
                     img: require("../assets/img/filter-bright-contr.png"), 
                     preview: true, 
-                    settings: {brightness: 1, contrast: 1 }
+                    settings: {brightness: 1, contrast: 1 },
+                    form: [{
+                        k: "brightness", type: "range", min: 0, step: .01, max: 5
+                    }, {
+                        k: "saturate", type: "range", min: 0, step: .01, max: 5
+                    }]
                 },{
-                    k: "hue-saturate",  
+                    k: "hue_saturate",  
                     img: require("../assets/img/filter-hue-saturate.png"), 
                     preview: true, 
-                    settings: {hue: 0, saturation: 100, luminance: 0 }
+                    settings: {hue: 0, saturation: 100, luminance: 0 },
+                    form: [{
+                        k: "hue", type: "range", min: -180, step: 1, max: 180
+                    }, {
+                        k: "saturation", type: "range", min: 0, step: 1, max: 200
+                    },  {
+                        k: "lunimance", type: "range", min: -1, step: .01, max: 1
+                    }]
                 },{
                     k: "duotone",  
                     img: require("../assets/img/filter-duotone.png"), 
@@ -277,91 +220,105 @@ export default {
                     img: require("../assets/img/filter-posterize.png"), 
                     preview: true, 
                     settings: {levels: 4}, 
+                    form: [{
+                        k: "levels", type: "number", min: 2, step: 1, max: 20
+                    }]
                 },{
                     k: "pixelate", 
                     img: require("../assets/img/filter-pixelate.png"), 
                     preview: true, 
                     settings: {size: 10}, 
+                    form: [{
+                        k: "size", type: "number", min: 2, step: 1, max: 180
+                    }]
                 }, {
                     k: "ripple",
                     img: require("../assets/img/filter-ripple.png"), 
                     preview: true,
-                    settings: {scale: 10, frequency: -1}
+                    settings: {scale: 10, frequency: -1},
+                    form: [{
+                        k: "frequency", type: "number", min: -5, step: .1, max: 0
+                    }, {
+                        k: "scale", type: "number", min: 1, step: 1, max: 1000
+                    }]
                 },{
                     k: "stereo",
                     img: require("../assets/img/filter-stereo.png")
                 }
             ],
-            sizesModel: {width: 1, height: 1, originMode: "center-center", resizeMode: "move"},
+            sizesModel: {
+                width: 1, 
+                height: 1, 
+                originMode: "center-center", 
+                resizeMode: "move"
+            },
             originModes: [
-                'top-left', 'top-center', 'top-right', 
+                'top-left',    'top-center',    'top-right', 
                 'center-left', 'center-center', 'center-right', 
                 'bottom-left', 'bottom-center', 'bottom-right'
-                ]
+            ]
         }
     },
-  watch: {
-      sizes() { 
-          Object.assign(this.sizesModel, this.sizes); 
-      }
-  },
-  computed: {
-  },
-  mounted() {
-      Object.assign(this.sizesModel, this.sizes); 
-  },
-  methods: {
-      setDisplay(k, v = false) {
-          for(let el in this.display) 
-            this.display[el] = k == el && v;
-          this.menuOpen = v;
-        if(this.menuOpen) {
-            if(!this.h)
-                requestAnimationFrame(() => {
-                    this.h = this.setDisplay.bind(this);
-                    document.addEventListener("click", this.h);
-                });
-        } else {
-            document.removeEventListener("click", this.h);
-            this.h = false;
+    watch: {
+        sizes() { 
+            Object.assign(this.sizesModel, this.sizes); 
         }
-      },
-      selectFilter(filter) {
-           if(filter.preview) 
-            this.currentFilter = Object.assign({}, filter);
-           else this.$emit('apply-filter', filter);
-      },
-      applyCurrentFilter() {          
-          this.$emit('apply-filter', this.currentFilter);
-          this.currentFilter = false;
-      },
-      cancelFilter() {
-          this.$emit('cancel-preview-filter');
-          this.currentFilter = false;
-      },
-      loadImage(mode) {
-          this.importMode = mode;
-          this.$refs.importImage.click();
-      },
-      importImage(e) {
-        let file = e.target.files[0];    
-        if(file.type.indexOf("image") != -1) {
-            this.$emit('import-image', [file, this.importMode.k]);            
-        }    
-      },
-      clearFileInput() {
-          this.$refs.importImage.value = "";
-          this.$refs.importImage.type = "";
-          this.$refs.importImage.type = "file";
-      },
-      applySizes() {
-          if(this.sizesModel.width && this.sizesModel.height) {
-            this.$emit("change-sizes", this.sizesModel);
-            this.display.sizesForm = false;
-          }
-          
-      }
-  }
+    },
+    mounted() {
+        Object.assign(this.sizesModel, this.sizes); 
+    },
+    methods: {
+        setDisplay(k, v = false) {
+            for(let el in this.display) 
+                this.display[el] = k == el && v;
+            this.menuOpen = v;
+            if(this.menuOpen) {
+                if(!this.h)
+                    requestAnimationFrame(() => {
+                        this.h = this.setDisplay.bind(this);
+                        document.addEventListener("click", this.h);
+                    });
+            } else {
+                document.removeEventListener("click", this.h);
+                this.h = false;
+            }
+        },
+        selectFilter(filter) {
+            if(filter.preview) 
+                this.currentFilter = Object.assign({}, filter);
+            else this.$emit('apply-filter', filter);
+        },
+        applyCurrentFilter() {          
+            this.$emit('apply-filter', this.currentFilter);
+            this.currentFilter = false;
+        },
+        cancelFilter() {
+            this.$emit('cancel-preview-filter');
+            this.currentFilter = false;
+        },
+        loadImage(mode) {
+            this.importMode = mode;
+            this.$refs.importImage.click();
+        },
+        importImage(e) {
+            let file = e.target.files[0];    
+            if(file.type.indexOf("image") != -1) {
+                this.$emit('import-image', [file, this.importMode.k]);            
+            }    
+        },
+        clearFileInput() {
+            this.$refs.importImage.value = "";
+            this.$refs.importImage.type = "";
+            this.$refs.importImage.type = "file";
+        },
+        applySizes() {
+            if(this.sizesModel.width && this.sizesModel.height) {
+                this.$emit("change-sizes", this.sizesModel);
+                this.display.sizesForm = false;
+            }
+            
+        }
+    }
 }
 </script>
 

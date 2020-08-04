@@ -18,10 +18,10 @@ const filterFunctions = {
     blur: (ctx, settings) => {
         ctx.filter = `blur(${settings.radius}px)`;
     },
-    'bright-contr': (ctx, settings) => {
+    brightness_contrast: (ctx, settings) => {
         ctx.filter = `brightness(${settings.brightness})contrast(${settings.contrast})`;
     },
-    'hue-saturate': (ctx, settings) => {
+    hue_saturate: (ctx, settings) => {
         const l = settings.luminance;
         const values = [
             1, 0, 0, 0, l,

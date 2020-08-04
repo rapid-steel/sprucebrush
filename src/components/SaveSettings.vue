@@ -22,9 +22,9 @@ export default {
       prefs() {
           return this.$store.state.userPref.colorPicker
       },
-      ...mapState(['currentInstrument']),
-      currentBrush() {
-        return this.$store.state.currentInstrumentSettings[this.currentInstrument];
+      ...mapState(['currentTool']),
+      currentSettings() {
+        return this.$store.state.currentToolSettings[this.currentTool];
      }
   },
   mounted() {
@@ -33,7 +33,7 @@ export default {
   methods: {
       set(prop, val) {
           this.$store.commit("changeSettings", {
-              instrument: this.currentInstrument,
+              instrument: this.currentTool,
               prop, val
           });
       }

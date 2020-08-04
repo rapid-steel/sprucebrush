@@ -1,6 +1,8 @@
 export default class Selection {
-    constructor(p1, selCtx) {
+    constructor(p1, selCtx, ratio, zoom) {
       this.imgCtx = new OffscreenCanvas(selCtx.canvas.width, selCtx.canvas.height).getContext("2d");
+      this.imgCtx.imageSmoothingEnabled = false;
+      this.imgCtx.lineWidth = ratio;
       this.selCtx = selCtx;
       let sCopy = new OffscreenCanvas(selCtx.canvas.width, selCtx.canvas.height);
       sCopy.width = this.imgCtx.canvas.width;
@@ -13,16 +15,37 @@ export default class Selection {
       this.path = [p1.slice(), p1.slice()];
       this.bbox = [p1.slice(), p1.slice()];
 
-      this.rectW = 10;
+      this.selCtx.lineWidth = ratio;
+      this.rectW = 10 * ratio;
       this.origin = [0, 0];
       this.scale = [1, 1];
       this.angle = 0;
 
       this.movePoint = [0, 0];
-
+      this.zoom = zoom;
+      this.ratio = ratio;
       this.clipPath = document.getElementById("sClip");
       this.calculateControls();
       this.drawSelection();
+    }
+    setZoom(zoom) {
+      this.selCtx.lineWidth = this.ratio / zoom;
+      this.rectW = 10 / zoom * this.ratio;
+      this.zoom = zoom;
+      this.drawSelection();
+    }
+    setRatio(ratio) {
+      this.selCtx.lineWidth = ratio / this.zoom;
+      this.imgCtx.lineWidth = ratio;
+      this.rectW = 10 * ratio / this.zoom;
+      this.ratio = ratio;
+      this.drawSelection();
+    }
+    setSize({width, height}) {
+      ["imgCtx", "selCtx", "sourceCopy"].forEach(ctx => {
+        ctx.canvas.width = width;
+        ctx.canvas.height = height;
+      });
     }
     setPoint(p2) {
       this.path[1] = p2.slice();
@@ -57,46 +80,56 @@ export default class Selection {
     }
     addSource(source) {
       this.sourceCopy.save();
+      this.sourceCopy.clearRect(0,0, this.sourceCopy.canvas.width, this.sourceCopy.canvas.height)
       
       this.sourceCopy.translate(...this.origin.map(o => -o));     
 
       this.sourceCopy.translate(...this.bbox[0]);   
       this.sourceCopy.scale(...this.scale.map(s => 1 / s)); 
       this.sourceCopy.translate(...this.bbox[0].map(v => -v));
-      
-    
+          
       this.rotate(this.sourceCopy, -1);
       this.sourceCopy.drawImage(source.canvas, 0, 0, source.canvas.width, source.canvas.height);    
 
       this.sourceCopy.restore();
 
-      this.drawImage();
+    }
+    setSource(source) {
+      this.origin = [0, 0];
+      this.scaleOrigin = this.bbox[0];
+      this.imgCtx.save();
+      this.imgCtx.clearRect(0, 0, this.imgCtx.canvas.width, this.imgCtx.canvas.height);
+      this.rotate(this.imgCtx, 1);
+      this.drawClipPath(this.imgCtx);      
+      this.imgCtx.stroke();
+      this.imgCtx.fill();
+      this.rotate(this.imgCtx, -1);
+     
+      this.imgCtx.globalCompositeOperation = "source-in";
+      this.imgCtx.drawImage(source.canvas, 0, 0, source.canvas.width, source.canvas.height);   
+      this.imgCtx.globalCompositeOperation = "source-over"; 
+      this.imgCtx.restore();
+      
+      this.addSource(this.imgCtx);    
+
+      
+      source.save();  
+      source.imageSmoothingEnabled = false;
+      source.globalCompositeOperation = "destination-out";
+      this.rotate(source, 1);
+      this.drawClipPath(source);
+      source.stroke();
+      source.fill();
+      source.globalCompositeOperation = "source-over";
+      source.restore();
 
     }
     startTransform(source) {
       this.ready = true;
       this.origin = [0, 0];
       this.scaleOrigin = this.bbox[0];
-      this.imgCtx.save();
-      this.imgCtx.clearRect(0, 0, this.imgCtx.canvas.width, this.imgCtx.canvas.height);
-      this.rotate(this.sourceCopy, -1);
-      this.drawClipPath(this.imgCtx);
-      this.imgCtx.clip();
-      this.imgCtx.drawImage(source.canvas, 0, 0, source.canvas.width, source.canvas.height);    
-      this.sourceCopy.clearRect(0, 0, this.sourceCopy.canvas.width, this.sourceCopy.canvas.height);
-      this.sourceCopy.drawImage(this.imgCtx.canvas, 0, 0, source.canvas.width, source.canvas.height);
-      this.imgCtx.restore();
-
-      source.save();  
-      source.globalCompositeOperation = "destination-out";
-      this.drawClipPath(source);
-      source.stroke();
-      source.fill();
-      source.globalCompositeOperation = "source-over";
-      source.restore();
-      
+      this.setSource(source);      
       this.started = true;
-
       this.drawSelection();
     }
     detectAction(p) {

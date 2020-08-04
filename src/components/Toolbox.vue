@@ -1,11 +1,11 @@
 <template>
-<div id="instruments">
+<div id="tools">
     <div class="btn-container">
-        <div v-for="group in instruments" :key="group.group" class="group">
+        <div v-for="group in tools" :key="group.group" class="group">
             <div v-for="t in group.items" 
             :key="t.name" 
             class="btn" 
-            :class="{selected: $store.state.currentInstrument == t.name}"
+            :class="{selected: $store.state.currentTool == t.name}"
             @click="() => select(t)">
                 <img :src="t.icon">
             </div>
@@ -13,10 +13,10 @@
     </div>
     <div class="current-instrument">        
         <img :src="currentItem.icon">
-        <div>{{$t('instruments.instruments.' + currentInstrument)}}</div>
+        <div>{{$t('tools.tools.' + currentTool)}}</div>
     </div>
 
-    <div v-if="currentInstrument.indexOf('selection') !== -1" 
+    <div v-if="currentTool.indexOf('selection') !== -1" 
     class="controls">
         <div 
         v-for="action in selectionActions"
@@ -32,44 +32,44 @@
 
     <div class="settings">
         <div v-for="s in actualSettings" :key="s.k">
-            <div class="caption">{{$t('instruments.settings.' + s.k)}}:</div>
+            <div class="caption">{{$t('tools.settings.' + s.k)}}:</div>
             <RangeInput :min="s.min" :max="s.max" :step="s.step" :horizontal="true"
-            v-model="currentBrush[s.k]"
+            v-model="currentSettings[s.k]"
             @input="v => set({[s.k]: v})" />
         </div>
 
         <div class="shapes" 
-            :class="{disabled: !!currentBrush.texture}" 
-            v-if="currentBrush.shape !== undefined">
-            <div class="caption">{{$t('instruments.settings.shape')}}</div>
-            <div v-if="!currentBrush.texture">
+            :class="{disabled: !!currentSettings.texture}" 
+            v-if="currentSettings.shape !== undefined">
+            <div class="caption">{{$t('tools.settings.shape')}}</div>
+            <div v-if="!currentSettings.texture">
                 <div v-for="shape in shapes" 
                 :key="shape.k" 
                 class="shape"
-                :class="{active: currentBrush.shape == shape.k, [shape.k]: true}"
+                :class="{active: currentSettings.shape == shape.k, [shape.k]: true}"
                 @click.stop="() => set({shape: shape.k})">
                 </div>
             </div>
-            <div class="input-checkbox" v-if="currentBrush.pixel !== undefined && !currentBrush.texture">
-                <div class="caption">{{$t('instruments.settings.pixel')}}</div>
+            <div class="input-checkbox" v-if="currentSettings.pixel !== undefined && !currentSettings.texture">
+                <div class="caption">{{$t('tools.settings.pixel')}}</div>
                 <input type="checkbox" 
-                :checked="currentBrush.pixel" 
+                :checked="currentSettings.pixel" 
                 @input="e => set({pixel: !!e.target.checked})" >
             </div>
         </div>
 
-        <div class="textures" v-if="currentBrush.texture !== undefined">
+        <div class="textures" v-if="currentSettings.texture !== undefined">
             <div class="side-list-header">
-                <div class="caption">{{$t('instruments.settings.texture')}}</div>
+                <div class="caption">{{$t('tools.settings.texture')}}</div>
                 <SideList>
                     <div class="texture notexture" 
-                        :class="{active: currentBrush.texture == false}"
+                        :class="{active: currentSettings.texture == false}"
                         @click.stop="() => set({texture: false})"
                         ></div>
                     <div class="texture"
                         v-for="texture in textures" 
                         :key="texture.k" 
-                        :class="{active: currentBrush.texture == texture}"
+                        :class="{active: currentSettings.texture == texture}"
                         @click.stop="() => set({texture})">
                         <button class="icon-btn small delete" 
                         @click.stop="() => deleteAsset('texture', texture.k)"></button>
@@ -77,43 +77,43 @@
                     </div>
                     <template slot=footer>
                         <button class="add-texture" 
-                            :class="{active: currentBrush.texture == false}"
+                            :class="{active: currentSettings.texture == false}"
                             @click.stop="() => $refs.addTexture.click()"
-                        >{{$t('instruments.settings.importTexture')}}<input @change="importAsset"
+                        >{{$t('tools.settings.importTexture')}}<input @change="importAsset"
                             type="file" id="texture-input"
                             ref="addTexture" accept="image/*">
                         </button>
                     </template>
                 </SideList>
             </div>
-            <div v-if="currentBrush.texture">
+            <div v-if="currentSettings.texture">
                 <div class="texture current">
                     <button class="icon-btn small cancel" 
                     @click.stop="() => set({texture: false})"></button>
-                    <img :src="currentBrush.texture.src"> 
+                    <img :src="currentSettings.texture.src"> 
                 </div>
             </div>
-             <div class="input-checkbox"  v-if="currentBrush.texture && currentBrush.textureColor !== undefined">
-                <div class="caption">{{$t('instruments.settings.textureColor')}}</div>
+             <div class="input-checkbox"  v-if="currentSettings.texture && currentSettings.textureColor !== undefined">
+                <div class="caption">{{$t('tools.settings.textureColor')}}</div>
                 <input type="checkbox" 
-                :checked="currentBrush.textureColor" 
+                :checked="currentSettings.textureColor" 
                 @input="e => set({textureColor: !!e.target.checked})" >
             </div>
 
         </div>
 
-        <div class="textures" v-if="currentBrush.pattern !== undefined">
+        <div class="textures" v-if="currentSettings.pattern !== undefined">
             <div class="side-list-header">
-                <div class="caption">{{$t('instruments.settings.pattern')}}</div>
+                <div class="caption">{{$t('tools.settings.pattern')}}</div>
                 <SideList>
                     <div class="texture notexture" 
-                        :class="{active: currentBrush.pattern == false}"
+                        :class="{active: currentSettings.pattern == false}"
                         @click.stop="() => set({pattern: false})"
                         ></div>
                     <div class="texture"
                         v-for="pattern in patterns" 
                         :key="pattern.k" 
-                        :class="{active: currentBrush.pattern == pattern}"
+                        :class="{active: currentSettings.pattern == pattern}"
                         @click.stop="() => set({pattern})">
                          <button class="icon-btn small delete" 
                         @click.stop="() => deleteAsset('pattern', pattern.k)"></button>
@@ -121,45 +121,45 @@
                     </div>
                     <template slot=footer>
                         <button class="add-texture" 
-                            :class="{active: currentBrush.pattern == false}"
+                            :class="{active: currentSettings.pattern == false}"
                             @click.stop="() => $refs.addPattern.click()"
-                        >{{$t('instruments.settings.importPattern')}}<input @change="importAsset"
+                        >{{$t('tools.settings.importPattern')}}<input @change="importAsset"
                             type="file" id="pattern-input"
                             ref="addPattern" accept="image/*">
                         </button>
                     </template>
                 </SideList>
             </div>
-            <div v-if="currentBrush.pattern">
+            <div v-if="currentSettings.pattern">
                 <div class="texture current">
                     <button class="icon-btn small cancel" 
                     @click.stop="() => set({pattern: false})"></button>
-                    <img :src="currentBrush.pattern.src"> 
+                    <img :src="currentSettings.pattern.src"> 
                 </div>
             </div>
 
-            <div class="gradient-length" v-if="!!currentBrush.pattern">
+            <div class="gradient-length" v-if="!!currentSettings.pattern">
                 <div class="caption">Scale</div>
                     <RangeInput :min=".1" :step=".01" :max="10" :horizontal="true"
-                    v-model="currentBrush.patternScale"
+                    v-model="currentSettings.patternScale"
                     @input="v => set({patternScale: v})" />
             </div>   
         </div>
 
         <div class="gradients"
-            v-if="currentBrush.linearGradient !== undefined"
-            :class="{disabled: !!currentBrush.radialGradient}" 
+            v-if="currentSettings.linearGradient !== undefined"
+            :class="{disabled: !!currentSettings.radialGradient}" 
         >
             <div class="side-list-header">
-                <div class="caption">{{$t('instruments.settings.linearGradient')}}</div>
+                <div class="caption">{{$t('tools.settings.linearGradient')}}</div>
                 <SideList>
                     <div class="gradient nogradient"
-                        :class="{active: currentBrush.linearGradient == false}"
-                        @click.stop="() => set({linearGradient: false})">{{$t('instruments.settings.none')}}
+                        :class="{active: currentSettings.linearGradient == false}"
+                        @click.stop="() => set({linearGradient: false})">{{$t('tools.settings.none')}}
                     </div>
                     <div v-for="(gradient,i) in gradients" 
                         :key="i" class="gradient"
-                        :class="{active: currentBrush.linearGradient == gradient}"
+                        :class="{active: currentSettings.linearGradient == gradient}"
                         :style="gradient | gradientBG"
                         @click.stop="() => set({linearGradient: gradient, radialGradient: false})">
                         <button class="icon-btn small edit" 
@@ -168,61 +168,61 @@
                         @click.stop="() => $store.commit('deleteGradient', i)"></button>
                     </div>
                     <template slot=footer>
-                        <button class="create-gradient" @click="createGradient">{{$t('instruments.settings.createGradient')}}</button>
+                        <button class="create-gradient" @click="createGradient">{{$t('tools.settings.createGradient')}}</button>
                     </template>
                 </SideList>
             </div>
 
-            <div v-if="currentBrush.linearGradient">
-                <div class="gradient current" :style="currentBrush.linearGradient | gradientBG">
+            <div v-if="currentSettings.linearGradient">
+                <div class="gradient current" :style="currentSettings.linearGradient | gradientBG">
                     <button class="icon-btn small cancel" 
                     @click.stop="() => set({linearGradient: false})"></button>
                 </div>
             </div>
 
-            <div class="gradient-length" v-if="currentBrush.linearGradient">
-                <div class="caption">{{$t('instruments.settings.length')}}</div>
+            <div class="gradient-length" v-if="currentSettings.linearGradient">
+                <div class="caption">{{$t('tools.settings.length')}}</div>
                     <RangeInput 
-                    :min="linearGradientLength[currentInstrument].min" 
-                    :max="linearGradientLength[currentInstrument].max" 
-                    :step="linearGradientLength[currentInstrument].step" 
+                    :min="linearGradientLength[currentTool].min" 
+                    :max="linearGradientLength[currentTool].max" 
+                    :step="linearGradientLength[currentTool].step" 
                     :horizontal="true"
-                    v-model="currentBrush.linearGradientLength"
+                    v-model="currentSettings.linearGradientLength"
                     @input="v => set({linearGradientLength: v})" />
             </div>       
         </div>
 
         <div class="gradients"
-            v-if="currentBrush.radialGradient !== undefined"
-            :class="{disabled: !!currentBrush.linearGradient}" 
+            v-if="currentSettings.radialGradient !== undefined"
+            :class="{disabled: !!currentSettings.linearGradient}" 
         >
             <div class="side-list-header">
-                <div class="caption">{{$t('instruments.settings.radialGradient')}}</div>
+                <div class="caption">{{$t('tools.settings.radialGradient')}}</div>
                 <SideList>
                     <div
                         class="gradient nogradient"
-                        :class="{active: currentBrush.radialGradient == false}"
+                        :class="{active: currentSettings.radialGradient == false}"
                         @click.stop="() => set({radialGradient: false})"
-                        >{{$t('instruments.settings.none')}}</div>
+                        >{{$t('tools.settings.none')}}</div>
                     <div v-for="(gradient,i) in gradients" 
                         :key="i" class="gradient"
-                        :class="{active: currentBrush.radialGradient == gradient}"
+                        :class="{active: currentSettings.radialGradient == gradient}"
                         :style="gradient | gradientBG"
                         @click.stop="() => set({radialGradient: gradient, 
-                        ...(currentBrush.linearGradient ? {linearGradient: false} : {})})">
+                        ...(currentSettings.linearGradient ? {linearGradient: false} : {})})">
                         <button class="icon-btn small edit" 
                         @click.stop="() => editGradient(i)"></button>
                         <button class="icon-btn small delete" 
                         @click.stop="() => $store.commit('deleteGradient', i)"></button>
                     </div>
                     <template slot=footer>
-                        <button class="create-gradient" @click="createGradient">{{$t('instruments.settings.createGradient')}}</button>
+                        <button class="create-gradient" @click="createGradient">{{$t('tools.settings.createGradient')}}</button>
                     </template>
                 </SideList>
             </div>
 
-            <div v-if="currentBrush.radialGradient">
-                <div class="gradient current radial" :style="currentBrush.radialGradient | gradientBG('radial')">
+            <div v-if="currentSettings.radialGradient">
+                <div class="gradient current radial" :style="currentSettings.radialGradient | gradientBG('radial')">
                     <button class="icon-btn small cancel" 
                     @click.stop="() => set({radialGradient: false})"></button>
                 </div>
@@ -253,7 +253,7 @@ import GradientCreator from "./GradientCreator";
 import {round2n} from "../functions/math-functions";
 
 export default {
-    name: 'Instruments',
+    name: 'Tools',
     props: ['selection'],
     components: {
         SideList, GradientCreator
@@ -261,26 +261,26 @@ export default {
     data() {
         return {
             selectionActions: [{
-                k: 'instruments.selection.apply', 
+                k: 'tools.selection.apply', 
                 action: () => this.$emit('apply-selection'),
                 key: "Enter", 
                 show: () => this.selection
             }, {
-                k: "instruments.selection.reset",
+                k: "tools.selection.reset",
                 action: () => this.$emit('reset-selection'),
                 key: "Ctrl + Z", 
                 show: () => this.selection                
             }, {
-                k: "instruments.selection.clipnewlayer",
+                k: "tools.selection.clipnewlayer",
                 action: () => this.$emit('clipnewlayer-selection'),
                 show: () => this.selection
             },{
-                k: "instruments.selection.crop",
+                k: "tools.selection.crop",
                 action: () => this.$emit('crop-selection'),
                 key: "Ctrl + T", 
                 show: () => this.selection
             }, {
-                k: "instruments.selection.all",
+                k: "tools.selection.all",
                 action: () => this.$emit('select-all'),
                 key: "Ctrl + A", 
                 show: () => true
@@ -300,7 +300,7 @@ export default {
                 {k: "spacing",  min: 0.001, max: 10, step: .001},
                 {k: "tolerance", min: 1, max: 255, step: 1}
             ],
-            instruments: [{
+            tools: [{
                 group: "drawing",
                 items: [
                     {name: "brush", icon: require("@/assets/img/brush.png")},
@@ -313,9 +313,9 @@ export default {
             }, {
                 group: "selection",
                 items: [
-                    {name: "selection-rect", icon: require("@/assets/img/selection-rect.png")},
-                    {name: "selection-polygon", icon: require("@/assets/img/selection-polygon.png")},
-                    {name: "selection-lasso", icon: require("@/assets/img/selection-lasso.png")},
+                    {name: "selection_rect", icon: require("@/assets/img/selection-rect.png")},
+                    {name: "selection_polygon", icon: require("@/assets/img/selection-polygon.png")},
+                    {name: "selection_lasso", icon: require("@/assets/img/selection-lasso.png")},
                 ]
             }
                 
@@ -323,21 +323,21 @@ export default {
         }
     },
     computed: {
-        ...mapState(['currentInstrument', 'types', 'patterns', 'shapes', 'gradients', 'currentColor', 'colorBG']),
+        ...mapState(['currentTool', 'types', 'patterns', 'shapes', 'gradients', 'currentColor', 'colorBG']),
         textures() {
-            return this.$store.state.textures[this.currentBrush.textype];
+            return this.$store.state.textures[this.currentSettings.textype];
         },
         actualSettings() {
-            return this.settings.filter(s => this.currentBrush[s.k] != undefined);
+            return this.settings.filter(s => this.currentSettings[s.k] != undefined);
         },
         currentItem() {
-            for(let i = 0; i < this.instruments.length; i++) {
-                let item = this.instruments[i].items.find(item => item.name == this.currentInstrument);
+            for(let i = 0; i < this.tools.length; i++) {
+                let item = this.tools[i].items.find(item => item.name == this.currentTool);
                 if(item) return item;
             }
             return {};
         },
-        currentBrush() {
+        currentSettings() {
             return this.$store.getters.currentSettings;
             }
     },
@@ -348,7 +348,7 @@ export default {
     methods: {
         importAsset(e) {
             const type = e.target.id.replace("-input", "");
-            const textype = this.currentBrush.textype;
+            const textype = this.currentSettings.textype;
             Array.from(e.target.files).forEach(file => {
                 let img = new Image();
                     img.onload = () => {
@@ -384,7 +384,7 @@ export default {
         },
         deleteAsset(type, k) {
              this.$store.commit("deleteAsset", [
-                {type, textype: type == 'texture' ? this.currentBrush.textype : 0}, k]);
+                {type, textype: type == 'texture' ? this.currentSettings.textype : 0}, k]);
         },
         createGradient() {
             this.gradientToEdit = {
@@ -412,7 +412,7 @@ export default {
         },
         set(settings) {
             this.$store.commit("changeSettings", {
-                instrument: this.currentInstrument,
+                instrument: this.currentTool,
                 settings
             });
         }
@@ -423,7 +423,7 @@ export default {
 <style lang="scss">
 @import "../assets/styles/colors";
 
-#instruments {
+#tools {
     width: $tool-panel-width;
 }
 

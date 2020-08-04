@@ -1,9 +1,15 @@
 <template>
     <div class="color-picker">
-        <color-picker :value="colorVal" @color-change="select" :width="180" :height="180"></color-picker>      
+        <color-picker 
+            :value="colorVal" 
+            :width="180" 
+            :height="180"
+            @color-change="select"></color-picker>      
         <div class="select-pallete">
-            <button class="icon-btn add" @click.stop="addPallete"></button>
-            <button class="icon-btn edit" @click.stop="() => namePallete = !namePallete"></button>
+            <button class="icon-btn add" 
+                @click.stop="addPallete"></button>
+            <button class="icon-btn edit" 
+                @click.stop="() => namePallete = !namePallete"></button>
              <button class="icon-btn delete"
                         :disabled="palletes.length==1" 
                         @click.stop="deletePallete" />
@@ -45,10 +51,10 @@
                         @click.stop="deleteSelected" />
                 </div>
                 <div v-for="c in pallete.colors" 
-                :key="c" class="color" 
-                :class="{active: colorSelected == c}"
-                :style="{backgroundColor: c}" 
-                @click="() => select(c, true)"></div>                
+                    :key="c" class="color" 
+                    :class="{active: colorSelected == c}"
+                    :style="{backgroundColor: c}" 
+                    @click="() => select(c, true)"></div>                
             </div>
         </div>
 
@@ -61,7 +67,7 @@ import {toHex} from "../functions/color-functions";
 import {mapState} from "vuex";
 
 export default {
-  name: 'Instruments',
+  name: 'Tools',
   data() {
       return {
           colorSelected: false,

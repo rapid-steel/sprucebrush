@@ -6,7 +6,7 @@ Vue.use(Vuex)
 
 export default new Vuex.Store({
   state: {
-    currentInstrument: "brush",
+    currentTool: "brush",
     currentColor: "rgb(0,0,0)",
     colorBG: "rgb(255,255,255)",
     currentLayer: 0,
@@ -47,7 +47,7 @@ export default new Vuex.Store({
       ["#3F51B5", "#4caf50", "#ffeb3b"], 
       ["#673ab7", "#ff9800"]
     ],
-    currentInstrumentSettings: {
+    currentToolSettings: {
       picker: {
 
       },
@@ -108,9 +108,9 @@ export default new Vuex.Store({
       },
       pen: {
       },
-      "selection-rect": {},
-      "selection-polygon": {},
-      "selection-lasso": {}
+      "selection_rect": {},
+      "selection_polygon": {},
+      "selection_lasso": {}
     },
     userPref: {
       historySize: 10,
@@ -142,29 +142,19 @@ export default new Vuex.Store({
   },
   getters: {
     currentSettings(state) {
-      const settings = state.currentInstrumentSettings[state.currentInstrument];
-      if(settings.type) {
-        const settings0 = state.types[state.currentInstrument][settings.type];
-        const settings1 = {type: settings.type};
-        for(let k in settings0) {
-          settings1[k] = settings[k];
-          if(settings1[k] == undefined) settings1[k] = settings0[k];
-        }         
-        return settings1;
-      }
-      return settings;
+      return state.currentToolSettings[state.currentTool];
     }
   },
   mutations: {
     selectInstrument(state, inst) {
-      state.currentInstrument = inst;
+      state.currentTool = inst;
     },
     selectColor(state, [colorType, color]) {
       if(colorType == "fg") state.currentColor = color;
       else if(colorType == "bg") state.colorBG = color;
     },
     changeSettings(state, {instrument, settings}) {
-      Object.assign(state.currentInstrumentSettings[instrument], settings);
+      Object.assign(state.currentToolSettings[instrument], settings);
     },
     setPosition(state, {el, x, y}) {
       state.userPref[el].x = x;
@@ -235,7 +225,6 @@ export default new Vuex.Store({
         const image = new Image();
         if(type == "brush") {
           image.onload = () => {
-            console.log(image)
             state.types.brush[item].image = image;
             state.types.brush[item].loaded = true;
             resolve();

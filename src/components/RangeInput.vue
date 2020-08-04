@@ -1,9 +1,9 @@
 <template>
     <div class="range-input" 
-    :class="{horizontal}"
-    ref="container"
-    @mouseenter="setRangePosition"
-    @wheel="e => $emit('input', Math.max(min, Math.min(max, value+Math.sign(e.deltaY))))"     
+        :class="{horizontal}"
+        ref="container"
+        @mouseenter="setRangePosition"
+        @wheel="e => $emit('input', Math.max(min, Math.min(max, value+Math.sign(e.deltaY))))"     
     >
         <input type="number" 
             :min="min" 
@@ -17,11 +17,12 @@
         <div class="range"
             :style="rangePosition">
             <input type="range"             
-            :min="min" 
-            :max="max" 
-            :step="step"
-            :value="value" 
-            @input="e => $emit('input', +e.target.value)" />            
+                :min="min" 
+                :max="max" 
+                :step="step"
+                :value="value" 
+                @wheel.prevent
+                @input="e => $emit('input', +e.target.value)" />            
         </div>
     </div>
 </template>

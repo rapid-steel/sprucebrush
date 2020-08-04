@@ -128,12 +128,12 @@ export default class ToolWebGL {
     setSizes({width, height}) {
         this.canvas.width = width;
         this.canvas.height = height;
-        this.gl.viewport(0, 0, width, height);
+        this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT  | this.gl.DEPTH_BUFFER_BIT);
 
         this.setParams({
-            width2: this.canvas.width / 2,
-            height2: this.canvas.height / 2
+            width2: width / 2,
+            height2: height / 2
         });
     }
 }

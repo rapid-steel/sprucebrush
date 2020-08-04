@@ -1,9 +1,10 @@
 <template>
     <div id="gradient-creator">
         <div id="gradient-colors"  
-        title="Click to add color"
-        @click.stop="addColor">
-            <div class="gradient-big" :style="value | gradientBG"></div>
+            :title="$t('gradientCreator.addColor')"
+            @click.stop="addColor">
+            <div class="gradient-big" 
+                :style="value | gradientBG"></div>
             <div class="colors">
                     <div class="color-container" 
                     v-for="(color, i) in value" 

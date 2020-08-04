@@ -1,9 +1,9 @@
 <template>
     <Toolbar name="brushSettings">
-        <input type="number" v-if="currentBrush.radius" @input="e => set('radius', e.target.value)" :value="currentBrush.radius" min="1"/>
-        <input type="number" v-if="currentBrush.opacity" @input="e => set('opacity', e.target.value)" :value="currentBrush.opacity" min="0.01" max="1" step=".01"/>
+        <input type="number" v-if="currentSettings.radius" @input="e => set('radius', e.target.value)" :value="currentSettings.radius" min="1"/>
+        <input type="number" v-if="currentSettings.opacity" @input="e => set('opacity', e.target.value)" :value="currentSettings.opacity" min="0.01" max="1" step=".01"/>
 
-        <button v-if="currentInstrument.indexOf('selection') == 0 && selectionReady">Apply selection (Enter)</button>        
+        <button v-if="currentTool.indexOf('selection') == 0 && selectionReady">Apply selection (Enter)</button>        
 
     </Toolbar>
 </template>
@@ -12,7 +12,7 @@
 import {mapState} from "vuex";
 import Toolbar from "./Toolbar";
 export default {
-  name: 'Instruments',
+  name: 'Tools',
   components: {
       Toolbar
   },
@@ -25,9 +25,9 @@ export default {
       prefs() {
           return this.$store.state.userPref.brushSettings
       },
-      ...mapState(['currentInstrument']),
-      currentBrush() {
-        return this.$store.state.currentInstrumentSettings[this.currentInstrument];
+      ...mapState(['currentTool']),
+      currentSettings() {
+        return this.$store.state.currentToolSettings[this.currentTool];
      }
   },
   mounted() {
@@ -36,7 +36,7 @@ export default {
   methods: {
       set(prop, val) {
           this.$store.commit("changeSettings", {
-              instrument: this.currentInstrument,
+              instrument: this.currentTool,
               prop, val
           });
       }

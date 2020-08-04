@@ -34,8 +34,16 @@ export default new VueI18n({
                     grayscale: {title: "Grayscale"},
                     invert: {title: "Invert"},
                     sepia: {title: "Sepia"},
-                    'bright-contr': { title: "Brightness/contrast", brightness: "Brightness", contrast: "Contrast"},
-                    'hue-saturate': { title: "Hue/saturation", hue: "Hue", saturation: "Saturation", luminance: "Luminance"},
+                    brightness_contrast: { 
+                        title: "Brightness/contrast", 
+                        brightness: "Brightness", 
+                        contrast: "Contrast"
+                    },
+                    hue_saturate: { 
+                        title: "Hue/saturation", 
+                        hue: "Hue", saturation: "Saturation", 
+                        luminance: "Luminance"
+                    },
                     duotone: { title: "Duotone", colors: "Colors" },
                     blur: {  title: "Blur", radius: "Radius" },
                     pixelate: { title: "Pixelation", size: "Pixel size"},
@@ -50,6 +58,7 @@ export default new VueI18n({
                 newLayer: "Layer"
             },
             gradientCreator: {
+                addColor: "Click to add color",
                 moveLeft: "Move color to left",
                 remove: "Remove color",
                 moveRight: "Move color to right"
@@ -57,8 +66,8 @@ export default new VueI18n({
             colorPicker: {
                 newPallete: "New pallete"
             },
-            instruments: {
-                instruments: {
+            tools: {
+                tools: {
                     brush: "Brush",
                     eraser: "Eraser",
                     fill: "Filling tool",
@@ -66,9 +75,9 @@ export default new VueI18n({
                     marker: "Roller",
                     pen: "Pen",
                     gradient: "Gradient",
-                    "selection-rect": "Rectangular selection",
-                    "selection-polygon": "Polygonal selection",
-                    "selection-lasso": "Freehand selection",
+                    "selection_rect": "Rectangular selection",
+                    "selection_polygon": "Polygonal selection",
+                    "selection_lasso": "Freehand selection",
                 },
                 settings: {
                     radius: "Diameter", 
@@ -152,8 +161,8 @@ export default new VueI18n({
             colorPicker: {
                 newPallete: "Новая палитра"
             },
-            instruments: {
-                instruments: {
+            tools: {
+                tools: {
                     brush: "Кисть",
                     eraser: "Ластик",
                     fill: "Заливка",
@@ -161,9 +170,9 @@ export default new VueI18n({
                     marker: "Валик",
                     pen: "Перо",
                     gradient: "Градиент",
-                    "selection-rect": "Прямоуг-е выделение",
-                    "selection-polygon": "Полигон-е выделение",
-                    "selection-lasso": "Свободное выделение",
+                    "selection_rect": "Прямоуг-е выделение",
+                    "selection_polygon": "Полигон-е выделение",
+                    "selection_lasso": "Свободное выделение",
                 },
                 settings: {
                     radius: "Диаметр", 
