@@ -30,7 +30,9 @@ export default new Vuex.Store({
         {k: "texm3", src: require("./assets/img/tex3m.png") },
         {k: "texm5", src: require("./assets/img/tex5m.png") },
         {k: "texm6", src: require("./assets/img/tex6m.png") },
-        
+        {k: "texm7", src: require("./assets/img/tex7m.png"), ratio: 128 / 1024 },
+        {k: "texm8", src: require("./assets/img/tex8m.png"), ratio: .25 },
+        {k: "texm9", src: require("./assets/img/tex9m.png") },
       ]
     },
     patterns: [

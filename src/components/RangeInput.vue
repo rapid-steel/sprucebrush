@@ -9,8 +9,7 @@
             :min="min" 
             :max="max" 
             :step="step"
-            :value="value"
-           
+            :value="value"           
             @input="e => $emit('input', Math.max(min, Math.min(max, +e.target.value)))"
             @change="e => $emit('input', Math.max(min, Math.min(max, +e.target.value)))"
             >

@@ -105,7 +105,7 @@ export default class Selection {
       this.imgCtx.fill();
       this.rotate(this.imgCtx, -1);
      
-      this.imgCtx.globalCompositeOperation = "source-in";
+      this.imgCtx.globalCompositeOperation = "destination-in";
       this.imgCtx.drawImage(source.canvas, 0, 0, source.canvas.width, source.canvas.height);   
       this.imgCtx.globalCompositeOperation = "source-over"; 
       this.imgCtx.restore();
@@ -118,17 +118,14 @@ export default class Selection {
       source.globalCompositeOperation = "destination-out";
       this.rotate(source, 1);
       this.drawClipPath(source);
-      source.stroke();
       source.fill();
       source.globalCompositeOperation = "source-over";
       source.restore();
 
     }
     startTransform(source) {
-      this.ready = true;
-      this.origin = [0, 0];
-      this.scaleOrigin = this.bbox[0];
-      this.setSource(source);      
+      this.setSource(source);  
+      this.ready = true;    
       this.started = true;
       this.drawSelection();
     }
@@ -389,11 +386,9 @@ export default class Selection {
     clear() {
       this.origin = [0, 0];
       this.imgCtx.restore();
-      this.imgCtx.clearRect(0, 0, this.imgCtx.canvas.width, this.imgCtx.canvas.height);
-      
+      this.imgCtx.clearRect(0, 0, this.imgCtx.canvas.width, this.imgCtx.canvas.height);      
     }
     drop() {
-      this.clear();
       this.selCtx.clearRect(0, 0, this.selCtx.canvas.width, this.selCtx.canvas.height);
       this.started = false;
       this.ready = false;

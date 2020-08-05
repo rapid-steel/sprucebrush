@@ -79,11 +79,7 @@ export default {
     methods: {
         applyFilter(filter) {
             this.cancelPreviewFilter();
-            this.history.append({
-              instrument: "filter",
-              layer: this.currentLayer,
-              state:  this.currentLayer.ctx.getImageData(0, 0, this.sizes.width, this.sizes.height)
-            });
+            this.writeHistory();
             this.tempCtx.clearRect(0,0,this.sizes.width, this.sizes.height);
             filterFunctions[filter.k](this.tempCtx, filter.settings);
             this.tempCtx.drawImage(this.currentLayer.ctx.canvas, 0,0,this.sizes.width, this.sizes.height);

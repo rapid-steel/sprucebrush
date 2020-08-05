@@ -104,7 +104,9 @@ export default class ToolWebGL {
         }
         
     }
-    
+    notEmpty() {
+        return !!this.vertices.length;
+    }    
     dropLine() {
         this.update = false;
         this.points = [];

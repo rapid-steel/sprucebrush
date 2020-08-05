@@ -231,9 +231,9 @@ export default class Marker extends ToolWebGL {
                 let norm1 = normal( vec(norm0, norm) );
                 let sign = rotateY(norm0, norm) < 0 ? -1 : 1;
                 let a = angle( line_vec0_inv , line_vec) / 2;
-                let mitter = 1 / Math.sin(a);
+                let miter = Math.min(1 / Math.sin(a), 3);
                
-                norm1 = norm1.map(n => n * sign * mitter);
+                norm1 = norm1.map(n => n * sign * miter);
                 line.miter1 = norm1;
             }
             line0.miter2 = line.miter1;

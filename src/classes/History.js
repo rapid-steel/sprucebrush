@@ -1,27 +1,28 @@
+const DEBUG = process.env.NODE_ENV !== "production";
+
 export default class History {
-    constructor(size) {
+    constructor(size = 10) {
       this.size = size;
       this.array = new Array(size);
-      this.index = 0;
+      this.index = this.size-1;
     }
-    append(el) {
-      this.array[this.index] = el;
-      this.index = (this.index+1) % this.size;
+    setSize(size) {
+      this.size = size;
+    }
+    put(el) {
+      this.array[this.index] = el;      
     }
     get() {
       return this.array[this.index];
     }
-    remove() {
-      this.index--;
-      if(this.index < 0) {
-        this.index = this.size - 1;
-      }
-      const el = this.array[this.index];
-      if(el) {
-        this.array[this.index] = null;
-      } else {
-        this.index = 0;
-      }
-      return el;
+    back() {
+      this.index = (this.index||this.size) - 1;
+    }
+    forward() {
+      this.index = (this.index+1) % this.size;
+    }
+    clear() {
+      this.array = new Array(this.size);
+      this.index = this.size-1;
     }
   }
