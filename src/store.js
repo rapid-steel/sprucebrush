@@ -23,6 +23,12 @@ export default new Vuex.Store({
         {k: "tex41", src: require("./assets/img/texture9.png") },
         {k: "tex51", src: require("./assets/img/texture10.png") },
         {k: "tex61", src: require("./assets/img/texture11.png") },
+        {k: "tex71", src: require("./assets/img/la_texture11.png") },
+        {k: "tex81", src: require("./assets/img/la_texture12.png") },
+        {k: "tex91", src: require("./assets/img/la_texture13.png") },
+        {k: "tex101", src: require("./assets/img/la_texture14.png") },
+        {k: "tex111", src: require("./assets/img/la_texture15.png") },
+        {k: "tex121", src: require("./assets/img/la_texture16.png") },
       ],
       marker: [
         {k: "texm1", src: require("./assets/img/texm1.jpg") },
@@ -30,9 +36,10 @@ export default new Vuex.Store({
         {k: "texm3", src: require("./assets/img/tex3m.png") },
         {k: "texm5", src: require("./assets/img/tex5m.png") },
         {k: "texm6", src: require("./assets/img/tex6m.png") },
-        {k: "texm7", src: require("./assets/img/tex7m.png"), ratio: 128 / 1024 },
+        {k: "la_text6m", src: require("./assets/img/la_text6m.png") },
+        {k: "la_tex7m", src: require("./assets/img/la_tex7m.png") },
+        {k: "la_tex8m", src: require("./assets/img/la_tex8m.png"), ratio: .5 },
         {k: "texm8", src: require("./assets/img/tex8m.png"), ratio: .25 },
-        {k: "texm9", src: require("./assets/img/tex9m.png") },
       ]
     },
     patterns: [

@@ -1300,6 +1300,10 @@ methods: {
 @import '~vue-select/dist/vue-select.css';
 @import "./assets/styles/colors.scss";
 
+@include font-face("RussoOne");
+@include font-face("DidactGothic");
+@include font-face("AnonymousPro");
+
 input[type=file] {
     width: 0;
     visibility: hidden;
