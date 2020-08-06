@@ -1,11 +1,4 @@
-@mixin font-face($font-family ) {
-    @font-face {
-        font-family: $font-family;
-        src: url('./assets/styles/fonts/#{$font-family}/#{$font-family}-Regular.ttf') format('truetype');
-    }
-}
-
-
+@import url('https://fonts.googleapis.com/css2?family=Anonymous+Pro:wght@400;700&family=Didact+Gothic&family=Russo+One&display=swap');
 
 
 $color-bg: white;
@@ -16,20 +9,20 @@ $color-accent3: lightgrey;
 
 $color-selected: blue;
 
-$font-tools: 12px RussoOne;
-$font-tool-title: 13px RussoOne;
-$font-menu: 14px DidactGothic;
-$font-menu-form: 14px RussoOne;
-$font-window: 14px RussoOne;
-$font-btn: 18px RussoOne;
-$font-btn-small: 12px RussoOne;
-$font-input: 14px AnonymousPro;
-$font-input-small: 12px AnonymousPro;
-$font-hint: 12px DidactGothic;
-$font-layer: 14px AnonymousPro;
-$font-layer-button: 30px RussoOne;
-$font-select: 14px RussoOne;
-$font-select-small: 12px RussoOne;
+$font-tools: 12px Russo One;
+$font-tool-title: 13px Russo One;
+$font-menu: 14px Didact Gothic;
+$font-menu-form: 14px Russo One;
+$font-window: 14px Russo One;
+$font-btn: 18px Russo One;
+$font-btn-small: 12px Russo One;
+$font-input: 14px Anonymous Pro;
+$font-input-small: 12px Anonymous Pro;
+$font-hint: 12px Didact Gothic;
+$font-layer: 14px Anonymous Pro;
+$font-layer-button: 30px Russo One;
+$font-select: 14px Russo One;
+$font-select-small: 12px Russo One;
 
 
 $btn-bg: url("../assets/img/btn-frame.png");
