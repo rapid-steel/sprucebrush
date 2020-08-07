@@ -1,5 +1,6 @@
 <template>
-<div id="app">    
+<div id="app" 
+    @click.prevent>    
     <div class="panel left">
     <Toolbox
         :selection="selection && selection.started"
@@ -11,58 +12,73 @@
     />
     </div>
     <div id="center">
-    <div class="panel top">
-        <TopPanel 
-        ref="topPanel"
-        :sizes="sizes"
-        @new-drawing="newDrawing"
-        @change-sizes="setSize"
-        @save-image="saveToFile"
-        @import-image="e => pasteImageFromFile(...e)"
-        @apply-filter="applyFilter"
-        @cancel-preview-filter="cancelPreviewFilter"
-        @preview-filter="previewFilter"
-        />
-    </div>
-        <div id="canvas-container" 
-            @dragenter.prevent
-            @dragover.prevent
-            @drop.prevent="dropFile"
-            ref="container">
-            <div id="canvas" 
-                ref="canvas">
-            <canvas ref="blender"
-                :style="{
-                    zIndex: 100
-                }" ></canvas>
-            <canvas ref="selection"
-                :style="{
-                    zIndex: layers.length + 120
-                }"            
-            ></canvas>
-            <div id="cursor" 
+        <div class="panel top" @click.prevent>
+            <TopPanel 
+                ref="topPanel"
+                :sizes="sizes"
+                @new-drawing="newDrawing"
+                @change-sizes="setSize"
+                @save-image="saveToFile"
+                @import-image="e => pasteImageFromFile(...e)"
+                @apply-filter="applyFilter"
+                @cancel-preview-filter="cancelPreviewFilter"
+                @preview-filter="previewFilter"
+            />
+        </div>
+        <div id="wrapper">
+            <div id="canvas-container" 
+                @dragenter.prevent
+                @dragover.prevent
+                @drop.prevent="dropFile"
+                ref="container">
+                <div id="canvas" 
+                    ref="canvas">
+                <canvas ref="blender"
+                    :style="{
+                        zIndex: 100
+                    }" ></canvas>
+                <canvas ref="selection"
+                    :style="{
+                        zIndex: layers.length + 120
+                    }"            
+                ></canvas>
+            </div>
+            <div id="cursor" ref="cursor"
                 :style="cursorStyles" 
                 :class="[currentTool, ...cursorClasses]"></div>
             </div>
         </div>
-
+        <div class="panel bottom">
+            <StatusBar
+                :zoom="zoom"
+                :emptyHistory="!storedCounter"
+                :noUndone="!backCounter"
+                :title.sync="title"
+                @undo="undoLastAction"
+                @redo="redoLastAction"
+                @zoom-in="() => changeZoom(1)"
+                @zoom-out="() => changeZoom(-1)"
+            />
+        </div>
     </div>
     <div class="panel right">
-    <Color-Picker :colorToEdit.sync="colorToEdit" />
+        <Color-Picker 
+            :colorToEdit.sync="colorToEdit" 
+        />
         <Layers 
-        :layers="layers" 
-        :currentLayer="currentLayer"
-        :disabled="!!selection"
-        @add-layer="appendLayer"
-        @copy-layer="copyCurrentLayer"
-        @layer-to-selection="layerToSelection"
-        @select-layer="selectLayer"
-        @reorder-layer="reorderLayer"
-        @toggle-layer="toggleLayer"
-        @remove-layer="removeLayer"
-        @merge-layers="mergeLayers"
-        @update:opacity="render"
-        @update:blend="render"
+            :layers="layers" 
+            :currentLayer="currentLayer"
+            :disabled="!!selection"
+            @add-layer="appendLayer"
+            @copy-layer="copyCurrentLayer"
+            @layer-to-selection="layerToSelection"
+            @select-layer="selectLayer"
+            @reorder-layer="reorderLayer"
+            @toggle-layer="toggleLayer"
+            @remove-layer="removeLayer"
+            @merge-layers="mergeLayers"
+            @update:opacity="render"
+            @update:blend="render"
         />
     </div>
     <img id="logo" src="./assets/img/пушинка.png">
@@ -151,6 +167,7 @@ import Toolbox from "./components/Toolbox";
 import ColorPicker from "./components/ColorPicker";
 import Layers from "./components/Layers";
 import TopPanel from "./components/TopPanel";
+import StatusBar from "./components/StatusBar";
 
 import FilterMixin from "./mixins/FilterMixin";
 import HistoryMixin from "./mixins/HistoryMixin";
@@ -162,24 +179,19 @@ import {angle, vec} from "./functions/vector-functions";
 
 
 
-function getPressure(event) {
-    if(event.pointerType == "mouse") {
-        return event.pressure > 0 ? 1 : 0;
-    } else return event.pressure;
-}
 
 export default {
     name: 'app',
     data() {
         return {
-            px_ratio: 1,
             layers: [],
             cursorStyles: {},
             canvasSizes: {},
             canvasStyles: {},
             sizes: {
                 width: 800,
-                height: 600
+                height: 600,
+                px_ratio: 1
             },
             lastPoint: null,
             currentLayer: null,
@@ -190,15 +202,16 @@ export default {
             texture: null,
             canvasPattern: null,
             colorToEdit: "fg",
-            backgroundColor: "#ffffff"
+            backgroundColor: "#ffffff",
+            title: ""
         }
     },
     components: {
-        Toolbox, ColorPicker, Layers, TopPanel
+        Toolbox, ColorPicker, Layers, TopPanel, StatusBar
     },
     mixins: [FilterMixin, HistoryMixin],
     computed: {
-        ...mapState(['currentTool', 'currentColor']),
+        ...mapState(['currentTool', 'currentColor', 'zoomLevels']),
         ...mapGetters(['currentSettings']),
         historySize() {
             return this.$store.state.userPrefs.historySize;
@@ -264,10 +277,10 @@ created() {
                 this.draw(this.lastPoint, this.brush);
             },
             up: () => {
-                this.endDraw(this.brush);
+                this.endDraw(this.lastPoint, this.brush);
             },
             out: () => {
-                this.endDraw(this.brush);
+                this.endDraw(this.lastPoint, this.brush);
             }
         },
         eraser: {
@@ -277,10 +290,10 @@ created() {
                     this.erase(this.lastPoint);
             },
             up: () => {
-                this.endErase();
+                this.endErase(this.lastPoint);
             },
             out: () => {
-                this.endErase();        
+                this.endErase(this.lastPoint);        
             },
         },
         marker: {
@@ -296,11 +309,11 @@ created() {
                 }
             },
             up: () => {
-                this.endDraw(this.marker);
+                this.endDraw(this.lastPoint, this.marker);
                 this.cursorStyles.transform = null;
             },
             out: () => {
-                this.endDraw(this.marker);
+                this.endDraw(this.lastPoint, this.marker);
                 this.cursorStyles.transform = null;
             },
         },
@@ -327,7 +340,7 @@ created() {
                 if(!this.selection) {
                     this.selection = new Selection(
                         this.lastPoint.coords, 
-                        this.selCtx, this.px_ratio, this.zoom);
+                        this.selCtx, this.sizes.px_ratio, this.zoom);
                 } else {
                     this.selection.applyTransform(this.lastPoint.coords, true);              
                 }    
@@ -355,7 +368,7 @@ created() {
                 if(!this.selection) {
                     this.selection = new SelectionPath(
                         this.lastPoint.coords, 
-                        this.selCtx, this.px_ratio, this.zoom);
+                        this.selCtx, this.sizes.px_ratio, this.zoom);
                     } else {
                     if(!this.selection.started) {
                         this.selection.addPoint(this.lastPoint.coords); 
@@ -390,7 +403,7 @@ created() {
                 if(!this.selection) {
                 this.selection = new SelectionPath(
                     this.lastPoint.coords, 
-                    this.selCtx, this.px_ratio, this.zoom);
+                    this.selCtx, this.sizes.px_ratio, this.zoom);
                 } else {
                     this.selection.applyTransform(this.lastPoint.coords, true);    
                 }       
@@ -532,7 +545,7 @@ methods: {
         if(this.currentTool == "brush" || this.currentTool == "eraser")
             this.brush.setParams({
             ...this.currentSettings, 
-            radius: this.currentSettings.radius * this.px_ratio,
+            radius: this.currentSettings.radius * this.sizes.px_ratio,
             color: getGlColor(this.currentColor),
             linearGradient: this.currentSettings.linearGradient ? 
                 this.currentSettings.linearGradient.map(getGlColor) 
@@ -540,39 +553,44 @@ methods: {
             radialGradient: this.currentSettings.radialGradient ? 
                 this.currentSettings.radialGradient.map(getGlColor) 
             : false,
-            });
+        });
 
         if(this.currentTool == "marker" )
             this.marker.setParams({
             ...this.currentSettings, 
-            lineWidth: this.currentSettings.lineWidth * this.px_ratio,
+            lineWidth: this.currentSettings.lineWidth * this.sizes.px_ratio,
             color: getGlColor(this.currentColor)
         });
     },
-    setPxRatio(px_ratio) {
-        this.px_ratio = px_ratio;
-        if(this.selection) this.selection.setPxRatio(this.px_ratio);
-        this.setBrushParams();
-        this.setSize(this.sizes);
-    },
     changeZoom(dir) {
-        this.zoom *= dir < 0 ? .8 : 1.25;
-        this.canvasStyles.width = this.canvasSizes.width * this.zoom + "px";
-        this.canvasStyles.height = this.canvasSizes.height * this.zoom + "px";       
+        if(
+            (dir > 0 && this.zoom < this.zoomLevels[this.zoomLevels.length-1]) || 
+            this.zoom > this.zoomLevels[0]
+        ) {
+            let i = this.zoomLevels.reduce(
+                (z, l, i) => Math.abs(this.zoom - z[1]) > Math.abs(this.zoom - l) ?
+                    [i, l]
+                    : z, 
+                [0, this.zoomLevels[0]]
+            )[0];
+            i = Math.min(this.zoomLevels.length-1, Math.max(0, i + dir));
+            this.zoom = this.zoomLevels[i];
+            this.canvasStyles.width = this.canvasSizes.width * this.zoom + "px";
+            this.canvasStyles.height = this.canvasSizes.height * this.zoom + "px";       
 
-        ["canvas", "blender", "selection"].forEach(s => {
-            if(!this.$refs[s]) return;
-            this.$refs[s].style.width = this.canvasStyles.width;
-            this.$refs[s].style.height = this.canvasStyles.height;
-        });     
-        if(this.lastPoint != null) {
-            this.cursorStyles.left = this.lastPoint.coords[0] * this.zoom / this.px_ratio + "px";
-            this.cursorStyles.top =  this.lastPoint.coords[1] * this.zoom / this.px_ratio + "px";
+            ["canvas", "blender", "selection"].forEach(s => {
+                if(!this.$refs[s]) return;
+                this.$refs[s].style.width = this.canvasStyles.width;
+                this.$refs[s].style.height = this.canvasStyles.height;
+            });     
+            if(this.lastPoint != null) {
+                this.setCursorPosition();
+            }
+            this.render();
+            if(this.selection) 
+                this.selection.setZoom(this.zoom);
+            this.setCursor();
         }
-        this.render();
-        if(this.selection) 
-            this.selection.setZoom(this.zoom);
-        this.setCursor();
     },
     getTransform() {    
         if(this.$refs.container) {
@@ -611,7 +629,7 @@ methods: {
         });
 
     },
-    saveToFile() {
+    saveToFile(ext = "png") {
         this.render()
         let c = document.createElement("canvas").getContext("2d");
         Object.assign(c.canvas, this.sizes);
@@ -621,7 +639,7 @@ methods: {
             0, 0, this.sizes_hr.width, this.sizes_hr.height, 
             0, 0, this.sizes.width, this.sizes.height, );
         c.canvas.toBlob(blob => {
-            saveAs(blob, "img.png");
+            saveAs(blob, `${this.title}.${ext}`);
         });
     },
     initControls() {
@@ -646,56 +664,67 @@ methods: {
 
         this.$refs.container.addEventListener("pointerdown", event => {
             event.preventDefault();
-
-            this.pressure = getPressure(event);
-            this.lastPoint = {
-                coords: this.getCoords(event),
-                pressure: this.pressure
-            };
+            event.stopPropagation();
+            this.setLastPoint(event);
             this.pointerActions.down();
         });
         this.$refs.container.addEventListener("pointermove", event => {     
             event.preventDefault();
-            this.pressure = getPressure(event);
-            let coords = this.getCoords(event);
-
-            this.lastPoint = {
-                prev: this.lastPoint ? this.lastPoint.coords.slice(): coords,
-                coords,
-                pressure: this.pressure
-            };
+            event.stopPropagation();
+            this.setLastPoint(event);
 
             if(this.selection) {
-                this.setCursorSelAction();    
+                this.setCursorSelAction();  
+                this.$forceUpdate();  
             }
             this.pointerActions.move();        
 
-            this.cursorStyles.left = this.lastPoint.coords[0] * this.zoom / this.px_ratio + "px";
-            this.cursorStyles.top =  this.lastPoint.coords[1] * this.zoom / this.px_ratio + "px";
-            this.$forceUpdate();
         });
         this.$refs.container.addEventListener("pointerup", event => {
-            this.lastPoint = null;       
+            event.preventDefault();
+            event.stopPropagation();
+            this.setLastPoint(event);
             let t = Date.now();
             this.pointerActions.up();
             this.applyTemp();
-            this.prevClick.time = t;          
+            this.prevClick.time = t;     
+            this.lastPoint = null;   
+            this.pressure = 0;
         });
         this.$refs.container.addEventListener("pointerout", event => {
+            event.preventDefault();
+            event.stopPropagation();
             if(this.lastPoint) {
-                this.lastPoint = null; 
+                this.setLastPoint(event);
                 this.pointerActions.out();      
                 this.applyTemp();
-            }
-            
+                this.lastPoint = null; 
+            }            
         });
     },
-    getCoords (event) {
-        let offset = this.$refs.canvas.getBoundingClientRect();
-        return [ 
+    setLastPoint(event) {
+        this.pressure =  event.pressure;
+        if(event.pointerType == "mouse" && event.pressure > 0)
+            this.pressure = 1;
+        
+        const offset = this.$refs.canvas.getBoundingClientRect();
+        const coords = [ 
             Math.round(event.pageX - offset.left), 
             Math.round(event.pageY - offset.top) 
-        ].map(p => p * this.px_ratio / this.zoom);
+        ].map(p => p * this.sizes.px_ratio / this.zoom);
+        
+        
+        this.lastPoint = {
+            prev: this.lastPoint ? this.lastPoint.coords.slice(): coords,
+            coords,
+            pageCoords: [event.pageX, event.pageY],
+            pressure: this.pressure
+        };        
+        this.setCursorPosition();
+    },
+    setCursorPosition() {
+        this.$refs.cursor.style.left = this.lastPoint.pageCoords[0] + "px";
+        this.$refs.cursor.style.top =  this.lastPoint.pageCoords[1] + "px";
     },
     setCursorSelAction() {
         if(this.selection && this.selection.ready) {
@@ -757,7 +786,7 @@ methods: {
     pasteImageFromFile(file, mode = "leave") {
         let img = new Image();
         img.onload = () => {
-            if(mode == "resize-canvas") {
+            if(mode == "resize_canvas") {
             this.setSize({
                 width: img.width,
                 height: img.height,
@@ -890,7 +919,7 @@ methods: {
         this.selectLayer(layers[layers.length-1].id);
     },
     fill(coords) {
-        let accuracy = this.px_ratio * 2;
+        let accuracy = this.sizes.px_ratio * 2;
         let sizes = [this.sizes_hr.width, this.sizes_hr.height].map(c => Math.round(c / accuracy));
         this.tempCtx.drawImage(this.currentLayer.ctx.canvas, 0, 0, ...sizes);
 
@@ -915,11 +944,7 @@ methods: {
                 this.tempCtx2.globalCompositeOperation = "source-over"; 
             } 
             this.tempCtx.clearRect(0,0, this.sizes_hr.width, this.sizes_hr.height);
-            this.tempCtx.save();      
-            this.selection.rotate(this.tempCtx);
-            this.selection.drawClipPath(this.tempCtx);
-            this.tempCtx.clip();
-            this.selection.rotate(this.tempCtx, -1);
+            this.selection.clip(this.tempCtx);
             this.tempCtx.drawImage(this.tempCtx2.canvas, 0, 0, ...sizes, 0, 0, this.sizes_hr.width, this.sizes_hr.height);
             this.tempCtx.restore();
         } else {
@@ -962,7 +987,7 @@ methods: {
     selectArea([p1, p2]) {
         const {width, height} = this.currentLayer.ctx.canvas;
         this.$store.commit("selectInstrument", "selection_rect");  
-        this.selection = new Selection(p1,this.selCtx, this.px_ratio, this.zoom);
+        this.selection = new Selection(p1,this.selCtx, this.sizes.px_ratio, this.zoom);
         this.selection.setPoint(p2);
         this.startTransformSelection();
     },
@@ -993,76 +1018,50 @@ methods: {
             }            
         });    
     },
-    endDraw(tool) {
+    endDraw(point, tool) {
         if(tool.notEmpty()) {
+            tool.addPoint(point);
             this.currentLayer.ctx.globalCompositeOperation = "source-over";
-            tool.update = false;
-            tool.render();
             this.writeHistory();
-
             if(this.selection) {
-                this.currentLayer.ctx.save();
-                this.selection.rotate(this.currentLayer.ctx);
-                this.selection.drawClipPath(this.currentLayer.ctx);
-                this.currentLayer.ctx.clip();
-                this.selection.rotate(this.currentLayer.ctx, -1);
+                this.selection.clip(this.currentLayer.ctx);
             } 
-            this.currentLayer.ctx.drawImage(tool.canvas, 0, 0);   
+            tool.drawToCtx(this.currentLayer.ctx);
             if(this.selection) 
                 this.currentLayer.ctx.restore();
             tool.dropLine();  
-        }
-    
+            this.render();
+        }    
     },
     draw(point, tool) {
-        tool.addPoint(point);
-        tool.onNextRedraw = () => {
-
-            this.tempCtx.globalCompositeOperation = "copy";
-            this.tempCtx.drawImage(this.currentLayer.ctx.canvas, 0, 0);
-
-            if(this.selection) {
-                this.tempCtx.save();
-                this.selection.rotate(this.tempCtx);
-                this.selection.drawClipPath(this.tempCtx);
-                this.tempCtx.clip();
-                this.selection.rotate(this.tempCtx, -1);
-            }                
-            this.tempCtx.globalCompositeOperation = "source-over";
-            this.tempCtx.drawImage(tool.canvas, 0, 0);
-            
-            if(this.selection) 
-                this.tempCtx.restore();
-
-            this.render(true);
-        };
+        this._draw(point, tool);       
+        this.render(true);
+        
     },
-    endErase() {
+    endErase(point) {
         if(this.brush.notEmpty()) {
+            this._draw(point, this.brush, "destination-out");       
             this.writeHistory();
             this.currentLayer.ctx.globalCompositeOperation = "copy";
             this.currentLayer.ctx.drawImage(this.tempCtx.canvas, 0, 0);
             this.brush.dropLine();
         }
     },
+    _draw(point, tool, compositeOperation = "source-over") {
+        tool.addPoint(point);
+        this.tempCtx.globalCompositeOperation = "copy";
+        this.tempCtx.drawImage(this.currentLayer.ctx.canvas, 0, 0);
+        if(this.selection) {
+            this.selection.clip(this.tempCtx);
+        }             
+        this.tempCtx.globalCompositeOperation = compositeOperation;
+        tool.drawToCtx(this.tempCtx);            
+        if(this.selection) 
+            this.tempCtx.restore();
+    },
     erase(point) {
-        this.brush.addPoint(point);
-        this.brush.onNextRedraw = () => {
-            this.tempCtx.globalCompositeOperation = "copy";
-            this.tempCtx.drawImage(this.currentLayer.ctx.canvas, 0, 0);
-            if(this.selection) {
-                this.tempCtx.save();
-                this.selection.rotate(this.tempCtx);
-                this.selection.drawClipPath(this.tempCtx);
-                this.tempCtx.clip();
-                this.selection.rotate(this.tempCtx, -1);
-            }             
-            this.tempCtx.globalCompositeOperation = "destination-out";
-            this.tempCtx.drawImage(this.brush.canvas, 0, 0);            
-            if(this.selection) 
-                this.tempCtx.restore();
-            this.render(true);
-        };
+        this._draw(point, this.brush, "destination-out");       
+        this.render(true);        
     },
     setCursor() {
         this.cursorStyles.transform = null;
@@ -1089,7 +1088,7 @@ methods: {
             }        
         }
     },
-    setSize({width, height, resizeMode, originMode, origin}, init = false) {
+    setSize({width, height, px_ratio = this.sizes.px_ratio, resizeMode, originMode, origin}, init = false) {
         if(!init) {
             this.writeHistoryAction({
                 action: "setSize",
@@ -1099,8 +1098,21 @@ methods: {
         if(this.selection) 
             this.applySelection();
 
-        width = Math.round(width)
-        height - Math.round(height)
+        width = Math.round(width);
+        height - Math.round(height);
+        const dw = width - this.sizes.width;
+        const dh = height - this.sizes.height;
+
+        const oldCanvasSizes = Object.assign({}, this.sizes_hr);
+        const realCanvasSizes = {
+            width: Math.round(width * px_ratio),
+            height: Math.round(height * px_ratio)
+        };
+        const canvasPageSizes = {
+            width: width * this.zoom,
+            height: height * this.zoom
+        }
+
         if(resizeMode == undefined) 
             resizeMode = origin ? "move" : "resize";
         if(resizeMode == "move" && originMode !== undefined) {
@@ -1108,24 +1120,22 @@ methods: {
             origin = [0, 0]
             origin[0] = {
                 left: 0,
-                center: (this.sizes.width - width) * this.px_ratio / 2,
-                right: (this.sizes.width - width) * this.px_ratio
+                center: dw * px_ratio / 2,
+                right: dw * px_ratio
             }[x];
             origin[1] = {
                 top: 0,
-                center: (this.sizes.height- height) * this.px_ratio / 2,
-                bottom: (this.sizes.height - height) * this.px_ratio
+                center: dh * px_ratio / 2,
+                bottom: dh / px_ratio
             }[y];
         }
+       
         this.canvasSizes.width =  width;
         this.canvasSizes.height = height;
 
-        this.canvasStyles.width = this.canvasSizes.width * this.zoom + "px";
-        this.canvasStyles.height = this.canvasSizes.height * this.zoom + "px";       
-        this.sizes_hr = {
-            width: width * this.px_ratio,
-            height: height * this.px_ratio
-        };        
+        this.canvasStyles.width = canvasPageSizes.width + "px";
+        this.canvasStyles.height = canvasPageSizes.height + "px";       
+        this.sizes_hr = realCanvasSizes;     
 
         ['canvas', "blender", "selection"].forEach(s => {
             this.$refs[s].width = this.sizes_hr.width;
@@ -1141,29 +1151,35 @@ methods: {
         })
 
         let rect = resizeMode == "move" ? 
-            [...origin, this.sizes_hr.width, this.sizes_hr.height] 
-        : [0, 0, this.sizes.width * this.px_ratio, this.sizes.height * this.px_ratio];
-        
+            [...origin, oldCanvasSizes.width, oldCanvasSizes.height] 
+        : [0, 0, oldCanvasSizes.width, oldCanvasSizes.height];
 
+        let rect1 = [0, 0, oldCanvasSizes.width, oldCanvasSizes.height];
+        
         this.layers.forEach(layer => {
             this.tempCtx.clearRect(0, 0, this.tempCtx.canvas.width, this.tempCtx.canvas.height);
-            this.tempCtx.drawImage(layer.ctx.canvas, ...rect, 0, 0, width, height);
-            layer.ctx.clearRect(0, 0, layer.ctx.canvas.width, layer.ctx.canvas.height);
-                    
+            this.tempCtx.drawImage(layer.ctx.canvas, ...rect1, ...rect);
+
+            layer.ctx.clearRect(0, 0, layer.ctx.canvas.width, layer.ctx.canvas.height);        
             layer.ctx.canvas.width = this.sizes_hr.width;
-            layer.ctx.canvas.height = this.sizes_hr.height;
-            
+            layer.ctx.canvas.height = this.sizes_hr.height;            
             layer.ctx.drawImage(this.tempCtx.canvas, 0, 0, this.sizes_hr.width, this.sizes_hr.height);    
         }); 
-        
-        this.sizes = {width, height};       
+        Object.assign(this.sizes, {width, height});   
         
         this.brush.setSizes(this.sizes_hr);
         this.marker.setSizes(this.sizes_hr);
 
+        if(px_ratio != this.sizes.px_ratio) {
+            this.sizes.px_ratio = px_ratio;
+            if(this.selection) 
+                this.selection.setPxRatio(this.sizes.px_ratio);
+            this.setBrushParams();
+        }
+
         this.render();
     },
-    newDrawing(title = "New drawing") {
+    newDrawing(title = this.$t('newDrawingTitle')) {
         this.layers = [];
         if(this.selection) {
             this.selection.drop();
@@ -1217,7 +1233,7 @@ methods: {
         layer.ctx = (new OffscreenCanvas(this.sizes_hr.width, this.sizes_hr.height)).getContext("2d");
          if(paste) {
             layer.ctx.drawImage(paste.img, 
-            ...[paste.x, paste.y, paste.width, paste.height].map(v => v * this.px_ratio));
+            ...[paste.x, paste.y, paste.width, paste.height].map(v => v * this.sizes.px_ratio));
         }        
         return layer;
     },
@@ -1246,8 +1262,11 @@ methods: {
     },
     selectLayer(id) {
         this.currentLayerIndex = this.layers.findIndex(l => l.id == id);
-        this.currentLayer = this.layers[this.currentLayerIndex];
-        this.render();
+        if(this.currentLayerIndex >= 0) {
+            this.currentLayer = this.layers[this.currentLayerIndex];
+            this.render();
+        }
+        
     },
     reorderLayer({oldIndex, newIndex}) {
         this.writeHistoryAction({
@@ -1310,7 +1329,7 @@ input::-webkit-inner-spin-button {
     margin: 0; 
 }
 input[type=number] {
-    -moz-appearance:textfield; /* Firefox */
+    -moz-appearance:textfield; 
 }
 
 *:focus {
@@ -1345,6 +1364,9 @@ input[type=number] {
             background-size: 60% 60%;
         }
     }
+    &[disabled] {
+        opacity: .5;
+    }
     &.add { background-image: url("./assets/img/plus.svg"); }
     &.copy { background-image: url("./assets/img/copy.svg"); }
     &.edit { background-image: url("./assets/img/edit.svg"); }
@@ -1353,6 +1375,12 @@ input[type=number] {
     &.delete { background-image: url("./assets/img/trash.svg"); }
     &.visible { background-image: url("./assets/img/visible.svg"); }
     &.swap { background-image: url("./assets/img/swap.svg"); }
+    &.link { background-image: url("./assets/img/link.svg"); }
+
+    &.undo { background-image: url("./assets/img/undo.png"); }
+    &.redo { background-image: url("./assets/img/redo.png"); }
+    &.zoom-in { background-image: url("./assets/img/zoom-in.png"); }
+    &.zoom-out { background-image: url("./assets/img/zoom-out.png"); }
 }
 
 body {
@@ -1382,29 +1410,49 @@ body {
     & > * {
         max-width: 100%;
     }
+    &.top {
+        flex: 0 0 60px;
+    }
+    &.bottom {
+        margin-top: 5px;
+        flex: 0 0 30px;
+        max-height: 30px;
+        padding: 0;
+    }
     &.right {
         flex: 1 1 250px;
         max-width: 250px;
     }
 }
-#canvas-container {
-    flex: 2 1 100%;
+$canvas_height: calc(100vh - 105px);
+#wrapper {
+  // overflow: hidden;
+   flex: 2 1 100%;
+   width: calc(100vw - 360px);
+   height: $canvas_height;
+   max-height: $canvas_height;
+   &:hover  #cursor {
+        z-index: $z-index_canvas-cursor;
+        visibility: visible;
+    }
+}
+#canvas-container {    
     border: 2px solid black;
     overflow: auto;
     background-image: url("./assets/img/forest.jpg");
     background-size: 100% 100%;
     background-repeat: no-repeat;
     background-color: grey;
-    max-width: calc(100vw - 360px);
-    max-height: calc(100vh - 80px);
-    line-height: calc(100vh - 80px);
+    width: calc(100vw - 360px);
+    height: $canvas_height;
+    max-height: $canvas_height;
+    line-height: $canvas_height;
     text-align: center;
     position: relative;
     vertical-align: middle;
     cursor: none;
-    &:hover  #cursor {
-        display: block;
-    }
+
+
     #canvas {
         background: white;
         position: relative;
@@ -1413,21 +1461,19 @@ body {
         vertical-align: middle;
     }
     
-    
     canvas {
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: -1;
-    cursor: none;
-
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: -1;
+        cursor: none;
     }
 }
 #cursor {
-    display: none;
     pointer-events: none;
-    position: absolute;
-    z-index: $z-index_canvas-cursor;
+    position: fixed;
+    z-index: -1;
+    visibility: hidden;
     transform: translate(-50%,-50%);
 
     &.brush, &.eraser, &.picker, &.marker {

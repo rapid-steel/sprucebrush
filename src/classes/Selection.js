@@ -66,7 +66,6 @@ export default class Selection {
         L ${this.bbox[0][0]},${this.bbox[1][1]}
         Z
       `);
-    //console.log(this.clipPath)
     }
     drawClipPath(ctx) {
       ctx.beginPath();
@@ -77,6 +76,20 @@ export default class Selection {
         this.bbox[1][1] - this.bbox[0][1]
       );
       ctx.closePath();
+    }
+    clip(ctx) {
+      ctx.save();
+      this.rotate(ctx);
+      this.drawClipPath(ctx);
+      ctx.clip();
+      this.rotate(ctx, -1);
+    }
+    fill(ctx, andStroke = false) {
+      this.rotate(ctx, 1);
+      this.drawClipPath(ctx);      
+      if(andStroke) ctx.stroke();
+      ctx.fill();
+      this.rotate(ctx, -1);
     }
     addSource(source) {
       this.sourceCopy.save();
@@ -99,12 +112,7 @@ export default class Selection {
       this.scaleOrigin = this.bbox[0];
       this.imgCtx.save();
       this.imgCtx.clearRect(0, 0, this.imgCtx.canvas.width, this.imgCtx.canvas.height);
-      this.rotate(this.imgCtx, 1);
-      this.drawClipPath(this.imgCtx);      
-      this.imgCtx.stroke();
-      this.imgCtx.fill();
-      this.rotate(this.imgCtx, -1);
-     
+      this.fill(this.imgCtx, true);     
       this.imgCtx.globalCompositeOperation = "destination-in";
       this.imgCtx.drawImage(source.canvas, 0, 0, source.canvas.width, source.canvas.height);   
       this.imgCtx.globalCompositeOperation = "source-over"; 
@@ -116,9 +124,7 @@ export default class Selection {
       source.save();  
       source.imageSmoothingEnabled = false;
       source.globalCompositeOperation = "destination-out";
-      this.rotate(source, 1);
-      this.drawClipPath(source);
-      source.fill();
+      this.fill(source);
       source.globalCompositeOperation = "source-over";
       source.restore();
 

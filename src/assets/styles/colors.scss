@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Anonymous+Pro:wght@400;700&family=Didact+Gothic&family=Russo+One&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Anonymous+Pro:wght@400;700&family=Didact+Gothic&family=Russo+One&family=Caveat&display=swap');
 
 
 $color-bg: white;
@@ -23,6 +23,8 @@ $font-layer: 14px Anonymous Pro;
 $font-layer-button: 30px Russo One;
 $font-select: 14px Russo One;
 $font-select-small: 12px Russo One;
+$font-title: bold 18px Caveat;
+$font-status-bar: bold 16px Anonymous Pro;
 
 
 $btn-bg: url("../assets/img/btn-frame.png");

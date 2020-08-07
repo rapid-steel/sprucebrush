@@ -78,14 +78,14 @@ const filterFunctions = {
 export default {
     methods: {
         applyFilter(filter) {
-            this.cancelPreviewFilter();
             this.writeHistory();
+
             this.tempCtx.clearRect(0,0,this.sizes.width, this.sizes.height);
             filterFunctions[filter.k](this.tempCtx, filter.settings);
             this.tempCtx.drawImage(this.currentLayer.ctx.canvas, 0,0,this.sizes.width, this.sizes.height);
+            this.tempCtx.filter = "none";
 
             this.currentLayer.ctx.clearRect(0,0,this.sizes.width, this.sizes.height);
-            
             this.currentLayer.ctx.drawImage(this.tempCtx.canvas, 0,0,this.sizes.width, this.sizes.height);
             this.currentLayer.ctx.filter = "none";     
             this.tempCtx.clearRect(0,0,this.sizes.width, this.sizes.height);

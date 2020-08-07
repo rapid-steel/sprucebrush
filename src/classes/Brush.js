@@ -243,7 +243,7 @@ export default class Brush extends ToolWebGL {
         }
 
     }
-    addPoint({coords, pressure}) {
+    _addPoint({coords, pressure}) {
         
         if(this.vertices.length === 0) {
             this.vertices.push(coords[0]);
@@ -270,13 +270,6 @@ export default class Brush extends ToolWebGL {
            
            
         }
-       
-
-        if(!this.update) {
-            this.update = true;
-            this.animate();
-        }
-
     }
    
     setParams(params) {

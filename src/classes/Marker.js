@@ -243,7 +243,7 @@ export default class Marker extends ToolWebGL {
         return line;
 
     }
-    addPoint(point) {
+    _addPoint(point) {
         let avgLines = Math.min(this.params.angleSmoothing, this.lines.length);
         let p2 = point.coords;
         let p1 = this.points[this.points.length-1];

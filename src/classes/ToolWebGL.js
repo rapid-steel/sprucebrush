@@ -5,7 +5,7 @@ export default class ToolWebGL {
         this.gl.getExtension("OES_standard_derivatives");
         this.gl.clearColor(0, 0, 0, 0);
         this.gl.enable(this.gl.SAMPLE_ALPHA_TO_COVERAGE);
-       // this.gl.enable(this.gl.SAMPLE_COVERAGE);
+        this.gl.enable(this.gl.SAMPLE_COVERAGE);
         this.gl.enable(this.gl.BLEND);
         this.gl.blendFuncSeparate(
             this.gl.SRC_ALPHA, 
@@ -26,6 +26,7 @@ export default class ToolWebGL {
         this.textures = {
             BASE: 0
         };
+        this.autoUpdate = false;
         this.update = false;
     }
     _createProgram(programType) {
@@ -117,6 +118,17 @@ export default class ToolWebGL {
         requestAnimationFrame(() => {
             this.gl.clear(this.gl.COLOR_BUFFER_BIT  | this.gl.DEPTH_BUFFER_BIT);
         });
+    }
+    addPoint(p) {
+        this._addPoint(p);
+        if(this.autoUpdate && !this.update) {
+            this.update = true;
+            this.animate();
+        }
+    }
+    drawToCtx(ctx2d) {
+        this.render();
+        ctx2d.drawImage(this.canvas, 0, 0);
     }
     render() {
         this.gl.clear(this.gl.COLOR_BUFFER_BIT  | this.gl.DEPTH_BUFFER_BIT);

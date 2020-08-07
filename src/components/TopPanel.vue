@@ -14,19 +14,35 @@
             <div class="menu-form" 
                 v-show="display.sizesForm" 
                 @click.stop>
+                <div id="proportional-resize"
+                   :class="{active: sizesModel.proportional}">
+                    <button class="icon-btn link"                     
+                    @click="()=> sizesModel.proportional = !sizesModel.proportional"/>
+                </div>
                 <div>
                     <div>{{$t('topPanel.sizesForm.width')}}:</div>  
                     <input type="number" 
                         min="1" step="1" 
                         v-model="sizesModel.width" 
-                        @keyup.enter="applySizes">
+                        @blur="() => adjustSizes('width')"
+                        @keyup.enter="() => applySizes('width')">
                 </div> 
                 <div>
                     <div>{{$t('topPanel.sizesForm.height')}}:</div>
                     <input type="number" 
                         min="1" step="1" 
                         v-model="sizesModel.height" 
-                        @keyup.enter="applySizes">
+                         @blur="() => adjustSizes('height')"
+                        @keyup.enter="() => applySizes('height')">
+                </div> 
+                <div>
+                    <div>{{$t('topPanel.sizesForm.px_ratio')}}:</div>
+                    <v-select 
+                        v-model="sizesModel.px_ratio"
+                        :options="resolutionOptions"
+                        :clearable="false"
+                        :searchable="false"
+                     />
                 </div>     
                 <div>{{$t('topPanel.sizesForm.transform')}}:</div>
                 <div id="resize-mode">
@@ -166,8 +182,8 @@ export default {
             importMode: "leave",
             importModes: [
                 {k: "leave", img: require("../assets/img/import-leave.png")},
-                {k: "resize-img", img: require("../assets/img/import-resize-img.png")},
-                {k: "resize-canvas", img: require("../assets/img/import-resize-canvas.png")}
+                {k: "resize_img", img: require("../assets/img/import-resize-img.png")},
+                {k: "resize_canvas", img: require("../assets/img/import-resize-canvas.png")}
 
             ],
             filters: [{
@@ -249,14 +265,17 @@ export default {
             sizesModel: {
                 width: 1, 
                 height: 1, 
+                px_ratio: 1,
                 originMode: "center-center", 
-                resizeMode: "move"
+                resizeMode: "move",
+                proportional: true
             },
             originModes: [
                 'top-left',    'top-center',    'top-right', 
                 'center-left', 'center-center', 'center-right', 
                 'bottom-left', 'bottom-center', 'bottom-right'
-            ]
+            ],
+            resolutionOptions: [1, 1.5, 2],
         }
     },
     watch: {
@@ -311,8 +330,19 @@ export default {
             this.$refs.importImage.type = "";
             this.$refs.importImage.type = "file";
         },
-        applySizes() {
+        adjustSizes(k) {
+            if(this.sizesModel.proportional) {
+                const k1 = {
+                    width: "height",
+                    height: "width"
+                }[k];
+                this.sizesModel[k1] = Math.round(this.sizes[k1]  / this.sizes[k] * this.sizesModel[k]);
+            }
+        },
+        applySizes(k = false) {
             if(this.sizesModel.width && this.sizesModel.height) {
+                if(k)
+                    this.adjustSizes(k);
                 this.$emit("change-sizes", this.sizesModel);
                 this.display.sizesForm = false;
             }
@@ -444,8 +474,36 @@ export default {
         background: $color-bg;        
         border: $window-border;
         z-index: $z-index_menu;
+        .v-select {
+            min-width: 65px;
+        }
     }
 
+}
+
+#proportional-resize {
+    position: absolute;
+    height: 40px;
+    width: 30px;
+    left: 150px;
+    top: 30px;
+    button {
+        opacity: .5;
+        position: absolute;
+        top: 50%;
+        left: 0;
+        transform: translate(-50%,-50%);
+        background-color: white;
+    }
+    border: 3px dashed transparent;
+    border-right: none;
+    &.active {
+        border-color: $color-accent;
+        button {
+            opacity: 1;
+            border: 2px solid black;
+        }
+    }
 }
 
 #resize-mode {
