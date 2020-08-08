@@ -28,9 +28,14 @@ This is a web application for drawing. It is developing in two main directions:
 -  C - Color picker
 -  S - rectangular Selection
 
+### Keys to switch to a centain tool while pressing:
+- Alt - color picker
+- mouse middle button - hand
+
 ### Other:
+- Ctrl + W - fullview mode (hide side panels)
 - Ctrl + E - merge a current layer with underlying one
--  D - reset the main color to black and the background color to white
+- D - reset the main color to black and the background color to white
 
 
 ## Dependencies
@@ -46,6 +51,21 @@ Vue components used:
 
 
 ## Known issues
+
+ - If the app crashes constantly after a centain amount of time, this is most 
+ likely a problem related to GPU acceleration support.
+ In a Chromium browser, check the status of graphic features:
+ chrome://gpu/
+ 
+ If GPU acceleration isn't available, maybe your videocard is the browser blacklist
+ You can work around this problem by enabling flag ignore-gpu-blacklist
+ chrome://flags/
+
+ Caution! Use this at your own risk!
+
+ - This couldn't work in Firefox, if OffscreenCanvas feature is disabled. You can
+ try to enable flag gfx.offscreencanvas.enabled in about:config. Note that it can 
+ lead to other problems.
 
  - An image looks blurry on zoom in. This is a drawback of HTML Canvas. A possible 
  trick to make canvas bigger, but performance will suffer. You can try to set 

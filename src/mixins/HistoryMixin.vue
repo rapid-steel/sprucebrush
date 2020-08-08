@@ -64,7 +64,6 @@ export default {
             }
         },
         processShot(sshot) {        
-            
             if(sshot.action) {
                 if(sshot.action == "appendLayer") {
                     this.selectLayer(sshot.prev.id);
@@ -119,18 +118,18 @@ export default {
 
             } else {
                 this.writeHistory();
-                
-                if(sshot.tool.indexOf("selection") == 0 && this.selection) {
-                    this.resetSelection();
-                } else {
-                    sshot.layer.ctx.clearRect(0, 0,  this.sizes_hr.width, this.sizes_hr.height);
-                    sshot.layer.ctx.putImageData(sshot.state, 0, 0);
-                }
-                if(sshot.layer !== this.currentLayer) 
-                    this.selectLayer(sshot.layer.id);
-                else this.render();
-            } 
-                    
+                if(sshot.layer) {
+                    if(sshot.tool.indexOf("selection") == 0 && this.selection) {
+                        this.resetSelection();
+                    } else {
+                        sshot.layer.ctx.clearRect(0, 0,  this.sizes_hr.width, this.sizes_hr.height);
+                        sshot.layer.ctx.putImageData(sshot.state, 0, 0);
+                    }
+                    if(sshot.layer !== this.currentLayer) 
+                        this.selectLayer(sshot.layer.id);
+                    else this.render();
+                }               
+            }                     
         },
 
     }

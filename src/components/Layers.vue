@@ -117,6 +117,7 @@ export default {
 @import "../assets/styles/colors";
 
 #layers {
+    z-index: $z-index-layers;
     display: flex;
     flex-direction: column;
     align-items: stretch;
@@ -125,7 +126,7 @@ export default {
         opacity: .5;
     }
     & > * {
-        background: $color-bg;
+        background: transparentize($color-bg, .75);
     }
     & > div:first-child {
         display: flex;

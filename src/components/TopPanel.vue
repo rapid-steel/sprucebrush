@@ -107,7 +107,7 @@
                     v-for="filter in filters" 
                     :key="filter.k"
                     @click="() => selectFilter(filter)">
-                    <img :src="filter.img">
+                    <img :src="'../assets/img/filters/filter-' + filter.k + '.png'">
                     <div>{{$t('topPanel.filtersList.' + filter.k + ".title")}}</div>
                 </div>
             </div>
@@ -187,17 +187,13 @@ export default {
 
             ],
             filters: [{
-                    k: "invert",  
-                    img: require("../assets/img/filter-invert.png")
+                    k: "invert"
                 },{
-                    k: "grayscale",  
-                    img: require("../assets/img/filter-grayscale.png")
+                    k: "grayscale"
                 },{
-                    k: "sepia",  
-                    img: require("../assets/img/filter-sepia.png")
+                    k: "sepia"
                 },{
-                    k: "blur",   
-                    img: require("../assets/img/filter-blur.png"), 
+                    k: "blur",  
                     preview: true, 
                     settings: {radius: 1}, 
                     form: [{
@@ -205,7 +201,6 @@ export default {
                     }]
                 },{
                     k: "brightness_contrast",  
-                    img: require("../assets/img/filter-bright-contr.png"), 
                     preview: true, 
                     settings: {brightness: 1, contrast: 1 },
                     form: [{
@@ -215,7 +210,6 @@ export default {
                     }]
                 },{
                     k: "hue_saturate",  
-                    img: require("../assets/img/filter-hue-saturate.png"), 
                     preview: true, 
                     settings: {hue: 0, saturation: 100, luminance: 0 },
                     form: [{
@@ -227,13 +221,11 @@ export default {
                     }]
                 },{
                     k: "duotone",  
-                    img: require("../assets/img/filter-duotone.png"), 
                     preview: true, 
                     settings: {colors: ["#006aff", "#fa00a6"] },
                     current: 0
                 },{
                     k: "posterize", 
-                    img: require("../assets/img/filter-posterize.png"), 
                     preview: true, 
                     settings: {levels: 4}, 
                     form: [{
@@ -241,7 +233,6 @@ export default {
                     }]
                 },{
                     k: "pixelate", 
-                    img: require("../assets/img/filter-pixelate.png"), 
                     preview: true, 
                     settings: {size: 10}, 
                     form: [{
@@ -249,7 +240,6 @@ export default {
                     }]
                 }, {
                     k: "ripple",
-                    img: require("../assets/img/filter-ripple.png"), 
                     preview: true,
                     settings: {scale: 10, frequency: -1},
                     form: [{
@@ -259,7 +249,6 @@ export default {
                     }]
                 },{
                     k: "stereo",
-                    img: require("../assets/img/filter-stereo.png")
                 }
             ],
             sizesModel: {

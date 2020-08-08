@@ -1,4 +1,6 @@
 export default {
+    error: {
+    },
     title: "Vasya's cheap photoshop",
     newDrawingTitle: "Untitled mastepiece",
     common: {
@@ -97,6 +99,7 @@ export default {
             picker: "Color picker",
             marker: "Roller",
             pen: "Pen",
+            hand: "Hand",
             gradient: "Gradient",
             selection_rect: "Rectangular selection",
             selection_polygon: "Polygonal selection",

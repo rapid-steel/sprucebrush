@@ -12,6 +12,7 @@ Vue.use(Vuex);
 export default new Vuex.Store({
     state: {
         zoomLevels: [.25, .5, .75, 1, 1.25, 1.5, 2],
+        activeSelection: false,
         currentTool: "brush",
         currentColor: "rgb(0,0,0)",
         colorBG: "rgb(255,255,255)",
@@ -31,6 +32,9 @@ export default new Vuex.Store({
         ],
         currentToolSettings: {
             picker: { 
+                
+            },
+            hand: {
                 
             },
             brush: {
@@ -108,16 +112,16 @@ export default new Vuex.Store({
             }, {
                 name: "Board", id: 2,
                 colors: [
-                "rgb(203,203,77)",    "rgb(171,203,77)",    "rgb(140,203,77)",
-                "rgb(108,203,77)",    "rgb(77,203,77)",    "rgb(77,203,108)",
-                "rgb(77,203,140)",    "rgb(77,203,171)",    "rgb(77,203,203)",
-                "rgb(77,171,203)",    "rgb(77,140,203)",    "rgb(77,108,203)",
-                "rgb(77,77,203)",    "rgb(108,77,203)",    "rgb(140,77,203)",
-                "rgb(172,77,203)",    "rgb(203,77,203)",    "rgb(203,77,171)",
-                "rgb(203,77,140)",    "rgb(203,77,108)",    "rgb(203,77,77)",
-                "rgb(210,241,244)",    "rgb(195,254,183)",    "rgb(216,250,188)",
-                "rgb(160,186,160)",    "rgb(235,241,100)",    "rgb(224,233,21)",
-                "rgb(200,126,17)",    "rgb(211,13,13)",    "rgb(43,55,66)"
+                "rgb(203,203,77)",   "rgb(171,203,77)",   "rgb(140,203,77)",
+                "rgb(108,203,77)",   "rgb(77,203,77)",    "rgb(77,203,108)",
+                "rgb(77,203,140)",   "rgb(77,203,171)",   "rgb(77,203,203)",
+                "rgb(77,171,203)",   "rgb(77,140,203)",   "rgb(77,108,203)",
+                "rgb(77,77,203)",    "rgb(108,77,203)",   "rgb(140,77,203)",
+                "rgb(172,77,203)",   "rgb(203,77,203)",   "rgb(203,77,171)",
+                "rgb(203,77,140)",   "rgb(203,77,108)",   "rgb(203,77,77)",
+                "rgb(210,241,244)",  "rgb(195,254,183)",  "rgb(216,250,188)",
+                "rgb(160,186,160)",  "rgb(235,241,100)",  "rgb(224,233,21)",
+                "rgb(200,126,17)",   "rgb(211,13,13)",    "rgb(43,55,66)",                
                 ]
             }]
         }
@@ -128,6 +132,12 @@ export default new Vuex.Store({
         }
     },
     mutations: {
+        setActiveSelection(state) {
+            state.activeSelection = true;
+        },
+        dropSelection(state) {
+            state.activeSelection = false;
+        },
         selectInstrument(state, inst) {
             state.currentTool = inst;
         },

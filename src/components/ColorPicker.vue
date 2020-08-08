@@ -6,11 +6,11 @@
             :height="180"
             @color-change="select"></color-picker>      
         <div class="select-pallete">
-            <button class="icon-btn add" 
+            <button class="icon-btn small add" 
                 @click.stop="addPallete"></button>
-            <button class="icon-btn edit" 
+            <button class="icon-btn small edit" 
                 @click.stop="() => namePallete = !namePallete"></button>
-             <button class="icon-btn delete"
+             <button class="icon-btn small delete"
                         :disabled="palletes.length==1" 
                         @click.stop="deletePallete" />
             <v-select 
@@ -50,11 +50,13 @@
                         :disabled="!colorSelected" 
                         @click.stop="deleteSelected" />
                 </div>
-                <div v-for="c in pallete.colors" 
-                    :key="c" class="color" 
-                    :class="{active: colorSelected == c}"
-                    :style="{backgroundColor: c}" 
-                    @click="() => select(c, true)"></div>                
+                <div>
+                    <div v-for="c in pallete.colors" 
+                        :key="c" class="color" 
+                        :class="{active: colorSelected == c}"
+                        :style="{backgroundColor: c}" 
+                        @click="() => select(c, true)"></div>      
+                </div>          
             </div>
         </div>
 
@@ -142,6 +144,7 @@ export default {
 @import "../assets/styles/colors";
 
 .color-picker {
+    z-index: $z-index-color-picker;
     height: 400px;
         button {
             &.swap {
@@ -162,31 +165,62 @@ export default {
 .colors {
     display: flex;
     justify-content: space-between;
+    max-height: 170px;
+    min-height: 120px;
+    overflow: hidden;
+    position: relative;
+    &:after {
+        position: absolute;
+        z-index: 1;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        box-shadow: 0 0 5px 3px $color-bg;
+        content: '';
+        display: block;
+    }
+    &:hover {
+        overflow: visible;
+        &:after {
+            display: none;
+        }
+    }
 }
 
 .pallete {
     flex: 1 1 100%;
-    margin-left: 10px;
-    margin-top: 10px;
+    height: 100%;
+    overflow: hidden;
     display: flex;
-    flex-flow: row wrap;
-    .add-color, .color {
-        flex: 0 0 20px;
-        border-radius: 2px;
-        width: 20px;
-        height: 20px;
-        margin: 1px;
-        &.active {
-            box-shadow: 0 0 0 2px $color-accent;
-        }
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: stretch;
+    & > div:nth-child(2) {
+        flex: 1 1 100%;
+        display: flex;
+        padding: 5px 3px;
+        border-radius: 3px;
+        flex-wrap: wrap;
+        background-color: $color-bg;
+        .color {
+            flex: 0 0 20px;
+            border-radius: 2px;
+            width: 20px;
+            height: 20px;
+            margin: 1px;
+            &.active {
+                box-shadow: 0 0 0 2px $color-accent;
+            }
+        }    
     }
     .add-color {
         cursor: pointer;
-        flex: 2 0 100%;
+        flex: 0 0 30px;
         height: 30px;
-
     }
 }
+
+
 
 .colors-selected {
     position: relative;

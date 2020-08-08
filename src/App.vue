@@ -1,9 +1,9 @@
 <template>
 <div id="app" 
+    :class="viewMode"
     @click.prevent>    
     <div class="panel left">
     <Toolbox
-        :selection="selection && selection.started"
         @apply-selection="applySelection"
         @reset-selection="resetSelection"
         @select-all="() => selectArea([[0,0], [sizes.width, sizes.height]])"
@@ -25,7 +25,7 @@
                 @preview-filter="previewFilter"
             />
         </div>
-        <div id="wrapper">
+        <div id="wrapper" ref="wrapper">
             <div id="canvas-container" 
                 @dragenter.prevent
                 @dragover.prevent
@@ -45,8 +45,12 @@
             </div>
             <div id="cursor" ref="cursor"
                 :style="cursorStyles" 
-                :class="[currentTool, ...cursorClasses]"></div>
+                :class="[shortcutTool||currentTool, ...cursorClasses]"></div>
             </div>
+            <ContextMenu 
+                v-if="contextMenu.show"
+                :position="contextMenu.position"
+             />
         </div>
         <div class="panel bottom">
             <StatusBar
@@ -168,6 +172,7 @@ import ColorPicker from "./components/ColorPicker";
 import Layers from "./components/Layers";
 import TopPanel from "./components/TopPanel";
 import StatusBar from "./components/StatusBar";
+import ContextMenu from "./components/ContextMenu";
 
 import FilterMixin from "./mixins/FilterMixin";
 import HistoryMixin from "./mixins/HistoryMixin";
@@ -184,6 +189,7 @@ export default {
     name: 'app',
     data() {
         return {
+            viewMode: 'normal',
             layers: [],
             cursorStyles: {},
             canvasSizes: {},
@@ -196,22 +202,29 @@ export default {
             lastPoint: null,
             currentLayer: null,
             currentLayerIndex: 0,
+            shortcutTool: false,
             cursorClasses: [],
             zoom: 1,
             selection: null,
             texture: null,
             canvasPattern: null,
+            title: "",
+            error: false,
             colorToEdit: "fg",
             backgroundColor: "#ffffff",
-            title: ""
+            contextMenu: {
+                show: false,
+                position: [0, 0]
+            },
+            translation: false,
         }
     },
     components: {
-        Toolbox, ColorPicker, Layers, TopPanel, StatusBar
+        Toolbox, ColorPicker, Layers, TopPanel, StatusBar, ContextMenu
     },
     mixins: [FilterMixin, HistoryMixin],
     computed: {
-        ...mapState(['currentTool', 'currentColor', 'zoomLevels']),
+        ...mapState(['currentTool', 'currentColor', 'zoomLevels', 'activeSelection']),
         ...mapGetters(['currentSettings']),
         historySize() {
             return this.$store.state.userPrefs.historySize;
@@ -253,7 +266,9 @@ watch: {
     }
     },
     currentTool() {
-        this.pointerActions = this.pointerActionsMap[this.currentTool];
+        if(!this.shortcutTool)
+            this.pointerActions = this.pointerActionsMap[this.currentTool];
+
         this.setBrushParams();
         this.setCursor();    
     
@@ -401,21 +416,21 @@ created() {
         selection_lasso: {
             down: () => {
                 if(!this.selection) {
-                this.selection = new SelectionPath(
-                    this.lastPoint.coords, 
-                    this.selCtx, this.sizes.px_ratio, this.zoom);
-                } else {
-                    this.selection.applyTransform(this.lastPoint.coords, true);    
-                }       
+                    this.selection = new SelectionPath(
+                        this.lastPoint.coords, 
+                        this.selCtx, this.sizes.px_ratio, this.zoom);
+                    } else {
+                        this.selection.applyTransform(this.lastPoint.coords, true);    
+                    }       
                 this.render();
             },
             move: () => {
                 if(this.selection){ 
-                if(!this.selection.started) 
-                    this.selection.addPoint(this.lastPoint.coords); 
-                else if(this.pressure > 0)   
-                    this.selection.applyTransform(this.lastPoint.coords);  
-                }
+                    if(!this.selection.started) 
+                        this.selection.addPoint(this.lastPoint.coords); 
+                    else if(this.pressure > 0)   
+                        this.selection.applyTransform(this.lastPoint.coords);  
+                    }
                 this.render();
             },
             up: () => {
@@ -425,6 +440,18 @@ created() {
                 this.render();
             },
             out: () => {}              
+        },
+        hand: {
+            down: () => {
+                this.startTranslateCanvas();
+            },
+            move: () => {
+                this.translateCanvas();
+            },
+            up: () => {
+                this.endTranslateCanvas();
+            },
+            out: () => {}
         }
     };
 
@@ -491,6 +518,14 @@ created() {
             e.preventDefault();
             this.applySelection();
         },
+        AltLeft: e => {
+            e.preventDefault();
+            this.setShortcutTool("picker", e);
+        },
+        AltRight: e => {
+            e.preventDefault();
+            this.setShortcutTool("picker", e);
+        },
         KeyB: e => this.$store.commit("selectInstrument", "brush"),
         KeyE: e => this.$store.commit("selectInstrument", "eraser"),
         KeyR: e => this.$store.commit("selectInstrument", "marker"),
@@ -500,16 +535,14 @@ created() {
         KeyD: e => {
             this.$store.commit("selectColor", ["fg", "#000000"]);
             this.$store.commit("selectColor", ["bg", "#ffffff"]);
-        }
+        },
+        KeyW: e => this.switchViewMode()
     };
 
     this.pointerActions = this.pointerActionsMap[this.currentTool];
 },
 mounted() {
-    if(process.env.NODE_ENV === 'production')
-        if(navigator.languages[0].indexOf("ru") == 0)
-            this.$i18n.locale = "ru";
-    document.getElementsByTagName("title")[0].innerText = this.$t("title");
+    document.getElementsByTagName("title")[0].innerText = this.$t("title");    
 
     this.tempCtx =  document.createElement("canvas").getContext("2d");
     this.tempCtx2 = (new OffscreenCanvas(800, 600)).getContext("2d");
@@ -524,8 +557,8 @@ mounted() {
 
     this.setBrushParams();
     this.setSize({
-        width: 800,
-        height: 600
+        width: 1400,
+        height: 1200
     }, true);   
 
     this.newDrawing();
@@ -533,6 +566,39 @@ mounted() {
     this.setCursor();
 },
 methods: {
+    setShortcutTool(tool, event) {        
+        this.shortcutTool = tool;
+        this.pointerActions = this.pointerActionsMap[tool];
+        this.setCursor();
+        if(event.type == "keydown") {
+            event.preventDefault();
+            let n = 0;
+            const reset = event1 => {
+                if(event1.code == event.code) {
+                    event1.preventDefault();
+                    event1.stopPropagation();
+                    this.resetShortcutTool();
+                    document.removeEventListener("keyup", reset);                    
+                }
+            }
+            document.addEventListener("keyup", reset);
+        }
+        else if(event.type == "pointerdown") {
+            event.preventDefault();
+            const reset = event1 => {
+                event1.preventDefault();
+                this.pointerActions.up();
+                this.resetShortcutTool();
+                document.removeEventListener("pointerup", reset);                
+            };
+            document.addEventListener("pointerup", reset);
+        }
+    },
+    resetShortcutTool() {
+        this.shortcutTool = false;
+        this.pointerActions = this.pointerActionsMap[this.currentTool];
+        this.setCursor();
+    },
     dropFile(e) {
         Array.from(e.dataTransfer.files)
         .forEach(file => {
@@ -540,6 +606,10 @@ methods: {
                 this.pasteImageFromFile(file);
             }
         });
+    },
+    switchViewMode() {
+        this.viewMode = this.viewMode == "normal" ? "full" : "normal";
+        this.setSizeFactor();
     },
     setBrushParams() {
         if(this.currentTool == "brush" || this.currentTool == "eraser")
@@ -590,7 +660,15 @@ methods: {
             if(this.selection) 
                 this.selection.setZoom(this.zoom);
             this.setCursor();
+            this.setSizeFactor();
         }
+    },
+    setSizeFactor() {
+        const rect = this.$refs.container.getBoundingClientRect();
+        this.sizeFactor = [
+            (this.sizes.width * this.zoom - rect.width) / rect.width,
+            (this.sizes.height * this.zoom - rect.height) / rect.height
+        ];
     },
     getTransform() {    
         if(this.$refs.container) {
@@ -649,47 +727,69 @@ methods: {
         this.cursorStyles.height = this.currentSettings.radius * 2 + "px";
 
 
-    document.addEventListener("keydown", e => {     
-        let action = (e.ctrlKey ? 
-            this.keyCodeMap.ctrlKey 
-            : this.keyCodeMap)[e.code];
-        if(action) 
-            action(e);
+        document.addEventListener("keydown", e => {     
+            let action = (e.ctrlKey ? 
+                this.keyCodeMap.ctrlKey 
+                : this.keyCodeMap)[e.code];
+            if(action) 
+                action(e);
         });   
 
         this.prevClick = {
             time: 0, x: 0, y: 0
         };
 
+        
 
         this.$refs.container.addEventListener("pointerdown", event => {
             event.preventDefault();
-            event.stopPropagation();
+            this.contextMenu.show = false;
             this.setLastPoint(event);
-            this.pointerActions.down();
+            switch(event.which) {
+                case 1:
+                    this.pointerActions.down();
+                    break;
+                case 2:
+                    this.setShortcutTool("hand", event);
+                    break;
+                case 3:
+                    //nothing i think
+                    break;
+            }
+           
         });
+
         this.$refs.container.addEventListener("pointermove", event => {     
             event.preventDefault();
-            event.stopPropagation();
             this.setLastPoint(event);
 
             if(this.selection) {
                 this.setCursorSelAction();  
                 this.$forceUpdate();  
             }
-            this.pointerActions.move();        
+            this.pointerActions.move();                
 
         });
         this.$refs.container.addEventListener("pointerup", event => {
             event.preventDefault();
-            event.stopPropagation();
             this.setLastPoint(event);
             let t = Date.now();
-            this.pointerActions.up();
-            this.applyTemp();
+            this.pointerActions.up();                        
             this.prevClick.time = t;     
-            this.lastPoint = null;   
+           // this.lastPoint = null;   
             this.pressure = 0;
+        });
+        this.$refs.container.addEventListener("contextmenu", event => {
+            event.preventDefault();
+            event.stopPropagation();
+            this.contextMenu.show = true;
+            this.contextMenu.position = this.lastPoint.pageCoords;
+           
+            const hideMenu = () => {
+                this.contextMenu.show = false;
+                document.removeEventListener("pointerdown", hideMenu);
+            };
+            document.addEventListener("pointerdown", hideMenu);
         });
         this.$refs.container.addEventListener("pointerout", event => {
             event.preventDefault();
@@ -702,6 +802,22 @@ methods: {
             }            
         });
     },
+    startTranslateCanvas() {
+        this.translation = true;       
+        this.setCursor();
+    },
+    translateCanvas() {        
+        if(this.pressure > 0.25) {
+            const delta = this.lastPoint.delta
+            .map((c,i) => -c * this.sizeFactor[i] * 1.5);
+            this.$refs.container.scrollBy(...delta);
+        }
+
+    },
+    endTranslateCanvas() {
+        this.translation = false;
+        this.setCursor();
+    },
     setLastPoint(event) {
         this.pressure =  event.pressure;
         if(event.pointerType == "mouse" && event.pressure > 0)
@@ -712,12 +828,21 @@ methods: {
             Math.round(event.pageX - offset.left), 
             Math.round(event.pageY - offset.top) 
         ].map(p => p * this.sizes.px_ratio / this.zoom);
-        
-        
+        const pageCoords = [event.pageX, event.pageY];
+        let prev, delta;
+        if(this.lastPoint) {
+            prev = this.lastPoint.coords.slice();
+            delta =  [
+                pageCoords[0] - this.lastPoint.pageCoords[0],
+                pageCoords[1] - this.lastPoint.pageCoords[1]
+            ];
+        } else {
+            prev = coords.slice();
+            delta = [0, 0];
+        }       
         this.lastPoint = {
-            prev: this.lastPoint ? this.lastPoint.coords.slice(): coords,
-            coords,
-            pageCoords: [event.pageX, event.pageY],
+            prev, coords, delta,
+            pageCoords,
             pressure: this.pressure
         };        
         this.setCursorPosition();
@@ -727,7 +852,7 @@ methods: {
         this.$refs.cursor.style.top =  this.lastPoint.pageCoords[1] + "px";
     },
     setCursorSelAction() {
-        if(this.selection && this.selection.ready) {
+        if(this.activeSelection) {
             let c = this.selection.getCursor(this.lastPoint.coords);
             this.cursorClasses = [];
             if(c.resize) {
@@ -753,9 +878,14 @@ methods: {
             this.cursorStyles.transform = "translate(-50%,-50%)";
         }
     },
-    
+    dropSelection() {
+        this.$store.commit("dropSelection");
+        this.selection.drop();
+        this.selection = null;
+    },
     startTransformSelection() {
         this.writeHistory();
+        this.$store.commit("setActiveSelection");
         this.selection.startTransform(this.currentLayer.ctx);
     },
     pasteFromClipboard() {
@@ -818,7 +948,7 @@ methods: {
         img.src = URL.createObjectURL(file);          
     },
     copySelection(removeOriginal = false) {
-        if(this.selection && this.selection.ready) {
+        if(this.activeSelection) {
             let c = document.createElement("canvas");
             c.width = this.selection.bbox[1][0] - this.selection.bbox[0][0];
             c.height = this.selection.bbox[1][1] - this.selection.bbox[0][1];
@@ -835,8 +965,7 @@ methods: {
                 })              
             ]).then(res => {
                 if(removeOriginal) {
-                    this.selection.drop();
-                    this.selection = null;
+                    this.dropSelection();
                 }
             });
         });                
@@ -844,14 +973,13 @@ methods: {
 
     },
     applySelection() {
-        if(this.selection && this.selection.started) {
+        if(this.activeSelection) {
             this.currentLayer.ctx.restore();
             this.currentLayer.ctx.globalCompositeOperation = "source-over";
             this.currentLayer.ctx.drawImage(
                 this.selection.imgCtx.canvas, 
                 0, 0, this.currentLayer.ctx.canvas.width, this.currentLayer.ctx.canvas.height);
-            this.selection.drop();
-            this.selection = null;           
+            this.dropSelection();      
             this.setCursorSelAction();
             this.render();
         }
@@ -861,13 +989,12 @@ methods: {
             this.currentLayer.ctx.drawImage(
                 this.selection.sourceCopy.canvas, 
                 0, 0, this.currentLayer.ctx.canvas.width, this.currentLayer.ctx.canvas.height);
-            this.selection.drop();
-            this.selection = null;
+            this.dropSelection();
             this.render();
         }    
     },
     cropSelection() {
-        if(this.selection && this.selection.started) {
+        if(this.activeSelection) {
             let bbox = this.selection.bbox.slice();
             let rect = [bbox[0], bbox[1].map((b,i) => Math.round(b - bbox[0][i]))];
             this.applySelection();
@@ -880,7 +1007,7 @@ methods: {
         }
     },
     clipToNewLayer() {
-        if(this.selection && this.selection.started) {
+        if(this.activeSelection) {
             let layer = this.createLayer("", {
                 img: this.selection.imgCtx.canvas,
                 x: 0, y: 0,
@@ -889,9 +1016,7 @@ methods: {
             this.appendClipped(
                 layer, 
                 this.selection);
-           
-            this.selection.drop();
-            this.selection = null;
+           this.dropSelection();
         }
     },
     appendClipped(layer, selection) {
@@ -1066,15 +1191,14 @@ methods: {
     setCursor() {
         this.cursorStyles.transform = null;
         this.cursorStyles["background-image"] = null;
-        if(["brush", "eraser", "marker"].indexOf(this.currentTool) == -1) {
-            this.cursorStyles.width = "20px";
-            this.cursorStyles.height = "20px";
-
-            } else {
+        this.cursorStyles.width = null;
+        this.cursorStyles.height = null;
+        if(this.translation) this.cursorClasses = ["grab"];
+        else this.cursorClasses = [this.currentSettings.shape];
+        if(!this.shortcutTool && ["brush", "eraser", "marker"].indexOf(this.currentTool) !== -1) {                
             if(this.currentTool == "marker") {
                 this.cursorStyles.height = this.currentSettings.lineWidth  + "px";
                 this.cursorStyles.width = "15px";
-
             } else {
                 this.cursorStyles.width = this.currentSettings.radius * this.zoom  + "px";
                 this.cursorStyles.height =this.currentSettings.radius * this.zoom  + "px";
@@ -1087,6 +1211,10 @@ methods: {
                 this.cursorClasses = [this.currentSettings.shape];
             }        
         }
+        
+
+
+
     },
     setSize({width, height, px_ratio = this.sizes.px_ratio, resizeMode, originMode, origin}, init = false) {
         if(!init) {
@@ -1177,13 +1305,14 @@ methods: {
             this.setBrushParams();
         }
 
+        this.setSizeFactor();
+
         this.render();
     },
     newDrawing(title = this.$t('newDrawingTitle')) {
         this.layers = [];
         if(this.selection) {
-            this.selection.drop();
-            this.selection = null;
+            this.dropSelection();
         }
         this.clearHistory();
         this.title = title;
@@ -1387,6 +1516,8 @@ body {
     overflow: hidden;
 }
 
+
+
 #app {
     position: absolute;
     left: 0;
@@ -1395,55 +1526,60 @@ body {
     height: 100vh;
     display: flex;
     overflow: hidden;
-#center {
-    flex: 2 1 100%;
-    display: flex;
-    flex-flow: column nowrap;
+    #center {
+        flex: 2 1 100%;
+        display: flex;
+        flex-flow: column nowrap;
+    }
+    .panel {
+        padding: $panel_padding;       
+        display: flex;
+        flex-flow: column nowrap;
+        align-items: center;
+        position: relative;
+        & > * {
+            max-width: 100%;
+        }
+        &.top {
+            flex: 0 0 $panel_top_height;
+        }
+        &.bottom {
+            margin-top: 5px;
+            flex: 0 0 $panel_bottom_height;
+            max-height: $panel_bottom_height;
+            padding: 0;
+        }
+        &.left {
+            flex: 1 1 $panel_left_width;
+            max-width: $panel_left_width;
+        }
+        &.right {
+            flex: 1 1 $panel_right_width;
+            max-width: $panel_right_width;
+        }
+    }
 }
-.panel {
-    padding: 5px;
-    flex: 1 1 50px;
-    display: flex;
-    flex-flow: column nowrap;
-    align-items: center;
-    position: relative;
-    & > * {
-        max-width: 100%;
-    }
-    &.top {
-        flex: 0 0 60px;
-    }
-    &.bottom {
-        margin-top: 5px;
-        flex: 0 0 30px;
-        max-height: 30px;
-        padding: 0;
-    }
-    &.right {
-        flex: 1 1 250px;
-        max-width: 250px;
-    }
-}
-$canvas_height: calc(100vh - 105px);
+
 #wrapper {
-  // overflow: hidden;
-   flex: 2 1 100%;
-   width: calc(100vw - 360px);
-   height: $canvas_height;
-   max-height: $canvas_height;
-   &:hover  #cursor {
+    flex: 2 1 100%;
+    width: $canvas_width;
+    height: $canvas_height;
+    max-height: $canvas_height;
+    &:hover  #cursor {
         z-index: $z-index_canvas-cursor;
         visibility: visible;
     }
 }
+
 #canvas-container {    
     border: 2px solid black;
+    box-sizing: border-box;
     overflow: auto;
     background-image: url("./assets/img/forest.jpg");
     background-size: 100% 100%;
     background-repeat: no-repeat;
     background-color: grey;
-    width: calc(100vw - 360px);
+    width: $canvas_width;
     height: $canvas_height;
     max-height: $canvas_height;
     line-height: $canvas_height;
@@ -1451,8 +1587,6 @@ $canvas_height: calc(100vh - 105px);
     position: relative;
     vertical-align: middle;
     cursor: none;
-
-
     #canvas {
         background: white;
         position: relative;
@@ -1469,6 +1603,25 @@ $canvas_height: calc(100vh - 105px);
         cursor: none;
     }
 }
+
+#app.full {
+    .panel {
+        &.left, 
+        &.right {
+            width: 0!important;
+            flex: 0 0 0!important;
+            visibility: hidden;
+        }
+    }
+    #logo { display: none; }
+    #wrapper {
+        width: $canvas_width_full;
+    }
+    #canvas-container {
+        width: $canvas_width_full;
+    }
+}
+
 #cursor {
     pointer-events: none;
     position: fixed;
@@ -1500,7 +1653,21 @@ $canvas_height: calc(100vh - 105px);
     &.marker {
         transform-origin: center;
     }
-
+    &.hand, 
+    &.grab {
+        width: 2px!important;
+        height: 2px!important;
+    }
+    &.hand {
+        &::after {
+            background-image: url("./assets/img/hand.svg");
+        }
+    }
+    &.grab {
+        &::after {
+            background-image: url("./assets/img/grab.svg");
+        }
+    }
     &.fill {
         width: 2px!important;
         height: 2px!important;
@@ -1516,7 +1683,7 @@ $canvas_height: calc(100vh - 105px);
             background-image: url("./assets/img/picker_opaq.png");
         }
     }
-    &.picker, &.fill {
+    &.picker, &.fill, &.hand {
         transform: none!important;
         &::after {
             display: block;
@@ -1545,7 +1712,6 @@ $canvas_height: calc(100vh - 105px);
         }
     }
 }
-}
 
 #logo {
     position: fixed;
@@ -1554,6 +1720,7 @@ $canvas_height: calc(100vh - 105px);
     bottom: 0;
     right: 0;
     opacity: .5;
+    z-index: -1;
 
 }
 </style>

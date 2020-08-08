@@ -254,7 +254,6 @@ import {round2n} from "../functions/math-functions";
 
 export default {
     name: 'Tools',
-    props: ['selection'],
     components: {
         SideList, GradientCreator
     },
@@ -264,21 +263,21 @@ export default {
                 k: 'tools.selection.apply', 
                 action: () => this.$emit('apply-selection'),
                 key: "Enter", 
-                show: () => this.selection
+                show: () => this.activSelection
             }, {
                 k: "tools.selection.reset",
                 action: () => this.$emit('reset-selection'),
                 key: "Ctrl + Z", 
-                show: () => this.selection                
+                show: () => this.activeSelection                
             }, {
                 k: "tools.selection.clipnewlayer",
                 action: () => this.$emit('clipnewlayer-selection'),
-                show: () => this.selection
+                show: () => this.activeSelection
             },{
                 k: "tools.selection.crop",
                 action: () => this.$emit('crop-selection'),
                 key: "Ctrl + T", 
-                show: () => this.selection
+                show: () => this.activeSelection
             }, {
                 k: "tools.selection.all",
                 action: () => this.$emit('select-all'),
@@ -307,10 +306,16 @@ export default {
                     {name: "eraser", icon: require("@/assets/img/eraser.png")},               
                     {name: "marker", icon: require("@/assets/img/roller.png")},
                     {name: "fill", icon: require("@/assets/img/fill.png")},
-                    {name: "picker", icon: require("@/assets/img/picker.png")},
+                   
                 //  {name: "pen", icon: require("@/assets/img/pen.png"), title: "Pen"},
                 ]
             }, {
+                group: "helpers",
+                items: [
+                    {name: "picker", icon: require("@/assets/img/picker.png")},
+                    {name: "hand", icon: require("@/assets/img/hand.png")},
+                ]
+            },{
                 group: "selection",
                 items: [
                     {name: "selection_rect", icon: require("@/assets/img/selection-rect.png")},
@@ -323,7 +328,7 @@ export default {
         }
     },
     computed: {
-        ...mapState(['currentTool', 'types', 'patterns', 'shapes', 'gradients', 'currentColor', 'colorBG']),
+        ...mapState(['currentTool', 'types', 'patterns', 'shapes', 'gradients', 'currentColor', 'colorBG', 'activeSelection']),
         textures() {
             return this.$store.state.textures[this.currentSettings.textype];
         },
