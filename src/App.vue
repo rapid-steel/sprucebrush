@@ -101,7 +101,7 @@
                 </feComponentTransfer>          
                 <feComposite in="SourceGraphic" in2="dil" operator="xor" result="comp"/>   
                 <feComposite in="SourceGraphic" in2="dil1w" operator="xor" result="comp1"/>  
-                <feComposite in="comp" in2="comp1" operator="or" result="comp2"/>      
+                <feComposite in="comp" in2="comp1" operator="xor" result="comp2"/>      
                 <feOffset in="comp2" dx="-3" dy="-3"/>           
             </filter>
             <filter id="posterize">
@@ -164,8 +164,8 @@
 import {mapState, mapGetters} from "vuex";
 import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
-import {Selection, SelectionPath, Brush, Marker} from "./classes";
-
+import {Selection, SelectionPath} from "./classes";
+import {Brush, Marker} from "./webgl";
 
 import Toolbox from "./components/Toolbox";
 import ColorPicker from "./components/ColorPicker";
@@ -177,7 +177,7 @@ import ContextMenu from "./components/ContextMenu";
 import FilterMixin from "./mixins/FilterMixin";
 import HistoryMixin from "./mixins/HistoryMixin";
 
-import {getRgba, getGlColor} from "./functions/color-functions";
+import {getRgba} from "./functions/color-functions";
 import {fill} from "./functions/pixel-functions";
 import {angle, vec} from "./functions/vector-functions";
 
@@ -232,44 +232,44 @@ export default {
     },
 watch: {
     currentColor() {
-        this.setBrushParams();
+        this.setToolParams();
     },
     currentSettings: {
-    deep: true,
-    handler(val, prev) {
-        this.setCursor();
-        this.setBrushParams();
-        if(val.pattern) {
-            if(!this.canvasPattern || 
-                val.pattern.src !== this.canvasPattern.img.src ||
-                val.patternScale !== this.canvasPattern.scale) {
-                this.canvasPattern = {
-                    scale: val.patternScale,
-                    img: new Image()
-                };
-                this.canvasPattern.img.onload = () => {
-                    let c = document.createElement("canvas");
-                    c.width = val.patternScale * this.canvasPattern.img.width;
-                    c.height = val.patternScale * this.canvasPattern.img.height;
-                    let ctx = c.getContext("2d");
-                    ctx.drawImage(this.canvasPattern.img, 
-                        0, 0, this.canvasPattern.img.width, this.canvasPattern.img.height, 
-                        0, 0, c.width, c.height );
+        deep: true,
+        handler(val, prev) {
+            this.setCursor();
+            this.setToolParams();
+            if(val.pattern) {
+                if(!this.canvasPattern || 
+                    val.pattern.src !== this.canvasPattern.img.src ||
+                    val.patternScale !== this.canvasPattern.scale) {
+                    this.canvasPattern = {
+                        scale: val.patternScale,
+                        img: new Image()
+                    };
+                    this.canvasPattern.img.onload = () => {
+                        let c = document.createElement("canvas");
+                        c.width = val.patternScale * this.canvasPattern.img.width;
+                        c.height = val.patternScale * this.canvasPattern.img.height;
+                        let ctx = c.getContext("2d");
+                        ctx.drawImage(this.canvasPattern.img, 
+                            0, 0, this.canvasPattern.img.width, this.canvasPattern.img.height, 
+                            0, 0, c.width, c.height );
 
-                    this.canvasPattern.pattern = 
-                    this.tempCtx.createPattern(c, "repeat");
-                };
-                this.canvasPattern.img.src = val.pattern.src;
-            }
-        } else 
-        this.canvasPattern = null;
-    }
+                        this.canvasPattern.pattern = 
+                        this.tempCtx.createPattern(c, "repeat");
+                    };
+                    this.canvasPattern.img.src = val.pattern.src;
+                }
+            } else 
+            this.canvasPattern = null;
+        }
     },
     currentTool() {
         if(!this.shortcutTool)
             this.pointerActions = this.pointerActionsMap[this.currentTool];
 
-        this.setBrushParams();
+        this.setToolParams();
         this.setCursor();    
     
         if(this.selection) {            
@@ -555,10 +555,10 @@ mounted() {
     this.marker = new Marker();
     this.selCtx = this.$refs.selection.getContext("2d");
 
-    this.setBrushParams();
+    this.setToolParams();
     this.setSize({
-        width: 1400,
-        height: 1200
+        width: 800,
+        height: 600
     }, true);   
 
     this.newDrawing();
@@ -611,26 +611,21 @@ methods: {
         this.viewMode = this.viewMode == "normal" ? "full" : "normal";
         this.setSizeFactor();
     },
-    setBrushParams() {
-        if(this.currentTool == "brush" || this.currentTool == "eraser")
-            this.brush.setParams({
-            ...this.currentSettings, 
-            radius: this.currentSettings.radius * this.sizes.px_ratio,
-            color: getGlColor(this.currentColor),
-            linearGradient: this.currentSettings.linearGradient ? 
-                this.currentSettings.linearGradient.map(getGlColor) 
-            : false,
-            radialGradient: this.currentSettings.radialGradient ? 
-                this.currentSettings.radialGradient.map(getGlColor) 
-            : false,
-        });
+    setToolParams() {        
+        if(this.currentSettings.webglTool) {
+            const {values, dynamics, webglTool} = this.currentSettings;
+            const settings = {
+                values: Object.assign({}, values),
+                dynamics,
+                color: this.currentColor
+            };
+            if(values.radius) settings.values.radius *= this.sizes.px_ratio;
+            if(values.lineWidth) settings.values.lineWidth *= this.sizes.px_ratio;
 
-        if(this.currentTool == "marker" )
-            this.marker.setParams({
-            ...this.currentSettings, 
-            lineWidth: this.currentSettings.lineWidth * this.sizes.px_ratio,
-            color: getGlColor(this.currentColor)
-        });
+            console.log(settings)
+
+            this[webglTool].setParams(settings);
+        }
     },
     changeZoom(dir) {
         if(
@@ -723,8 +718,8 @@ methods: {
     initControls() {
         this.pressure = 0;
 
-        this.cursorStyles.width = this.currentSettings.radius * 2 + "px";
-        this.cursorStyles.height = this.currentSettings.radius * 2 + "px";
+        this.cursorStyles.width = this.currentSettings.values.radius + "px";
+        this.cursorStyles.height = this.currentSettings.values.radius + "px";
 
 
         document.addEventListener("keydown", e => {     
@@ -1054,7 +1049,7 @@ methods: {
         let color0 = Array.from(this.currentLayer.ctx.getImageData(...coords, 1, 1).data);         
 
 
-        let data1 = fill([coords.map(c => Math.round(c / accuracy))], positions, data, color, color0, ...sizes, this.currentSettings.tolerance);
+        let data1 = fill([coords.map(c => Math.round(c / accuracy))], positions, data, color, color0, ...sizes, this.currentSettings.values.tolerance);
         let imgData = new ImageData(data1, sizes[0]);
         this.tempCtx.clearRect(0,0, ...sizes);
         this.tempCtx2.clearRect(0, 0,  this.sizes_hr.width, this.sizes_hr.height);
@@ -1062,12 +1057,7 @@ methods: {
         
 
         if(this.selection) {                  
-            if(this.currentSettings.pattern && this.canvasPattern) {    
-                this.tempCtx2.globalCompositeOperation = "source-in";
-                this.tempCtx2.fillStyle = this.canvasPattern.pattern;
-                this.tempCtx2.fillRect( 0, 0,this.sizes_hr.width, this.sizes_hr.height);
-                this.tempCtx2.globalCompositeOperation = "source-over"; 
-            } 
+            this._fillIfPattern();
             this.tempCtx.clearRect(0,0, this.sizes_hr.width, this.sizes_hr.height);
             this.selection.clip(this.tempCtx);
             this.tempCtx.drawImage(this.tempCtx2.canvas, 0, 0, ...sizes, 0, 0, this.sizes_hr.width, this.sizes_hr.height);
@@ -1076,17 +1066,20 @@ methods: {
             this.tempCtx.drawImage(this.tempCtx2.canvas, 0, 0, ...sizes, 0, 0, this.sizes_hr.width, this.sizes_hr.height);
         }
 
-        if(this.currentSettings.pattern && this.canvasPattern) {    
-            this.tempCtx.globalCompositeOperation = "source-in";
-            this.tempCtx.fillStyle = this.canvasPattern.pattern;
-            this.tempCtx.fillRect( 0, 0, this.sizes_hr.width, this.sizes_hr.height);
-            this.tempCtx.globalCompositeOperation = "source-over"; 
-        }       
+        this._fillIfPattern();       
 
         this.writeHistory();
         this.currentLayer.ctx.drawImage(this.tempCtx.canvas, 0, 0);
         
         this.applyTemp();
+    },
+    _fillIfPattern() {
+        if(this.currentSettings.values.pattern.enabled && this.canvasPattern) {    
+            this.tempCtx2.globalCompositeOperation = "source-in";
+            this.tempCtx2.fillStyle = this.canvasPattern.pattern;
+            this.tempCtx2.fillRect( 0, 0,this.sizes_hr.width, this.sizes_hr.height);
+            this.tempCtx2.globalCompositeOperation = "source-over"; 
+        } 
     },
     layerToSelection(id) {
         this.selectLayer(id);
@@ -1189,27 +1182,26 @@ methods: {
         this.render(true);        
     },
     setCursor() {
+        const {values} = this.currentSettings;
         this.cursorStyles.transform = null;
         this.cursorStyles["background-image"] = null;
         this.cursorStyles.width = null;
         this.cursorStyles.height = null;
         if(this.translation) this.cursorClasses = ["grab"];
-        else this.cursorClasses = [this.currentSettings.shape];
+        else this.cursorClasses = [values.shape];
         if(!this.shortcutTool && ["brush", "eraser", "marker"].indexOf(this.currentTool) !== -1) {                
             if(this.currentTool == "marker") {
-                this.cursorStyles.height = this.currentSettings.lineWidth  + "px";
+                this.cursorStyles.height = values.lineWidth  + "px";
                 this.cursorStyles.width = "15px";
             } else {
-                this.cursorStyles.width = this.currentSettings.radius * this.zoom  + "px";
-                this.cursorStyles.height =this.currentSettings.radius * this.zoom  + "px";
+                this.cursorStyles.width = values.radius * this.zoom  + "px";
+                this.cursorStyles.height = values.radius * this.zoom  + "px";
             }
             this.cursorStyles["background-color"] = "transparent"; 
-            if(this.currentSettings.texture) {
+            if(values.texture) {
                 this.cursorClasses = ["texture"];
-                this.cursorStyles["background-image"] = `url(${this.currentSettings.texture.src})`;
-            } else {
-                this.cursorClasses = [this.currentSettings.shape];
-            }        
+                this.cursorStyles["background-image"] = `url(${values.texture.src})`;
+            }    
         }
         
 
@@ -1302,7 +1294,7 @@ methods: {
             this.sizes.px_ratio = px_ratio;
             if(this.selection) 
                 this.selection.setPxRatio(this.sizes.px_ratio);
-            this.setBrushParams();
+            this.setToolParams();
         }
 
         this.setSizeFactor();
@@ -1572,7 +1564,7 @@ body {
 }
 
 #canvas-container {    
-    border: 2px solid black;
+    outline: 2px solid black;
     box-sizing: border-box;
     overflow: auto;
     background-image: url("./assets/img/forest.jpg");

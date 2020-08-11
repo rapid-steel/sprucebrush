@@ -19,12 +19,12 @@ Object.keys(assets).forEach(k => {
         .sort((f1, f2) => f1 > f2 ? 1 : -1)
         .forEach(file => assets[k].push({
             k: path.basename(file, path.extname(file)),
-            src: `./assets/img/${k}/${file}`
+            src: `../assets/img/${k}/${file}`
         }));
     }
 });
 
-fs.writeFileSync("./src/assets.js", `
+fs.writeFileSync("./src/store/assets.js", `
 const assets = {
     ${Object.keys(assets).map(k => {
         return `${k} : [${

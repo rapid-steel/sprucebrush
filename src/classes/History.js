@@ -1,5 +1,3 @@
-const DEBUG = process.env.NODE_ENV !== "production";
-
 export default class History {
     constructor(size = 10) {
       this.size = size;

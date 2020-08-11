@@ -1,6 +1,6 @@
 import Vue from 'vue';
 import App from './App.vue';
-import store from './store';
+import store from './store/index';
 import i18n from "./i18n";
 import vSelect from 'vue-select';
 import ColorPicker from 'vue-color-picker-wheel';
@@ -11,7 +11,6 @@ Vue.config.productionTip = false;
 if(process.env.NODE_ENV === 'production')
   if(navigator.languages[0].indexOf("ru") == 0)
     i18n.locale = "ru";
-
 
 Vue.filter('gradientBG', function(gradient, gradientType="linear", dir="to right") {
   if(gradientType == 'radial') 

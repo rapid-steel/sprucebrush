@@ -108,6 +108,8 @@ export default {
         settings: {
             radius: "Diameter", 
             blurRadius: "Softness",
+            angle: "Angle",
+            stretch: "Stretch",
             lineWidth: "Width",
             curveSmoothing: "Smooth curve",
             angleSmoothing: "Smooth angle",
@@ -121,9 +123,14 @@ export default {
             pattern: "Pattern",
             importPattern: "Import pattern",
             pixel: "Pixel",
-            linearGradient: "Linear gradient",
+            gradient: "Gradient",
             length: "Length",
-            radialGradient: "Radial gradient",
+            gradientType: {
+                linear: "Linear",
+                radial: "Radial",
+                x: "By width",
+                y: "By length"
+            },
             createGradient: "Create gradient",
             none: "None"
         },
