@@ -11,7 +11,7 @@ export default {
             opacity: 1,
             spacing: .05,  
             angle: 0,
-            stretch: 0,
+            stretch: 1,
             shape: "round",
             hardness: 1,
             overlay: false,
@@ -21,13 +21,13 @@ export default {
         },
         webglTool: "brush",
         dynamics: {
-            radius: {type: 0, length: 100, range: 1},
+            radius:  {type: 0, length: 100, range: 1},
             opacity: {type: 0, length: 100, range: 1},
-            stretch:  {type: 0, length: 100, range: 1},
-            angle: {type: 0, length: 100, range: 1},
+            stretch: {type: 0, length: 100, range: 1},
+            angle:   {type: 0, length: 100, range: 1},
         },
         textype: "brush",  
-        gradientsTypes: ['by_len', 'radial']              
+        gradientTypes: ['by_len', 'radial']              
     },
     eraser: {
         values: {
@@ -35,13 +35,12 @@ export default {
             opacity: 1,
             spacing: .05,  
             angle: 0,
-            stretch: 0,
+            stretch: 1,
             hardness: 1,
             shape: "round",
             overlay: false,
             pixel: false,      
             texture: false,
-            gradient: {enabled: false}
         },
         webglTool: "brush",
         dynamics: {
@@ -51,7 +50,7 @@ export default {
             angle: {type: 0, length: 100, range: 1},
         },
         textype: "brush",     
-        gradientTypes: ['by_len', 'by_wid']   
+        gradientTypes: []   
     },
     fill: {
         values: {
@@ -71,10 +70,11 @@ export default {
         },
         webglTool: "marker",
         dynamics: {
-            lineWidth: {type: 2, length: 100, range: 1},
-            opacity: {type: 2, length: 100, range: 1},
+            lineWidth: {type: 0, length: 100, range: 1},
+            opacity:   {type: 0, length: 100, range: 1},
         },             
         textype: "marker",
+        gradientTypes: ['by_len', 'by_wid']   
     },
     pen: {
         values: {}

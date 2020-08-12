@@ -1196,6 +1196,12 @@ methods: {
             } else {
                 this.cursorStyles.width = values.radius * this.zoom  + "px";
                 this.cursorStyles.height = values.radius * this.zoom  + "px";
+                this.cursorStyles.transform = [ 
+                    `translate(-50%,-50%)`,
+                    `rotate(${values.angle}deg)`,                    
+                    `scale(${Math.min(1, values.stretch)},${Math.min(1, 1 / values.stretch)})`,
+                   
+                ].join("");
             }
             this.cursorStyles["background-color"] = "transparent"; 
             if(values.texture) {
@@ -1457,7 +1463,9 @@ input[type=number] {
     outline: none;
 }
 
-
+ul[role=listbox] {
+    z-index: 10000000000000000;
+}
 
 
 .icon-btn {
@@ -1620,6 +1628,7 @@ body {
     z-index: -1;
     visibility: hidden;
     transform: translate(-50%,-50%);
+    transform-origin: 50% 50%;
 
     &.brush, &.eraser, &.picker, &.marker {
         border: .5px solid rgba(255,255,255,.75);
@@ -1631,19 +1640,19 @@ body {
             border-radius: 50%;
         }      
         &.texture {
-                max-width: unset;
-                background: {
-                    repeat: no-repeat;
-                    position: center;
-                    size: 100% 100%;                
-                };
-                border: none;
-                box-shadow: none;
-                filter: url(#outline);
+            max-width: unset;
+            background: {
+                repeat: no-repeat;
+                position: center;
+                size: 100% 100%;                
+            };
+            border: none;
+            box-shadow: none;
+            filter: url(#outline);
         }
     }
     &.marker {
-        transform-origin: center;
+        
     }
     &.hand, 
     &.grab {
@@ -1695,8 +1704,8 @@ body {
         background-image: url("./assets/img/crosshair.png");
         background-size: cover;
         &.rotate {
-            width: 15px!important;
-            height: 15px!important;
+            width: 16px!important;
+            height: 16px!important;
             background-image: url("./assets/img/rotate.svg");
         }
         &.resize {

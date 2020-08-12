@@ -3,16 +3,9 @@
     :style="menuPosition"
     @pointerdown.stop
     @pointerup.stop >
-    <template v-if="currentTool == 'brush'">
-        <div>
-            <div v-for="s in actualSettings" :key="s.k">
-                <div class="caption">{{$t('tools.settings.' + s.k)}}:</div>
-                <RangeInput :min="s.min" :max="s.max" :step="s.step" :horizontal="true"
-                v-model="currentSettings[s.k]"
-                @input="v => set({[s.k]: v})" />
-            </div>
-
-        </div>
+    <ActualSettings />
+    <template v-if="currentSettings.webglTool == 'brush'">        
+        <BrushTransformation />
     </template>
 
     <template v-if="activeSelection">
@@ -24,26 +17,19 @@
 
 <script>
 import {mapState, mapGetters} from 'vuex';
+import BrushTransformation from "./BrushTransformation";
+import ActualSettings from "./ActualSettings";
+
 export default {
     props: ['position'],
     data() {
         return {
-            settings: [
-                {k: "radius", min: 1, max: 1000, step: 1},
-                {k: "lineWidth", min: 1, max: 1000, step: 1},
-                {k: "curveSmoothing", min: 1, max: 25, step: 1},
-                {k: "angleSmoothing", min: 1, max: 25, step: 1},
-                {k: "opacity",  min: .01, max: 1, step: .01},
-                {k: "spacing",  min: 0.001, max: 10, step: .001},
-                {k: "tolerance", min: 1, max: 255, step: 1}
-            ],
         };
     },
+    components: {
+        BrushTransformation, ActualSettings
+    },
     computed: {
-        
-        actualSettings() {
-            return this.settings.filter(s => this.currentSettings[s.k] != undefined);
-        },
         menuPosition() {
             return { 
                 left: this.position[0] + 'px',
@@ -65,13 +51,39 @@ export default {
 }
 </script>
 
-<style lang="scss" scoped>
+<style lang="scss">
 @import "../assets/styles/colors";
 
 .context-menu {
     background-color: $color-bg;
     position: fixed;
     z-index: $z-index-context-menu;
+    display: flex;
+    padding: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0, .3);
+    .actual-settings {
+        .setting-value {
+            margin: 8px;
+            .icon {
+                width: 30px;
+                height: 30px;
+                margin-right: 8px;
+            }
+            input{
+                font-size: 1.2em;
+                width: 60px;
+            }
+            
+        }
+    }
+    .brush-transformation {    
+        margin-left: 10px;
+        margin-top: 10px;
+        .world-axes {
+            width: 100px;
+            height: 100px;
+        }
+    }
 }
 
 </style>

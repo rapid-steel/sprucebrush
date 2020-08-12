@@ -7,13 +7,12 @@ export default class Brush extends ToolWebGL {
         super();
         this.points = [];
         this.buffers = {
-            vertices: { attrib: "coordinates", size: 2, type: this.gl.FLOAT },
+            vertices: { attrib: "coordinates", size: 2, type: this.gl.FLOAT },            
+            indexes:  { attrib: "index",  size: 1, type: this.gl.FLOAT },
             pressures: { attrib: "pressure", size: 1, type: this.gl.FLOAT },
-            indexes:  { attrib: "index",  size: 1, type: this.gl.FLOAT }
         };
+
         this.PRIMITIVE_TYPE = this.gl.POINTS;
-        this.createVertShader = createVertShader;
-        this.createFragShader = createFragShader;
         this.pointStep = 1;
         this.index = 0;
 
@@ -44,8 +43,8 @@ export default class Brush extends ToolWebGL {
             uniform float stretch_dynlen;
             
             attribute vec2 coordinates;
-            attribute float pressure;
             attribute float index;
+            attribute float pressure;
             
     
             varying float vOpacity;
@@ -55,6 +54,7 @@ export default class Brush extends ToolWebGL {
             varying mat2 angleMat;
     
             ${this.commonCodeBlocks.dynamics}
+            #define DIAG 1.41421
     
             void main(void) { 
                 gl_Position = vec4(
@@ -109,8 +109,9 @@ export default class Brush extends ToolWebGL {
                 #endif
     
     
-                vOpacity = opacity * min(1.0, spacing * 4.0);
-    
+                //vOpacity = opacity * min(1.0, spacing * 4.0);
+                vOpacity = opacity;
+                    
                 #if OPACITYDYNAMICS == 1
                     vOpacity = dynamics_down(vOpacity, linePos, opacity_dynlen); 
                 #elif OPACITYDYNAMICS == 2
@@ -120,6 +121,10 @@ export default class Brush extends ToolWebGL {
                 #endif
     
                 vRadius = gl_PointSize;
+                
+                #if defined RECT || defined TEXTURE
+                gl_PointSize = vRadius * DIAG;
+                #endif
                 
                 vIndex = index;    
                 angleMat = mat2(
@@ -135,6 +140,7 @@ export default class Brush extends ToolWebGL {
         #ifdef GL_OES_standard_derivatives
         #extension GL_OES_standard_derivatives : enable
         #endif
+        #define DIAG 1.41421
     
         precision highp float;
         uniform float spacing;
@@ -172,10 +178,11 @@ export default class Brush extends ToolWebGL {
             if(vStretch > 1.0)
                 cxy.y *= vStretch;
             else cxy.x /= vStretch;
-            gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
-    
-           
-    
+            gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);   
+
+            #ifndef ROUND
+                cxy = cxy * DIAG;
+            #endif
     
             #ifndef TEXTURE        
             # ifdef ROUND
@@ -188,10 +195,12 @@ export default class Brush extends ToolWebGL {
                     if(r > 1.0) discard;                
             #  endif
             # else
-            #  if defined SMOOTH && defined GL_OES_standard_derivatives
                 float r = max(abs(cxy.x), abs(cxy.y)); 
+            #  if defined SMOOTH && defined GL_OES_standard_derivatives                
                 float delta = fwidth(r);
                 alpha = alpha - smoothstep(hardness - delta, 1.0 + delta, r);
+            #  else
+                if(r > 1.0) discard;
             #  endif
             # endif
     
@@ -244,10 +253,6 @@ export default class Brush extends ToolWebGL {
         if(this.programProps.gradient) {
             if(this.programProps.by_len) 
                 this.programParams.linearGradientLength = "1f";
-            let colors = this.programProps.colors;
-            for(let i = 1; i <= colors; i++) {
-                this.programParams["color" + i] = "3fv";
-            }
         } else {
             this.programParams.color = "3fv";
         }

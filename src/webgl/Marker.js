@@ -1,6 +1,6 @@
 import ToolWebGL from "./ToolWebGL";
 import {vec, normal, length, invert, equal, angle, rotateY, average} from "../functions/vector-functions";
-import {n2} from "../functions/math-functions"
+
 
 const DEBUG = process.env.NODE_ENV !== 'production';
 export default class Marker extends ToolWebGL {
@@ -37,8 +37,8 @@ export default class Marker extends ToolWebGL {
     attribute float lineLength;
     attribute float index;
     attribute float pressure;
-    uniform float opacity;
 
+    uniform float opacity;
     uniform float opacity_dynr;
     uniform float opacity_dynlen;
     uniform float lineWidth_dynr;

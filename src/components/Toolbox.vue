@@ -30,33 +30,67 @@
         </div>      
     </div>
 
+
+
     <div class="settings">
-        <div v-for="s in actualSettings" :key="s.k">
-            <div class="caption">{{$t('tools.settings.' + s.k)}}:</div>
-            <RangeInput :min="s.min" :max="s.max" :step="s.step" :horizontal="true"
-            v-model="currentSettings.values[s.k]"
-            @input="v => set({values: {[s.k]: v}})" />
+        <ActualSettings />
+
+        <div v-if="currentSettings.webglTool == 'brush'">
+            <BrushTransformation />
+            <Shapes />
         </div>
 
-        <div class="shapes" 
-            :class="{disabled: !!currentSettings.values.texture}" 
-            v-if="currentSettings.values.shape !== undefined">
-            <div class="caption">{{$t('tools.settings.shape')}}</div>
-            <div v-if="!currentSettings.values.texture">
-                <div v-for="shape in shapes" 
-                :key="shape.k" 
-                class="shape"
-                :class="{active: currentSettings.values.shape == shape.k, [shape.k]: true}"
-                @click.stop="() => set({values: {shape: shape.k}})">
-                </div>
-            </div>
-            <div class="input-checkbox" v-if="currentSettings.values.pixel !== undefined && !currentSettings.values.texture">
-                <div class="caption">{{$t('tools.settings.pixel')}}</div>
-                <input type="checkbox" 
-                :checked="currentSettings.values.pixel" 
-                @input="e => set({values: {pixel: !!e.target.checked}})" >
-            </div>
+        <div v-if="currentSettings.webglTool">
+              <div class="side-list-header">
+                <div class="caption">{{$t('tools.settings.dynamics')}}</div>
+                <SideList>
+                    <div v-for="(dynamics, k) in currentSettings.dynamics" 
+                    class="setting-dynamic"
+                    :key="k">
+                        <div class="caption">{{$t('tools.settings.' + k)}}</div>
+                        <v-select 
+                            :options="Object.values(settings.dynamics)
+                                .filter(opt => opt.props == 'all' || opt.props.indexOf(k) > -1)"
+                            :reduce="opt => opt.n"
+                            v-model="dynamics.type"
+                            :label="'k'"
+                            :clearable="false"
+                            :appendToBody="true"
+                            :searchable="false"   
+                            @input="v => setDynamics(k, {type: v})"
+                        >
+                            <template v-slot:option="option">
+                                <span>{{$t('tools.settings.dynamicTypes.' + option.k)}}</span>
+                            </template>
+                        </v-select>
+                        <RangeInput
+                            v-if="settings.dynamics[dynamics.type].range"
+                            :min="0" 
+                            :max="1" 
+                            :step=".01" 
+                            :horizontal="true"
+                            v-model="dynamics.range"
+                            @input="v => setDynamics(k, {range: v})"
+                        />
+                        <RangeInput
+                            v-if="settings.dynamics[dynamics.type].length"
+                            :min="1" 
+                            :max="100000" 
+                            :step="1" 
+                            :horizontal="true"
+                            v-model="dynamics.length"
+                            @input="v => setDynamics(k, {length: v})"
+                        />
+
+
+
+                    </div>
+                </SideList>
+              </div>
+            
         </div>
+
+        
 
         <div class="textures" v-if="currentSettings.values.texture !== undefined">
             <div class="side-list-header">
@@ -92,12 +126,6 @@
                     @click.stop="() => set({values: {texture: false}})"></button>
                     <img :src="currentSettings.values.texture.src"> 
                 </div>
-            </div>
-             <div class="input-checkbox"  v-if="currentSettings.values.texture && currentSettings.values.textureColor !== undefined">
-                <div class="caption">{{$t('tools.settings.textureColor')}}</div>
-                <input type="checkbox" 
-                :checked="currentSettings.values.textureColor" 
-                @input="e => set({textureColor: !!e.target.checked})" >
             </div>
 
         </div>
@@ -138,11 +166,13 @@
                 </div>
             </div>
 
-            <div class="gradient-length" v-if="!!currentSettings.values.pattern">
-                <div class="caption">Scale</div>
+            <div class="setting-value" v-if="!!currentSettings.values.pattern">
+                <img class="icon" 
+                    :src="require('../assets/img/' + settings.pattern.scale.icon)" 
+                    :title="$t('tools.settings.scale')">
                     <RangeInput :min=".1" :step=".01" :max="10" :horizontal="true"
                     v-model="currentSettings.values.pattern.scale"
-                    @input="v => set({values: { pattern: {...currentSettings.values.pattern, scale } }})" />
+                    @input="v => setValue({ pattern: {...currentSettings.values.pattern, scale }})" />
             </div>   
         </div>
 
@@ -161,59 +191,56 @@
                         :key="i" class="gradient"
                         :class="{active: currentSettings.values.gradient.k == gradient.k}"
                         :style="gradient | gradientBG"
-                        @click.stop="() => set({
-                            values: {
-                                gradient: {
-                                    ...currentSettings.values.gradient, 
-                                    ...gradient,
-                                    enabled: true
-                                }
-                            }
-                        })">
+                        @click.stop="() => setGradient(gradient)">
                         <button class="icon-btn small edit" 
                         @click.stop="() => editGradient(i)"></button>
                         <button class="icon-btn small delete" 
                         @click.stop="() => $store.commit('deleteGradient', i)"></button>
                     </div>
                     <template slot=footer>
-                        <button class="create-gradient" @click="createGradient">{{$t('tools.settings.createGradient')}}</button>
+                        <button class="create-gradient" 
+                        @click="createGradient">{{$t('tools.settings.createGradient')}}</button>
                     </template>
                 </SideList>
             </div>
 
-            <div v-if="currentSettings.values.gradient.enabled">
-                <div class="gradient current" :style="{}">
-                    <button class="icon-btn small cancel" 
-                    @click.stop="resetGradient"></button>
+            <template v-if="currentSettings.values.gradient.enabled">
+                <div class="select-type">
+                    <img class="icon" 
+                        v-for="type in currentSettings.gradientTypes"
+                        :key="type"
+                        :class="{active: type == currentSettings.values.gradient.type}"
+                        :src="require('../assets/img/' + settings.gradient.types[type].icon)"
+                        @click.stop="() => setGradientType(type)"                                                         
+                     />
                 </div>
-            </div>
+                
+                <div>
+                    <div class="gradient current" :class="currentSettings.values.gradient.type"
+                        :style="currentSettings.values.gradient.colors | 
+                        gradientBG(currentSettings.values.gradient.type, currentSettings.values.gradient.type == 'by_wid' ? 'to bottom' : 'to right')">
+                        <button class="icon-btn small cancel" 
+                        @click.stop="resetGradient"></button>
+                    </div>
+                </div>
 
-            <div class="gradient-length" v-if="gradientLength">
-                <div class="caption">{{$t('tools.settings.length')}}</div>
+                <div class="setting-value"  v-if="currentSettings.values.gradient.type == 'by_len'">
+                    <img class="icon" 
+                        :src="require('../assets/img/' + settings.gradient.length.icon)" 
+                        :title="$t('tools.settings.length')">
                     <RangeInput 
-                    :min="gradientLength.min" 
-                    :max="gradientLength.max" 
-                    :step="gradientLength.step" 
-                    :horizontal="true"
-                    v-model="currentSettings.values.gradient.length"
-                    @input="() => set({
-                            values: {
-                                gradient: {
-                                    ...currentSettings.values.gradient, 
-                                    length: v
-                                }
-                            }
-                        })" />
-            </div>       
+                        :min="settings.gradient.length.min" 
+                        :max="settings.gradient.length.max" 
+                        :step="settings.gradient.length.step" 
+                        :horizontal="true"
+                        v-model="currentSettings.values.gradient.length"
+                        @input="setGradientLength" />
+                </div>     
+            </template>
+
+         
         </div>
-
-
-        
     </div>
-
-    
-
-
     <GradientCreator 
         v-if="gradientToEdit" 
         v-model="gradientToEdit.gradient"
@@ -230,12 +257,15 @@
 import {mapState} from "vuex";
 import SideList from "./SideList";
 import GradientCreator from "./GradientCreator";
+import BrushTransformation from "./BrushTransformation";
+import ActualSettings from "./ActualSettings";
+import Shapes from "./Shapes";
 import {round2n} from "../functions/math-functions";
 
 export default {
     name: 'Tools',
     components: {
-        SideList, GradientCreator
+        SideList, GradientCreator, BrushTransformation, ActualSettings, Shapes
     },
     data() {
         return {
@@ -264,30 +294,7 @@ export default {
                 key: "Ctrl + A", 
                 show: () => true
             }],
-            gradientTypes: {
-                by_len: {length: {min: 10, max: 100000, step: 1} },
-                radial: {},
-                by_wid: {}                
-            },
-            dynamicsTypes: [
-                {n: 0, k: "disabled"},
-                {n: 1, k: "fade"},
-                {n: 2, k: "periodic_max"},
-                {n: 3, k: "pressure"},
-                {n: 4, k: "periodic_ampl"},
-                {n: 5, k: "circular"}
-            ],
-            gradientToEdit: null,
-            settings: [
-                {k: "radius", min: 1, max: 1000, step: 1},
-                {k: "lineWidth", min: 1, max: 1000, step: 1},
-                {k: "curveSmoothing", min: 1, max: 25, step: 1},
-                {k: "angleSmoothing", min: 1, max: 25, step: 1},
-                {k: "opacity",  min: .01, max: 1, step: .01},
-                {k: "angle", min: 0, max: 359, step: 1},
-                {k: "spacing",  min: 0.01, max: 10, step: .01},
-                {k: "tolerance", min: 1, max: 255, step: 1}
-            ],
+            gradientToEdit: null,          
             tools: [{
                 group: "drawing",
                 items: [
@@ -315,13 +322,11 @@ export default {
         }
     },
     computed: {
-        ...mapState(['currentTool', 'types', 'patterns', 'shapes', 'gradients', 'currentColor', 'colorBG', 'activeSelection']),
+        ...mapState(['settings', 'currentTool', 'types', 'patterns',  'gradients', 'currentColor', 'colorBG', 'activeSelection']),
         textures() {
             return this.$store.state.textures[this.currentSettings.textype];
-        },
-        actualSettings() {
-            return this.settings.filter(s => this.currentSettings.values[s.k] != undefined);
-        },
+        },       
+       
         currentItem() {
             for(let i = 0; i < this.tools.length; i++) {
                 let item = this.tools[i].items.find(item => item.name == this.currentTool);
@@ -343,11 +348,38 @@ export default {
 
     },
     methods: {
+        setDynamics(prop, updates) {
+            console.log(prop, updates)
+            Object.assign(this.currentSettings.dynamics[prop], updates);
+               this.$store.commit("changeSettings", {
+                instrument: this.currentTool,
+                updates: {
+                    dynamics: Object.assign({}, this.currentSettings.dynamics)
+                }
+            });
+        },
+        setGradient(colors) {
+            this.currentSettings.values.gradient.enabled = true;
+            this.currentSettings.values.gradient.colors = colors;
+            this.set({
+                values: {
+                    gradient: Object.assign({}, this.currentSettings.values.gradient)
+                }
+            });
+        },
+        setGradientType(type) {
+            this.currentSettings.values.gradient.type = type;
+            this.set({
+                values: {
+                    gradient: Object.assign({}, this.currentSettings.values.gradient)
+                }
+            });
+        },
         resetGradient() {
             this.currentSettings.values.gradient.enabled = false;
             this.set({
                 values: {
-                    gradient: this.currentSettings.values.gradient 
+                    gradient: Object.assign({}, this.currentSettings.values.gradient)
                 }
             });
         },
@@ -415,6 +447,17 @@ export default {
         select(instrument) {
             this.$store.commit("selectInstrument", instrument.name);
         },
+        setValue(obj) {
+            this.set({values: obj});
+        },
+        setGradientLength(v) {
+            this.currentSettings.values.gradient.length = v;
+            this.set({
+                values: {
+                    gradient: Object.assign({}, this.currentSettings.values.gradient)
+                }
+            });
+        },
         set(updates) {
             this.$store.commit("changeSettings", {
                 instrument: this.currentTool,
@@ -477,59 +520,54 @@ export default {
     & > div {
         margin: 10px 0;
     }
+    .setting-value {
+        display: flex;
+        justify-content: space-between;
+    }
 }
 
 .gradient-length {
     width: 100%;
 }
-.settings, .gradient-length {
+
+.setting-value {
+    margin: 5px 0;
+    display: flex;
+}
+.settings, 
+.gradient-length {
     .range-input {
         text-align: right;
-        margin-top: 5px;
-        width: 100%;
     }
-    input {
-        border: $input-border;
-        border-radius: 0;
-        width: 40px;
-        padding: 5px;
-        font: $font-input;
-        text-align: right;
+    .setting-value,
+    .input-checkbox {
+        margin-right: 3px;
+    }
+}
+input[type=number] {
+    border: $input-border;
+    border-radius: 0;
+    width: 40px;
+    padding: 5px;
+    font: $font-input;
+    text-align: right;
+}
+img.icon {
+    width: $settings-icon-size;
+    height: $settings-icon-size;
+    display: inline-block;
+}
+
+
+.select-type {
+    display: flex;
+    justify-content: space-around;
+    & > .active {
+        box-shadow: 0 0 1px 1px $color-accent2;
     }
 }
 
 
-
-
-.shapes {
-    &.disabled {
-        opacity: .5;
-        pointer-events: none;
-    }
-    & > div:nth-child(2) {
-        display: flex;
-        justify-content: space-around;
-    }
-    .shape {
-        flex: 1 1 $shape-size;
-        max-width: $shape-size * 1.5;
-        margin: 5px;
-        &.active {
-            box-shadow: 0 0 1px 1px $color-accent2;
-        }
-        &::after {
-            content: "";
-            display: block;
-            background: black;
-            width: $shape-size;
-            height: $shape-size;
-            margin: 5px auto;
-        }
-        &.round::after {
-            border-radius: 50%;            
-        }
-    }
-}
 .notexture {
     background-image: url("../assets/img/none.jpg");
     background-size: contain;
@@ -547,8 +585,9 @@ export default {
 .textures, .gradients {
     margin-top: 20px!important;
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     justify-content: space-between;
+    align-items: stretch;
     .side-list-header {
         display: flex;
         justify-content: space-between;
@@ -563,7 +602,6 @@ export default {
     .expanded-list {
         width: $gradient-list-size * 2 + 50px;
     }
-
 }
 
 .input-checkbox {
@@ -588,7 +626,7 @@ export default {
             line-height: $ckbx-size;
             text-align: center;
         }
-        &:checked {
+        &.checked {
             &::after {
                 background: $color-accent;                
                 content: '\2713';
@@ -643,6 +681,7 @@ export default {
     border: 1px solid black;
     &.current {
         max-width: $tool-panel-width - 10px;
+        margin: 5px auto 8px;
     }
     &.radial {
         width: $gradient-radial-size;
@@ -651,6 +690,10 @@ export default {
     }
 }
 
+.brush-transformation .world-axes {
+    width: 60px;
+    height: 60px;
+}
 
 .controls {
     text-align: center;
@@ -685,6 +728,11 @@ export default {
         margin: 0 10px;
         font: $font-btn;
     }
+}
+
+.setting-dynamic {
+    width: 100%;
+    display: flex;
 }
 
 </style>

@@ -45,6 +45,9 @@ const assets = {
             },{
                 k: "d_01",
                 src: require("../assets/img/textures_brush/d_01.png")
+            },{
+                k: "d_02",
+                src: require("../assets/img/textures_brush/d_02.png")
             }],textures_roller : [{
                 k: "a_01",
                 src: require("../assets/img/textures_roller/a_01.png")

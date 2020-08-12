@@ -121,6 +121,7 @@ export default {
             textureColor: "Colorize",
             importTexture: "Import texture",
             pattern: "Pattern",
+            scale: "Scale",
             importPattern: "Import pattern",
             pixel: "Pixel",
             gradient: "Gradient",
@@ -130,6 +131,15 @@ export default {
                 radial: "Radial",
                 x: "By width",
                 y: "By length"
+            },
+            dynamics: "Dynamics",
+            dynamicTypes: {
+                disabled: "Disabled",
+                fade: "Fade",
+                periodic_max: "Periodic",
+                periodic_ampl: "Periodic",
+                pressure: "Presure",
+                circular: "Circular"
             },
             createGradient: "Create gradient",
             none: "None"

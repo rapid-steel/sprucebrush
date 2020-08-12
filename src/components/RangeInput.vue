@@ -3,7 +3,7 @@
         :class="{horizontal}"
         ref="container"
         @mouseenter="setRangePosition"
-        @wheel="e => $emit('input', Math.max(min, Math.min(max, value+Math.sign(e.deltaY))))"     
+        @wheel="e => $emit('input', Math.max(min, Math.min(max, value+step*Math.sign(e.deltaY))))"     
     >
         <input type="number" 
             :min="min" 

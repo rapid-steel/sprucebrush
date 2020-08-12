@@ -1,11 +1,17 @@
 const DEBUG = process.env.NODE_ENV !== 'production';
 
+function n2(n) {
+    let k = 2; // eslint-disable-next-line
+    while(n >>>= 1) k <<= 1;
+    return k >>>= 1;
+}
+
 
 export default class ToolWebGL {
     constructor() { 
         this.canvas = new OffscreenCanvas(100, 100);
         this.gl = this.canvas.getContext("webgl", {
-           // premultipliedAlpha: true,
+            premultipliedAlpha: true,
             depth: false
         });
 
@@ -59,7 +65,7 @@ export default class ToolWebGL {
     _init() {      
         this.gl.getExtension("OES_standard_derivatives");
         this.gl.clearColor(0, 0, 0, 0);
-       // this.gl.enable(this.gl.SAMPLE_ALPHA_TO_COVERAGE);
+        this.gl.enable(this.gl.SAMPLE_ALPHA_TO_COVERAGE);
         this.gl.enable(this.gl.SAMPLE_COVERAGE);
         this.gl.enable(this.gl.BLEND);
         this.gl.blendFuncSeparate(
@@ -111,17 +117,18 @@ export default class ToolWebGL {
             .map(p => p.split(":"))
             .map(e => [e[0], +(e[1]||1)]));
 
-        console.log(this.programProps)
+        if(DEBUG) 
+            console.log(this.programProps);
 
         if(!this.programsLoaded[programType]) {
             if(this.program) {
                 for(let k in this.buffers) {
-                    this.gl.disableVertexAttribArray(
-                        this.gl.getAttribLocation(this.program, this.buffers[k].attrib)
-                    ); 
+                    if(this.buffers[k].enabled)
+                        this.gl.disableVertexAttribArray(
+                            this.gl.getAttribLocation(this.program, this.buffers[k].attrib)
+                        ); 
                 }           
             }
-            
             const vertShader = this.gl.createShader(this.gl.VERTEX_SHADER);
             this.gl.shaderSource(vertShader, this.createVertShader(this.programProps));
             this.gl.compileShader(vertShader);
@@ -152,9 +159,11 @@ export default class ToolWebGL {
 
         for(let k in this.buffers) {
             this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers[k].buf);
-            let ptr = this.gl.getAttribLocation(this.program, this.buffers[k].attrib);
-            this.gl.vertexAttribPointer(ptr, this.buffers[k].size, this.buffers[k].type, false, 0, 0);
-            this.gl.enableVertexAttribArray(ptr);
+            let ptr = this.gl.getAttribLocation(this.program, this.buffers[k].attrib); //eslint-disable-next-line
+            if(this.buffers[k].enabled = ptr !== -1) {
+                this.gl.vertexAttribPointer(ptr, this.buffers[k].size, this.buffers[k].type, false, 0, 0);
+                this.gl.enableVertexAttribArray(ptr);
+            }
         }
     }
     _createTexture(img, index) {
@@ -176,6 +185,8 @@ export default class ToolWebGL {
             by_wid: [0, 0, k*w, 0],
             by_len: [0, 0, 0, k*h]
         }[type];
+
+        console.log(colors, type)
 
         const canvasGradient = ctx.createLinearGradient(...position);
         colors.forEach((c, i) => {
@@ -253,8 +264,10 @@ export default class ToolWebGL {
         this.gl.clear(this.gl.COLOR_BUFFER_BIT  | this.gl.DEPTH_BUFFER_BIT);
 
         for(let k in this.buffers) {
-            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers[k].buf);
-            this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this[k]), this.gl.DYNAMIC_DRAW);
+            if(this.buffers[k].enabled) {
+                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers[k].buf);
+                this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this[k]), this.gl.DYNAMIC_DRAW);
+            }
         }
         this.gl.drawArrays(this.PRIMITIVE_TYPE, 0, this.indexes.length);
      }
@@ -271,6 +284,8 @@ export default class ToolWebGL {
             if(old.texture !== this.params.texture) 
                 this.loadTexture(this.params.texture.src, "texture", this.textures.BASE);
         } 
+
+        console.log(this.params)
 
         if(old.gradient !== this.params.gradient && this.params.gradient.enabled) {      
             let size_ratio = [1, 1];
