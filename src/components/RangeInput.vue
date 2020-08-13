@@ -1,6 +1,6 @@
 <template>
     <div class="range-input" 
-        :class="{horizontal}"
+        :class="{horizontal, disabled}"
         ref="container"
         @mouseenter="setRangePosition"
         @wheel="e => $emit('input', Math.max(min, Math.min(max, value+step*Math.sign(e.deltaY))))"     
@@ -10,6 +10,7 @@
             :max="max" 
             :step="step"
             :value="value"           
+            :disabled="disabled"
             @input="e => $emit('input', Math.max(min, Math.min(max, +e.target.value)))"
             @change="e => $emit('input', Math.max(min, Math.min(max, +e.target.value)))"
             >
@@ -20,6 +21,7 @@
                 :max="max" 
                 :step="step"
                 :value="value" 
+                :disabled="disabled"
                 @wheel.prevent
                 @input="e => $emit('input', +e.target.value)" />            
         </div>
@@ -33,7 +35,8 @@ export default {
         min: { default: 1 },
         max: { default: 100 },
         step: { default: 1 },
-        horizontal: { type: Boolean, default: false }
+        horizontal: { type: Boolean, default: false },
+        disabled: {default: false }
     },
     data() {
         return {
@@ -63,6 +66,9 @@ export default {
 
 .range-input {
     position: relative;
+    &.disabled {
+        opacity: .6;
+    }
     .range {
         display: none;
         align-items: center;
@@ -79,15 +85,20 @@ export default {
         }
         
     }
-    &:hover {
-        .range { display: flex; }
+    &:not(.disabled) {
+        &:hover {
+            .range { display: flex; }
+        }
     }
 }
 
 .range-input:not(.horizontal) {
-     &:hover {
-        .range { display: block; }
+    &:not(.disabled) {
+        &:hover {
+            .range { display: block; }
+        }
     }
+     
     .range {
         height: 105px;
         width: 20px;

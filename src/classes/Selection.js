@@ -160,25 +160,42 @@ export default class Selection {
       }
       return action;
     }
-    applyTransform(coords, recAction = false) {
+    applyTransform(coords, recAction = false, restricted = false) {
       if(recAction) {
         this.movePoint = coords;
+        this._prevOrigin = this.origin.slice();
+        this._firstPoint = coords.slice();
+        this.sideRatio = (this.bbox[1][0] - this.bbox[0][0]) / (this.bbox[1][1] - this.bbox[0][1]);
         this.detectAction(coords);
-      }
-  
-
+      }  
       
       let [dx, dy] = coords.map((c,i) => c - this.movePoint[i]);
       if(this.action.move) {
-        this.origin[0] += dx;
-        this.origin[1] += dy;
-        this.bbox = this.bbox.map(([x, y]) => [x+dx, y+dy]);
-        this.path = this.path.map(([x, y]) => [x+dx, y+dy]);
+        if(restricted) {
+          let [dx1, dy1] = coords.map((c,i) => c - this._firstPoint[i]);
+          if(dx1 < dy1) dx1 = 0;
+          else dy1 = 0;          
+          dx = dx1 + this._prevOrigin[0] - this.origin[0];
+          dy = dy1 + this._prevOrigin[1] - this.origin[1];
+        } 
+          this.origin[0] += dx;
+          this.origin[1] += dy;
+          this.bbox = this.bbox.map(([x, y]) => [x+dx, y+dy]);
+          this.path = this.path.map(([x, y]) => [x+dx, y+dy]);
+        
+        
+        
         this.scaleOrigin = this.bbox[0];
         this.calculateControls();      
       }
   
       if(this.action.resize) {
+        if(restricted && this.action.dir[0] != 0 && this.action.dir[1] != 0) {
+          let k = this.sideRatio;
+          if(dx / dy > k) dx = dy * k;
+          else dy = dx / k;        
+        }
+
         let d = Math.sqrt(dx * dx + dy * dy);
         let a = Math.atan(dy / dx) + (dx < 0 ? Math.PI : 0);
         if(isNaN(a)) a = dy < 0 ? Math.PI / 2 : Math.PI * 1.5;
@@ -218,16 +235,17 @@ export default class Selection {
           dx1 += - d1 * sin / 2;
           
         } 
-        
+
         bbox = bbox.map(b => [
           b[0] + dx1,
           b[1] + dy1
         ]);
-        
-        
-        
-        
 
+        
+       
+        
+        
+        
         
   
         
@@ -245,7 +263,6 @@ export default class Selection {
           this.action.dir[0] == -1 ? bbox[1][0] : bbox[0][0],
           this.action.dir[1] == -1 ? bbox[1][1] : bbox[0][1]
         ]
-
 
 
         this.path = this.path.map(b => [
@@ -271,15 +288,29 @@ export default class Selection {
    
       }    
   
-      if(this.action.rotate) {
-        
-        let c1 = this.movePoint.map((c,i) => c - this.center[i]);
+      if(this.action.rotate) {        
+        let c1;
+        if(restricted) {
+          c1 = this._firstPoint.map((c,i) => c - this.center[i]);
+        } else {
+          c1 = this.movePoint.map((c,i) => c - this.center[i]);
+        }
         let c2 = coords.map((c,i) => c - this.center[i]);
         let a1 = Math.atan(c1[1] / c1[0]);
         if(c1[0] < 0) a1 += Math.PI
         let a2 = Math.atan(c2[1] / c2[0]);
         if(c2[0] < 0) a2 += Math.PI
-        this.angle += (a2 - a1);
+        let da = (a2 - a1);
+        
+        if(restricted) {
+          let angle = Math.round((this.angle + da) / Math.PI * 4) * Math.PI / 4;
+          if(this.angle !== angle) {
+            this._firstPoint = this.movePoint.slice();
+            this.angle = angle;
+          }
+        } else {
+          this.angle += da;
+        }
 
         this.scaleOrigin = this.bbox[0];
 

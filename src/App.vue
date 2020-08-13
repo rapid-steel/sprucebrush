@@ -362,8 +362,8 @@ created() {
             },
             move: () => {
                 if(this.pressure > 0) {
-                    if(this.selection.started) {                    
-                        this.selection.applyTransform(this.lastPoint.coords);
+                    if(this.selection.started) {         
+                        this.selection.applyTransform(this.lastPoint.coords, false, this.restrictedToAxis);
                     } else {
                         this.selection.setPoint(this.lastPoint.coords);            
                     } 
@@ -398,7 +398,7 @@ created() {
                     if(!this.selection.started) 
                         this.selection.setPoint(this.lastPoint.coords); 
                     else if(this.pressure > 0)   
-                        this.selection.applyTransform(this.lastPoint.coords);  
+                        this.selection.applyTransform(this.lastPoint.coords, false, this.restrictedToAxis);
                     }
                 this.render();
             },
@@ -429,7 +429,7 @@ created() {
                     if(!this.selection.started) 
                         this.selection.addPoint(this.lastPoint.coords); 
                     else if(this.pressure > 0)   
-                        this.selection.applyTransform(this.lastPoint.coords);  
+                        this.selection.applyTransform(this.lastPoint.coords, false, this.restrictedToAxis);
                     }
                 this.render();
             },
@@ -512,7 +512,13 @@ created() {
             Minus: e => {
                 e.preventDefault();
                 this.changeZoom(-1);
-            }
+            },
+            ControlLeft: e => {
+                this.restrictToStraight(e);
+            },
+            ControlRight: e => {
+                this.restrictToStraight(e);
+            },
         },
         Enter: e => {
             e.preventDefault();
@@ -525,6 +531,12 @@ created() {
         AltRight: e => {
             e.preventDefault();
             this.setShortcutTool("picker", e);
+        },
+        ShiftLeft: e => {
+            this.restrictToAxis(e);
+        },
+        ShiftRight: e => {
+            this.restrictToAxis(e);
         },
         KeyB: e => this.$store.commit("selectInstrument", "brush"),
         KeyE: e => this.$store.commit("selectInstrument", "eraser"),
@@ -566,22 +578,40 @@ mounted() {
     this.setCursor();
 },
 methods: {
+    restrictToAxis(e) {
+        this.restrictedToAxis = true;
+        this.restrictedToStraight = true;
+        
+        this._onceKeyup(e.code, () => {
+            this.restrictedToStraight = false;
+            this.restrictedToAxis = false;
+        });
+    },
+    restrictToStraight(e) {
+        this.restrictedToStraight = true;
+        this._onceKeyup(e.code, () => {
+            this.restrictedToStraight = false;
+
+        });
+    },
+    _onceKeyup(code, f) {
+        const reset = event => {
+            if(event.code == code) {
+                event.preventDefault();
+                event.stopPropagation();
+                f();
+                document.removeEventListener("keyup", reset);                    
+            }
+        }
+        document.addEventListener("keyup", reset);
+    },
     setShortcutTool(tool, event) {        
         this.shortcutTool = tool;
         this.pointerActions = this.pointerActionsMap[tool];
         this.setCursor();
         if(event.type == "keydown") {
             event.preventDefault();
-            let n = 0;
-            const reset = event1 => {
-                if(event1.code == event.code) {
-                    event1.preventDefault();
-                    event1.stopPropagation();
-                    this.resetShortcutTool();
-                    document.removeEventListener("keyup", reset);                    
-                }
-            }
-            document.addEventListener("keyup", reset);
+            this._onceKeyup(event.code, () => this.resetShortcutTool());
         }
         else if(event.type == "pointerdown") {
             event.preventDefault();
@@ -621,8 +651,6 @@ methods: {
             };
             if(values.radius) settings.values.radius *= this.sizes.px_ratio;
             if(values.lineWidth) settings.values.lineWidth *= this.sizes.px_ratio;
-
-            console.log(settings)
 
             this[webglTool].setParams(settings);
         }
@@ -728,6 +756,10 @@ methods: {
                 : this.keyCodeMap)[e.code];
             if(action) 
                 action(e);
+            else console.log(
+                "There is one more key to bound something useful", 
+                `Key: ${e.key}\nCode: ${e.code}\nCtrl: ${e.ctrlKey}\nAlt: ${e.altKey}\nShift: ${e.shiftKey}`
+            );
         });   
 
         this.prevClick = {
@@ -771,7 +803,23 @@ methods: {
             let t = Date.now();
             this.pointerActions.up();                        
             this.prevClick.time = t;     
-           // this.lastPoint = null;   
+            if(this.restrictedToAxis) {
+                let p0 = this.lastTouchedPoint;
+                let point = this.lastPoint
+                let [dx, dy] = point.coords.map(
+                    (c,i) => Math.abs(c - p0.coords[i])
+                );
+                this.lastTouchedPoint = Object.assign({}, this.lastPoint, {
+                    coords:  dx > dy ? 
+                    [point.coords[0], p0.coords[1]]
+                    :  [p0.coords[0], point.coords[1]]
+                });
+            }
+            else {
+                this.lastTouchedPoint = Object.assign({}, this.lastPoint);
+            }
+            this.lastTouchedPoint.lastTouched = true;
+            
             this.pressure = 0;
         });
         this.$refs.container.addEventListener("contextmenu", event => {
@@ -1138,7 +1186,7 @@ methods: {
     },
     endDraw(point, tool) {
         if(tool.notEmpty()) {
-            tool.addPoint(point);
+            this._draw(point, tool);   
             this.currentLayer.ctx.globalCompositeOperation = "source-over";
             this.writeHistory();
             if(this.selection) {
@@ -1166,7 +1214,28 @@ methods: {
         }
     },
     _draw(point, tool, compositeOperation = "source-over") {
-        tool.addPoint(point);
+        if(this.restrictedToStraight) {
+            let p0 = this.lastTouchedPoint;
+            tool.dropLine();
+            tool.clearIndex();
+            tool.addPoint(p0);
+            if(this.restrictedToAxis) {
+                let [dx, dy] = point.coords.map(
+                    (c,i) => Math.abs(c - p0.coords[i])
+                );
+                tool.addPoint({
+                    pressure: point.pressure,
+                    coords: dx > dy ? 
+                    [point.coords[0], p0.coords[1]]
+                    :  [p0.coords[0], point.coords[1]]
+                });
+            }
+            else {
+                tool.addPoint(point)
+            }
+        } else {
+            tool.addPoint(point);
+        }
         this.tempCtx.globalCompositeOperation = "copy";
         this.tempCtx.drawImage(this.currentLayer.ctx.canvas, 0, 0);
         if(this.selection) {

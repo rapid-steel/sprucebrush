@@ -40,16 +40,23 @@
             <Shapes />
         </div>
 
-        <div v-if="currentSettings.webglTool">
+        <div class="dynamics" v-if="currentSettings.webglTool">
               <div class="side-list-header">
-                <div class="caption">{{$t('tools.settings.dynamics')}}</div>
+                <div class="caption">{{$t('tools.settings.dynamics')}}</div>                
                 <SideList>
+                    <div class="dynamic-header">
+                        <div></div>
+                        <div class="caption">{{$t('tools.settings.dynamicsLength')}}</div>
+                        <div class="caption">{{$t('tools.settings.dynamicsRange')}}</div>
+                    </div>
                     <div v-for="(dynamics, k) in currentSettings.dynamics" 
-                    class="setting-dynamic"
-                    :key="k">
-                        <div class="caption">{{$t('tools.settings.' + k)}}</div>
+                        class="setting-dynamic"
+                        :key="k">
+                        <img class="icon" 
+                            :src="settings.values[k].icon" 
+                            :title="$t('tools.settings.' + k)">
                         <v-select 
-                            :options="Object.values(settings.dynamics)
+                            :options="Object.values(settings.dynamics.types)
                                 .filter(opt => opt.props == 'all' || opt.props.indexOf(k) > -1)"
                             :reduce="opt => opt.n"
                             v-model="dynamics.type"
@@ -57,33 +64,25 @@
                             :clearable="false"
                             :appendToBody="true"
                             :searchable="false"   
-                            @input="v => setDynamics(k, {type: v})"
-                        >
+                            @input="v => setDynamics(k, {type: v})"                        >
+                            <template v-slot:selected-option="option">
+                                <span>{{$t('tools.settings.dynamicTypes.' + option.k)}}</span>
+                            </template>
                             <template v-slot:option="option">
                                 <span>{{$t('tools.settings.dynamicTypes.' + option.k)}}</span>
                             </template>
                         </v-select>
-                        <RangeInput
-                            v-if="settings.dynamics[dynamics.type].range"
-                            :min="0" 
-                            :max="1" 
-                            :step=".01" 
+
+                        <RangeInput v-for="d in Object.entries(settings.dynamics.props)" 
+                            :key="d[0]"
+                            :disabled="settings.dynamics.types[dynamics.type][d[0]] == undefined"
+                            :min="d[1].min" 
+                            :max="d[1].max" 
+                            :step="d[1].step" 
                             :horizontal="true"
-                            v-model="dynamics.range"
-                            @input="v => setDynamics(k, {range: v})"
+                            v-model="dynamics[d[0]]"
+                            @input="v => setDynamics(k, {[d[0]]: v})"
                         />
-                        <RangeInput
-                            v-if="settings.dynamics[dynamics.type].length"
-                            :min="1" 
-                            :max="100000" 
-                            :step="1" 
-                            :horizontal="true"
-                            v-model="dynamics.length"
-                            @input="v => setDynamics(k, {length: v})"
-                        />
-
-
-
                     </div>
                 </SideList>
               </div>
@@ -168,7 +167,7 @@
 
             <div class="setting-value" v-if="!!currentSettings.values.pattern">
                 <img class="icon" 
-                    :src="require('../assets/img/' + settings.pattern.scale.icon)" 
+                    :src="settings.pattern.scale.icon" 
                     :title="$t('tools.settings.scale')">
                     <RangeInput :min=".1" :step=".01" :max="10" :horizontal="true"
                     v-model="currentSettings.values.pattern.scale"
@@ -582,17 +581,18 @@ img.icon {
     background-position: center;
 }
 
+.side-list-header {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+}
+
 .textures, .gradients {
     margin-top: 20px!important;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     align-items: stretch;
-    .side-list-header {
-        display: flex;
-        justify-content: space-between;
-        width: 100%;
-    }
     .footer {
         flex: 2 0 100%;
     }
@@ -602,6 +602,26 @@ img.icon {
     .expanded-list {
         width: $gradient-list-size * 2 + 50px;
     }
+}
+.dynamics {
+    .expanded-list {
+        width: 350px;
+    }
+}
+.setting-dynamic,
+.dynamic-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    .v-select { flex: 2 0 150px; }
+}
+.dynamic-header {
+    & > * { 
+        flex: 1 0 52px; 
+        text-align: center;
+    }
+    & > :first-child { flex: 3 1 100%; }    
 }
 
 .input-checkbox {

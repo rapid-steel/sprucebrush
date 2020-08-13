@@ -32,6 +32,10 @@ This is a web application for drawing. It is developing in two main directions:
 - Alt - color picker
 - mouse middle button - hand
 
+### Other keys on key press:
+- Shift - restrict the moving to one axis
+- Ctrl  - draw straight lines
+
 ### Other:
 - Ctrl + W - fullview mode (hide side panels)
 - Ctrl + E - merge a current layer with underlying one

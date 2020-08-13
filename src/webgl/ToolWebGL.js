@@ -117,8 +117,6 @@ export default class ToolWebGL {
             .map(p => p.split(":"))
             .map(e => [e[0], +(e[1]||1)]));
 
-        if(DEBUG) 
-            console.log(this.programProps);
 
         if(!this.programsLoaded[programType]) {
             if(this.program) {
@@ -186,8 +184,6 @@ export default class ToolWebGL {
             by_len: [0, 0, 0, k*h]
         }[type];
 
-        console.log(colors, type)
-
         const canvasGradient = ctx.createLinearGradient(...position);
         colors.forEach((c, i) => {
             canvasGradient.addColorStop(i / (colors.length - 1), c);
@@ -238,6 +234,9 @@ export default class ToolWebGL {
     notEmpty() {
         return !!this.vertices.length;
     }    
+    clearIndex() {
+        this.index = 0;
+    }
     dropLine() {
         this.update = false;
         this.points = [];
@@ -248,6 +247,9 @@ export default class ToolWebGL {
         requestAnimationFrame(() => {
             this.gl.clear(this.gl.COLOR_BUFFER_BIT  | this.gl.DEPTH_BUFFER_BIT);
         });
+        if(Object.values(this.dynamics).find(d => d.type === 1)) {
+            this.clearIndex();
+        }
     }
     addPoint(p) {
         this._addPoint(p);
@@ -284,9 +286,7 @@ export default class ToolWebGL {
             if(old.texture !== this.params.texture) 
                 this.loadTexture(this.params.texture.src, "texture", this.textures.BASE);
         } 
-
-        console.log(this.params)
-
+        
         if(old.gradient !== this.params.gradient && this.params.gradient.enabled) {      
             let size_ratio = [1, 1];
             let h_ratio = 1;

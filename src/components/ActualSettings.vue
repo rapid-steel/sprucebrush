@@ -4,7 +4,7 @@
             v-for="s in actualSettings" 
             :key="s[0]">
             <img class="icon" 
-                :src="require('../assets/img/' + s[1].icon)" 
+                :src="s[1].icon" 
                 :title="$t('tools.settings.' + s[0])">
             <RangeInput :min="s[1].min" :max="s[1].max" :step="s[1].step" :horizontal="true"
             v-model="currentSettings.values[s[0]]"

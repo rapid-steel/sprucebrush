@@ -133,6 +133,8 @@ export default {
                 y: "By length"
             },
             dynamics: "Dynamics",
+            dynamicsLength: "Length",
+            dynamicsRange: "Range",
             dynamicTypes: {
                 disabled: "Disabled",
                 fade: "Fade",

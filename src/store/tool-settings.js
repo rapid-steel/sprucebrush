@@ -79,7 +79,13 @@ export default {
     pen: {
         values: {}
     },
-    selection_rect: {},
-    selection_polygon: {},
-    selection_lasso: {}
+    selection_rect: {
+        values: {}
+    },
+    selection_polygon: {
+        values: {}
+    },
+    selection_lasso: {
+        values: {}
+    }
 };
