@@ -7,8 +7,7 @@
         @apply-selection="applySelection"
         @reset-selection="resetSelection"
         @select-all="() => selectArea([[0,0], [sizes.width, sizes.height]])"
-        @crop-selection="cropSelection"
-        @clipnewlayer-selection="clipToNewLayer"
+        
     />
     </div>
     <div id="center">
@@ -23,6 +22,7 @@
                 @apply-filter="applyFilter"
                 @cancel-preview-filter="cancelPreviewFilter"
                 @preview-filter="previewFilter"
+                @transform-canvas="transformCanvas"
             />
         </div>
         <div id="wrapper" ref="wrapper">
@@ -50,6 +50,10 @@
             <ContextMenu 
                 v-if="contextMenu.show"
                 :position="contextMenu.position"
+                @apply-selection="applySelection"
+                @reset-selection="resetSelection"
+                @crop-selection="cropSelection"
+                @clipnewlayer-selection="clipToNewLayer"
              />
         </div>
         <div class="panel bottom">
@@ -471,9 +475,9 @@ created() {
                 e.preventDefault();
                 let ind = this.layers.indexOf(this.currentLayer);
                 if(ind > 0) 
-                this.mergeLayers( 
-                    this.layers.slice(ind-1, ind+1).map(l => l.id)
-                );
+                    this.mergeLayers( 
+                        this.layers.slice(ind-1, ind+1).map(l => l.id)
+                    );
             },
             KeyS: e => {
                 e.preventDefault();
@@ -637,6 +641,64 @@ methods: {
             }
         });
     },
+    transformCanvas(action) {
+        this.tempCtx.save();
+        this.writeHistoryAction({...action, action: "transform"});
+        if(action.rotate) {            
+            let angle = (action.rotate * Math.PI / 180);
+            let sin = Math.sin(angle);
+            let cos = Math.cos(angle);
+            let width = Math.abs(sin * this.sizes.height + cos * this.sizes.width);
+            let height = Math.abs(cos * this.sizes.height + sin * this.sizes.width);
+            let old = Object.assign({}, this.sizes_hr);
+            this._setSizes(width, height);
+            let origin = [
+                (this.sizes_hr.width - old.width) / 2,
+                (this.sizes_hr.height - old.height) / 2,
+            ];
+            this.tempCtx.translate(this.sizes_hr.width / 2, this.sizes_hr.height / 2);
+            this.tempCtx.rotate(angle);
+            this.tempCtx.translate(- this.sizes_hr.width / 2, - this.sizes_hr.height / 2);
+
+            this.layers.forEach(layer => {
+                this.tempCtx.clearRect(...origin, this.tempCtx.canvas.width, this.tempCtx.canvas.height);
+                this.tempCtx.drawImage(layer.ctx.canvas, ...origin);
+                layer.ctx.canvas.width = this.sizes_hr.width;
+                layer.ctx.canvas.height = this.sizes_hr.height;
+                layer.ctx.clearRect(0, 0, layer.ctx.canvas.width, layer.ctx.canvas.height);              
+                layer.ctx.drawImage(this.tempCtx.canvas, 0, 0);    
+            });
+
+            this.tempCtx.translate(this.sizes_hr.width / 2, this.sizes_hr.height / 2);
+            this.tempCtx.rotate(-angle);
+            this.tempCtx.translate(- this.sizes_hr.width / 2, - this.sizes_hr.height / 2);
+
+        }
+        if(action.flip) {
+            this.tempCtx.save();
+            let origin = [0, 0];
+            let scale = [1, 1];
+            if(action.flip == "x") {
+                origin[0] = -this.sizes_hr.width;
+                scale[0] = -1;
+            }
+            if(action.flip == "y") {
+                origin[1] = -this.sizes_hr.height;
+                scale[1] = -1;
+            }
+            this.tempCtx.scale(...scale);
+            this.layers.forEach(layer => {
+                this.tempCtx.clearRect(...origin, this.tempCtx.canvas.width, this.tempCtx.canvas.height);
+                this.tempCtx.drawImage(layer.ctx.canvas, ...origin);
+                layer.ctx.clearRect(0, 0, layer.ctx.canvas.width, layer.ctx.canvas.height);              
+                layer.ctx.drawImage(this.tempCtx.canvas, 0, 0);    
+            });
+        }
+        this.tempCtx.restore();
+        this.tempCtx.clearRect(0, 0, this.tempCtx.canvas.width, this.tempCtx.canvas.height);
+        this.render();
+
+    },
     switchViewMode() {
         this.viewMode = this.viewMode == "normal" ? "full" : "normal";
         this.setSizeFactor();
@@ -749,6 +811,11 @@ methods: {
         this.cursorStyles.width = this.currentSettings.values.radius + "px";
         this.cursorStyles.height = this.currentSettings.values.radius + "px";
 
+        this.update = false;
+        this.updateFunc = () => {
+            this.render();
+        };
+
 
         document.addEventListener("keydown", e => {     
             let action = (e.ctrlKey ? 
@@ -772,9 +839,12 @@ methods: {
             event.preventDefault();
             this.contextMenu.show = false;
             this.setLastPoint(event);
+            this.leftBtn = false;
+            
             switch(event.which) {
                 case 1:
                     this.pointerActions.down();
+                    this.leftBtn = true;
                     break;
                 case 2:
                     this.setShortcutTool("hand", event);
@@ -783,7 +853,7 @@ methods: {
                     //nothing i think
                     break;
             }
-           
+            
         });
 
         this.$refs.container.addEventListener("pointermove", event => {     
@@ -794,11 +864,15 @@ methods: {
                 this.setCursorSelAction();  
                 this.$forceUpdate();  
             }
-            this.pointerActions.move();                
+            if(this.leftBtn)
+                this.pointerActions.move();                
 
         });
-        this.$refs.container.addEventListener("pointerup", event => {
+
+        document.addEventListener("pointerup", event => {
+            if(this.pressure == 0) return;
             event.preventDefault();
+            event.stopPropagation();
             this.setLastPoint(event);
             let t = Date.now();
             this.pointerActions.up();                        
@@ -822,6 +896,7 @@ methods: {
             
             this.pressure = 0;
         });
+    
         this.$refs.container.addEventListener("contextmenu", event => {
             event.preventDefault();
             event.stopPropagation();
@@ -837,12 +912,12 @@ methods: {
         this.$refs.container.addEventListener("pointerout", event => {
             event.preventDefault();
             event.stopPropagation();
-            if(this.lastPoint) {
+     /*       if(this.lastPoint) {
                 this.setLastPoint(event);
                 this.pointerActions.out();      
                 this.applyTemp();
                 this.lastPoint = null; 
-            }            
+            }            */
         });
     },
     startTranslateCanvas() {
@@ -925,6 +1000,7 @@ methods: {
         this.$store.commit("dropSelection");
         this.selection.drop();
         this.selection = null;
+        this.setCursorSelAction();
     },
     startTransformSelection() {
         this.writeHistory();
@@ -1038,14 +1114,14 @@ methods: {
     },
     cropSelection() {
         if(this.activeSelection) {
-            let bbox = this.selection.bbox.slice();
+            let bbox = this.selection.getBbox();
             let rect = [bbox[0], bbox[1].map((b,i) => Math.round(b - bbox[0][i]))];
             this.applySelection();
 
             this.setSize({
                 width: rect[1][0],
                 height: rect[1][1],
-                origin: rect[0]
+                origin: rect[0].map(r => -r)
             }, false);         
         }
     },
@@ -1184,36 +1260,73 @@ methods: {
             }            
         });    
     },
-    endDraw(point, tool) {
-        if(tool.notEmpty()) {
-            this._draw(point, tool);   
-            this.currentLayer.ctx.globalCompositeOperation = "source-over";
-            this.writeHistory();
-            if(this.selection) {
-                this.selection.clip(this.currentLayer.ctx);
-            } 
-            tool.drawToCtx(this.currentLayer.ctx);
-            if(this.selection) 
-                this.currentLayer.ctx.restore();
-            tool.dropLine();  
-            this.render();
-        }    
+    
+    animate() {
+        if(this.update) {
+            requestAnimationFrame(this.updateFunc.bind(this));
+        }
     },
     draw(point, tool) {
-        this._draw(point, tool);       
-        this.render(true);
-        
+        this._addPoint(point, tool);  
+        this.updateFunc = () => {
+            this._draw(point, tool);       
+            this.render(true);    
+            this.animate();
+        };
+        if(!this.update) {
+            this.update = true; 
+            this.animate();
+        }   
+    },
+    erase(point) {
+        this._addPoint(point, this.brush);  
+        this.updateFunc = () => {
+            this._draw(point, this.brush, "destination-out");       
+            this.render(true);    
+            this.animate();
+        };
+        if(!this.update) {
+            this.update = true; 
+            this.animate();
+        }   
+    },
+    endDraw(point, tool) {
+        if(tool.notEmpty()) {
+            this._addPoint(point, tool);  
+            this.writeHistory();
+            this.updateFunc = () => {
+                this._draw(point, tool);  
+                this.currentLayer.ctx.globalCompositeOperation = "source-over";            
+                if(this.selection) {
+                    this.selection.clip(this.currentLayer.ctx);
+                } 
+                tool.drawToCtx(this.currentLayer.ctx);
+                if(this.selection) 
+                    this.currentLayer.ctx.restore();
+                tool.dropLine();       
+                this.render();  
+            };
+            this.animate();  
+        }    
+        this.update = false; 
     },
     endErase(point) {
         if(this.brush.notEmpty()) {
-            this._draw(point, this.brush, "destination-out");       
+            this._addPoint(point, this.brush);
             this.writeHistory();
-            this.currentLayer.ctx.globalCompositeOperation = "copy";
-            this.currentLayer.ctx.drawImage(this.tempCtx.canvas, 0, 0);
-            this.brush.dropLine();
+             this.updateFunc = () => {
+                this._draw(point, this.brush, "destination-out");      
+                this.currentLayer.ctx.globalCompositeOperation = "copy";
+                this.currentLayer.ctx.drawImage(this.tempCtx.canvas, 0, 0);
+                this.brush.dropLine();   
+                this.render();    
+            };
+            this.animate();
+           
         }
+        this.update = false; 
     },
-    _draw(point, tool, compositeOperation = "source-over") {
+    _addPoint(point, tool) {
         if(this.restrictedToStraight) {
             let p0 = this.lastTouchedPoint;
             tool.dropLine();
@@ -1231,11 +1344,13 @@ methods: {
                 });
             }
             else {
-                tool.addPoint(point)
+                tool.addPoint(point);
             }
         } else {
             tool.addPoint(point);
         }
+    },
+    _draw(point, tool, compositeOperation = "source-over") {        
         this.tempCtx.globalCompositeOperation = "copy";
         this.tempCtx.drawImage(this.currentLayer.ctx.canvas, 0, 0);
         if(this.selection) {
@@ -1245,11 +1360,7 @@ methods: {
         tool.drawToCtx(this.tempCtx);            
         if(this.selection) 
             this.tempCtx.restore();
-    },
-    erase(point) {
-        this._draw(point, this.brush, "destination-out");       
-        this.render(true);        
-    },
+    },    
     setCursor() {
         const {values} = this.currentSettings;
         this.cursorStyles.transform = null;
@@ -1299,14 +1410,7 @@ methods: {
         const dh = height - this.sizes.height;
 
         const oldCanvasSizes = Object.assign({}, this.sizes_hr);
-        const realCanvasSizes = {
-            width: Math.round(width * px_ratio),
-            height: Math.round(height * px_ratio)
-        };
-        const canvasPageSizes = {
-            width: width * this.zoom,
-            height: height * this.zoom
-        }
+        const rk = px_ratio / this.sizes.px_ratio;
 
         if(resizeMode == undefined) 
             resizeMode = origin ? "move" : "resize";
@@ -1325,45 +1429,23 @@ methods: {
             }[y];
         }
        
-        this.canvasSizes.width =  width;
-        this.canvasSizes.height = height;
-
-        this.canvasStyles.width = canvasPageSizes.width + "px";
-        this.canvasStyles.height = canvasPageSizes.height + "px";       
-        this.sizes_hr = realCanvasSizes;     
-
-        ['canvas', "blender", "selection"].forEach(s => {
-            this.$refs[s].width = this.sizes_hr.width;
-            this.$refs[s].height = this.sizes_hr.height;
-            this.$refs[s].style.width = this.canvasStyles.width;
-            this.$refs[s].style.height = this.canvasStyles.height;
-        });     
-
-       
-        ["tempCtx", "tempCtx2"].forEach(s => {
-            this[s].canvas.width = this.sizes_hr.width;
-            this[s].canvas.height = this.sizes_hr.height;
-        })
+        this._setSizes(width, height, px_ratio);
 
         let rect = resizeMode == "move" ? 
-            [...origin, oldCanvasSizes.width, oldCanvasSizes.height] 
-        : [0, 0, oldCanvasSizes.width, oldCanvasSizes.height];
+            [...origin, oldCanvasSizes.width * rk, oldCanvasSizes.height * rk] 
+        : [0, 0, this.sizes_hr.width, this.sizes_hr.height];
 
         let rect1 = [0, 0, oldCanvasSizes.width, oldCanvasSizes.height];
         
         this.layers.forEach(layer => {
             this.tempCtx.clearRect(0, 0, this.tempCtx.canvas.width, this.tempCtx.canvas.height);
             this.tempCtx.drawImage(layer.ctx.canvas, ...rect1, ...rect);
-
             layer.ctx.clearRect(0, 0, layer.ctx.canvas.width, layer.ctx.canvas.height);        
             layer.ctx.canvas.width = this.sizes_hr.width;
             layer.ctx.canvas.height = this.sizes_hr.height;            
             layer.ctx.drawImage(this.tempCtx.canvas, 0, 0, this.sizes_hr.width, this.sizes_hr.height);    
         }); 
-        Object.assign(this.sizes, {width, height});   
-        
-        this.brush.setSizes(this.sizes_hr);
-        this.marker.setSizes(this.sizes_hr);
+       
 
         if(px_ratio != this.sizes.px_ratio) {
             this.sizes.px_ratio = px_ratio;
@@ -1372,9 +1454,39 @@ methods: {
             this.setToolParams();
         }
 
-        this.setSizeFactor();
+        
 
         this.render();
+    },
+    _setSizes(width, height, px_ratio = this.sizes.px_ratio) {
+        this.canvasSizes.width =  width;
+        this.canvasSizes.height = height;
+
+        this.canvasStyles.width = width * this.zoom + "px";
+        this.canvasStyles.height = height * this.zoom + "px";       
+        this.sizes_hr = {
+            width: Math.round(width * px_ratio),
+            height: Math.round(height * px_ratio)
+        };     
+
+        ['canvas', "blender", "selection"].forEach(s => {
+            this.$refs[s].width = this.sizes_hr.width;
+            this.$refs[s].height = this.sizes_hr.height;
+            this.$refs[s].style.width = this.canvasStyles.width;
+            this.$refs[s].style.height = this.canvasStyles.height;
+        });     
+
+    
+        ["tempCtx", "tempCtx2"].forEach(s => {
+            this[s].canvas.width = this.sizes_hr.width;
+            this[s].canvas.height = this.sizes_hr.height;
+        });
+
+        Object.assign(this.sizes, {width, height});   
+        
+        this.brush.setSizes(this.sizes_hr);
+        this.marker.setSizes(this.sizes_hr);
+        this.setSizeFactor();
     },
     newDrawing(title = this.$t('newDrawingTitle')) {
         this.layers = [];
@@ -1575,6 +1687,9 @@ ul[role=listbox] {
     &.swap { background-image: url("./assets/img/swap.svg"); }
     &.link { background-image: url("./assets/img/link.svg"); }
 
+    &.apply { background-image: url("./assets/img/check.svg"); }
+    &.reset { background-image: url("./assets/img/none.gif"); }
+
     &.undo { background-image: url("./assets/img/undo.png"); }
     &.redo { background-image: url("./assets/img/redo.png"); }
     &.zoom-in { background-image: url("./assets/img/zoom-in.png"); }
@@ -1772,6 +1887,8 @@ body {
         transform: translate(-50%,-50%);
         background-image: url("./assets/img/crosshair.png");
         background-size: cover;
+        width: 20px!important;
+        height: 20px!important;
         &.rotate {
             width: 16px!important;
             height: 16px!important;

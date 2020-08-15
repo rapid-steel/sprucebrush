@@ -28,6 +28,9 @@
                 <div>
                     <input type="text" class="layer-name"
                     v-model="l.name"> 
+                    <button class="icon-btn small visible"
+                        :disabled="layers.length == 1" 
+                        @click.stop="() => $emit('toggle-layer', l.id)" />
                     <img class="img-icon" src="@/assets/img/opacity.svg" />
                     <RangeInput 
                     :min="0" 
@@ -35,9 +38,7 @@
                     v-model="l.opacity" 
                     @input="() => $emit('update:opacity')"
                     />
-                    <button class="icon-btn small visible"
-                        :disabled="layers.length == 1" 
-                        @click.stop="() => $emit('toggle-layer', l.id)" />
+                    
                     <button class="icon-btn small delete"
                         :disabled="layers.length == 1" 
                         @click.stop="() => $emit('remove-layer', l.id)" />

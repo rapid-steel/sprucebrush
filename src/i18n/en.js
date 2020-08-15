@@ -27,7 +27,15 @@ export default {
             resize: "Resize",
             move: "Move"
         },
-        filtersList: {
+        transformMenu: {
+            title: "Transform",
+            rotate90_CW: "Rotate to 90° CW",
+            rotate90_CCW: "Rotate to 90° CCW",
+            rotate180: "Rotate to 180°",
+            flipX: "Flip horizontal",
+            flipY: "Flip vertical",
+        },
+        filtersMenu: {
             title: "Filters",
             grayscale: {
                 title: "Grayscale"

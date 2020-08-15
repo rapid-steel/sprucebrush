@@ -41,6 +41,9 @@ export default class Selection {
       this.ratio = ratio;
       this.drawSelection();
     }
+    getBbox() {
+      return this.bbox.map(b => b.map(c => c / this.ratio));
+    }
     setSize({width, height}) {
       ["imgCtx", "selCtx", "sourceCopy"].forEach(ctx => {
         ctx.canvas.width = width;
@@ -206,35 +209,34 @@ export default class Selection {
         const cos = Math.cos(this.angle);
         let dx1 = 0;
         let dy1 = 0;
+        let d1 = this.action.dir[0] ? dx * cos + dy * sin : 0;
+        let d2 = this.action.dir[1] ? dy * cos - dx * sin : 0;
 
   
         if(this.action.dir[0] == -1) {
-          let d1 = dx * cos + dy * sin;
-          bbox[0][0] += d1;
-          this.origin[0] += d1;
+          bbox[0][0] += d1;          
           dx1 +=  d1 * (cos - 1) / 2
-          dy1 += d1 * sin / 2;          
+          dy1 += d1 * sin / 2;     
+          if(this.scale[0] > 0) this.origin[0] += d1;
         }
         else if(this.action.dir[0] == 1) {
-          let d1 = dx * cos + dy * sin;
           bbox[1][0] += d1;
           dx1 += d1 * (cos - 1) / 2
           dy1 += d1 * sin / 2;
+          if(this.scale[0] < 0) this.origin[0] += d1;          
         }
         if(this.action.dir[1] == -1) {
-          let d1 = dy * cos - dx * sin;
-          bbox[0][1] += d1;
-          this.origin[1] += d1;
-          dy1 += d1 * (cos - 1 ) / 2
-          dx1 += - d1 * sin / 2;
+          bbox[0][1] += d2;
+          dy1 += d2 * (cos - 1 ) / 2
+          dx1 += - d2 * sin / 2;
+          if(this.scale[1] > 0) this.origin[1] += d2;
         }
         else if(this.action.dir[1] == 1) {
-          let d1 = dy * cos - dx * sin;
-          bbox[1][1] += d1;
-          dy1 += d1 * (cos - 1 ) / 2
-          dx1 += - d1 * sin / 2;
-          
-        } 
+          bbox[1][1] += d2;
+          dy1 += d2 * (cos - 1 ) / 2
+          dx1 += - d2 * sin / 2;
+          if(this.scale[1] < 0) this.origin[1] += d2;
+       } 
 
         bbox = bbox.map(b => [
           b[0] + dx1,
@@ -243,12 +245,6 @@ export default class Selection {
 
         
        
-        
-        
-        
-        
-  
-        
   
         if(bbox[1][0] == bbox[0][0]) bbox[1][0] += .001;
         if(bbox[1][1] == bbox[0][1]) bbox[1][1] += .001;
@@ -256,8 +252,19 @@ export default class Selection {
           (bbox[1][0] - bbox[0][0]) / (this.bbox[1][0] - this.bbox[0][0]),
           (bbox[1][1] - bbox[0][1]) / (this.bbox[1][1] - this.bbox[0][1])  
         ];
-        if(scale[0] < 0) this.action.dir[0] = -this.action.dir[0]
-        if(scale[1] < 0) this.action.dir[1] = -this.action.dir[1]
+
+        if(scale[0] < 0) {
+          this.action.dir[0] = -this.action.dir[0];
+          let t = bbox[1][0];
+          bbox[1][0] = bbox[0][0];
+          bbox[0][0] = t;
+        }
+        if(scale[1] < 0) {
+          this.action.dir[1] = -this.action.dir[1];
+          let t = bbox[1][1];
+          bbox[1][1] = bbox[0][1];
+          bbox[0][1] = t;
+        }
 
         let origin = [
           this.action.dir[0] == -1 ? bbox[1][0] : bbox[0][0],
@@ -274,7 +281,6 @@ export default class Selection {
           this.origin[0] + dx1,
           this.origin[1] + dy1,
         ];
-  
         
         
         this.bbox = bbox;
@@ -359,14 +365,17 @@ export default class Selection {
     drawImage() {
       this.imgCtx.save();      
       this.imgCtx.clearRect(0, 0, this.imgCtx.canvas.width, this.imgCtx.canvas.height);
-      
-      this.rotate(this.imgCtx);
 
-      this.imgCtx.translate(...this.bbox[0]);   
-      this.imgCtx.scale(...this.scale); 
-      this.imgCtx.translate(...this.bbox[0].map(v => -v));
       
-      this.imgCtx.translate(...this.origin);      
+     this.rotate(this.imgCtx);
+
+     let scaleOrigin = this.scale.map((s, i) => s > 0 ? this.bbox[0][i] : this.bbox[1][i])
+ 
+      this.imgCtx.translate(...scaleOrigin);   
+      this.imgCtx.scale(...this.scale); 
+      this.imgCtx.translate(...scaleOrigin.map(v => -v));
+      let origin = this.origin
+      this.imgCtx.translate(...origin);     
       this.imgCtx.drawImage(this.sourceCopy.canvas, 0, 0, this.imgCtx.canvas.width, this.imgCtx.canvas.height);   
       this.imgCtx.restore();      
     }

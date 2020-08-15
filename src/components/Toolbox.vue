@@ -16,18 +16,15 @@
         <div>{{$t('tools.tools.' + currentTool)}}</div>
     </div>
 
-    <div v-if="currentTool.indexOf('selection') !== -1" 
-    class="controls">
-        <div 
-        v-for="action in selectionActions"
-        :key="action.k" 
-        v-show="action.show()"
-        >
-           <button class="ok-btn" 
-           @click="action.action">{{$t(action.k)}}</button>
-            <div class="hint" 
-            v-if="action.key">{{action.key}}</div>
-        </div>      
+    <div v-if="currentTool.indexOf('selection') !== -1 && this.activeSelection" 
+        class="controls">
+        <button class="icon-btn apply"
+            :title="$t('tools.selection.apply')"
+            @click="() => $emit('apply-selection')"></button>
+        <button class="icon-btn reset"
+            :title="$t('tools.selection.reset')"
+            @click="() => $emit('reset-selection')"></button>
+      
     </div>
 
 
@@ -268,31 +265,6 @@ export default {
     },
     data() {
         return {
-            selectionActions: [{
-                k: 'tools.selection.apply', 
-                action: () => this.$emit('apply-selection'),
-                key: "Enter", 
-                show: () => this.activSelection
-            }, {
-                k: "tools.selection.reset",
-                action: () => this.$emit('reset-selection'),
-                key: "Ctrl + Z", 
-                show: () => this.activeSelection                
-            }, {
-                k: "tools.selection.clipnewlayer",
-                action: () => this.$emit('clipnewlayer-selection'),
-                show: () => this.activeSelection
-            },{
-                k: "tools.selection.crop",
-                action: () => this.$emit('crop-selection'),
-                key: "Ctrl + T", 
-                show: () => this.activeSelection
-            }, {
-                k: "tools.selection.all",
-                action: () => this.$emit('select-all'),
-                key: "Ctrl + A", 
-                show: () => true
-            }],
             gradientToEdit: null,          
             tools: [{
                 group: "drawing",
@@ -716,20 +688,10 @@ img.icon {
 }
 
 .controls {
-    text-align: center;
-    button.ok-btn {
-        border: 2px black solid;
-        padding: 5px;
-        margin: 10px auto 0;
-        font: $font-btn-small;
-    }
-    .hint {
-        font: $font-hint;
-        width: 100%;
-        margin-top: 1px;
-        margin-bottom: 5px;
-        text-align: center;
-    }
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
 }
 
 

@@ -77,6 +77,27 @@
             </div>
         </div>
         <div class="btn" 
+            :class="{active: display.transformMenu}"
+            @click.stop="() => setDisplay('transformMenu', !display.transformMenu)">
+            <input 
+            type="file" accept="image/*"
+            ref="importImage" 
+            @change="importImage">
+            <img src="../assets/img/transform-menu.png" 
+            :title="$t('topPanel.transformMenu.title')" />
+            <div class="menu-itemlist" 
+                v-show="display.transformMenu" 
+                @click.stop>
+                <div class="menu-item big"
+                    v-for="action in transformations"
+                    :key="action.k"
+                    @click.stop="() => $emit('transform-canvas', action)">
+                    <img :src="action.img">
+                    <div>{{$t('topPanel.transformMenu.' + action.k)}}</div>
+                </div>
+            </div>
+        </div>    
+        <div class="btn" 
             :class="{active: display.importMenu}"
             @click.stop="() => setDisplay('importMenu', !display.importMenu)">
             <input 
@@ -97,24 +118,24 @@
             </div>
         </div>    
         <div class="btn"
-            :class="{active: display.filtersList}"
-            @click.stop="() => setDisplay('filtersList', !display.filtersList)">
+            :class="{active: display.filtersMenu}"
+            @click.stop="() => setDisplay('filtersMenu', !display.filtersMenu)">
             <img src="../assets/img/filters.png" 
-                :title="$t('topPanel.filtersList.title')" />
+                :title="$t('topPanel.filtersMenu.title')" />
             <div class="menu-itemlist" 
-                v-show="display.filtersList">
+                v-show="display.filtersMenu">
                 <div class="menu-item" 
                     v-for="filter in filters" 
                     :key="filter.k"
                     @click="() => selectFilter(filter)">
-                    <img :src="'../assets/img/filters/filter-' + filter.k + '.png'">
-                    <div>{{$t('topPanel.filtersList.' + filter.k + ".title")}}</div>
+                    <img :src="require('../assets/img/filters/filter-' + filter.k + '.png')">
+                    <div>{{$t('topPanel.filtersMenu.' + filter.k + ".title")}}</div>
                 </div>
             </div>
             <div class="menu-form" v-show="!!currentFilter" @click.stop>                   
                 <template v-if="currentFilter.k == 'duotone'">               
                     <div>
-                        <div>{{$t('topPanel.filtersList.duotone.colors')}}:</div> 
+                        <div>{{$t('topPanel.filtersMenu.duotone.colors')}}:</div> 
                         <div class="colors">
                             <div v-for="(color,i) in currentFilter.settings.colors" 
                             :key="color" class="color"
@@ -132,7 +153,7 @@
                 <template v-else>
                     <div v-for="el in currentFilter.form" 
                         :key="currentFilter.k + el.k">
-                        <div>{{$t(`topPanel.filtersList.${currentFilter.k}.${el.k}`)}}:</div>  
+                        <div>{{$t(`topPanel.filtersMenu.${currentFilter.k}.${el.k}`)}}:</div>  
                         <input 
                             :type="el.type" 
                             :min="el.min" 
@@ -176,7 +197,8 @@ export default {
             display: {
                 sizesForm: false,
                 importMenu: false,
-                filtersList: false
+                transformMenu: false,
+                filtersMenu: false
             },
             currentFilter: false,
             importMode: "leave",
@@ -184,7 +206,13 @@ export default {
                 {k: "leave", img: require("../assets/img/import-leave.png")},
                 {k: "resize_img", img: require("../assets/img/import-resize-img.png")},
                 {k: "resize_canvas", img: require("../assets/img/import-resize-canvas.png")}
-
+            ],
+            transformations: [
+                {k: "rotate90_CW", img: require("../assets/img/rotate-90-cw.png"), rotate: 90},
+                {k: "rotate90_CCW", img: require("../assets/img/rotate-90-ccw.png"), rotate: -90},
+                {k: "rotate180", img: require("../assets/img/rotate-180.png"), rotate: 180},
+                {k: "flipX", img: require("../assets/img/flip-x.png"), flip: "x"},
+                {k: "flipY", img: require("../assets/img/flip-y.png"), flip: "y"}
             ],
             filters: [{
                     k: "invert"
@@ -268,8 +296,11 @@ export default {
         }
     },
     watch: {
-        sizes() { 
-            Object.assign(this.sizesModel, this.sizes); 
+        sizes: {
+            deep: true,
+            handler() { 
+                Object.assign(this.sizesModel, this.sizes); 
+            }
         }
     },
     mounted() {

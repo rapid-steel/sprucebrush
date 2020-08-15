@@ -115,6 +115,13 @@ export default {
                 if(sshot.action == "reorderLayer") {
                     this.reorderLayer({oldIndex: sshot.newIndex, newIndex: sshot.oldIndex});
                 }
+                if(sshot.action == "transform") {
+                    this.transformCanvas({
+                        flip: sshot.flip,
+                        rotate: sshot.rotate ? - sshot.rotate : null
+                    });
+                    
+                }
 
             } else {
                 this.writeHistory();
