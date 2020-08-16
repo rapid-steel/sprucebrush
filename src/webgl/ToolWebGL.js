@@ -84,6 +84,8 @@ export default class ToolWebGL {
         }   
         this.programsLoaded = {};
         this.params = {};
+        this.texture = false;
+        this.gradient = {enabled: false};
         this.dynamics = {};
         this.programParams = {};
         this.programType = "";
@@ -218,6 +220,8 @@ export default class ToolWebGL {
             this.params[param] = params.values[param];
         }
         this.params.color = params.color;
+        this.texture = params.texture;
+        this.gradient = params.gradient;
         this.dynamics = params.dynamics;
     }
     animate() {
@@ -274,7 +278,10 @@ export default class ToolWebGL {
         this.gl.drawArrays(this.PRIMITIVE_TYPE, 0, this.indexes.length);
      }
      setParams(params) {
-        let old = Object.assign({}, this.params);
+        let old = {
+            texture: this.texture,
+            gradient: this.gradient
+        };
         this._updateParams(params);
 
         const programType = this._getProgramType();
@@ -282,25 +289,25 @@ export default class ToolWebGL {
             this.setProgram(programType);
         }
 
-        if(this.params.texture) {            
-            if(old.texture !== this.params.texture) 
-                this.loadTexture(this.params.texture.src, "texture", this.textures.BASE);
+        if(this.texture) {            
+            if(old.texture !== this.texture) 
+                this.loadTexture(this.texture.src, "texture", this.textures.BASE);
         } 
         
-        if(old.gradient !== this.params.gradient && this.params.gradient.enabled) {      
+        if(this.gradient && old.gradient !== this.gradient && this.gradient.enabled) {      
             let size_ratio = [1, 1];
             let h_ratio = 1;
             let loop = false;
-            if(this.params.gradient.type == "by_len") {
-                let h = n2(this.params.gradient.colors.length - 1);
+            if(this.gradient.type == "by_len") {
+                let h = n2(this.gradient.colors.length - 1);
                 size_ratio = [1, h];
-                h_ratio = h / this.params.gradient.length;
+                h_ratio = h / this.gradient.length;
                 loop = true;
             }      
             this.createGradientTexture(
-               this.params.gradient, size_ratio, loop);      
-            this.params.gradientRatio =  h_ratio;
-            this.gl.uniform1f(this.gl.getUniformLocation(this.program, "gradientRatio"), this.params.gradientRatio);
+               this.gradient, size_ratio, loop);      
+            this.gradientRatio =  h_ratio;
+            this.gl.uniform1f(this.gl.getUniformLocation(this.program, "gradientRatio"), this.gradientRatio);
         }     
 
         this.setAttributes();
@@ -328,4 +335,45 @@ export default class ToolWebGL {
                 this.gl.getUniformLocation(this.program, d + "_dynlen"), length);   
         }
     }
+    setAttributes() {
+        if(this.program) {
+            for(let param in this.params) {
+                if(param == "color") {
+                    this.gl.uniform3fv(
+                        this.gl.getUniformLocation(this.program, "color"), 
+                        this._getGlColor(this.params.color));
+                }
+                else if(param == "angle") {
+                    let angle = this.params.angle / 180 * Math.PI;
+                    this.gl.uniform1f(
+                        this.gl.getUniformLocation(this.program, "angle"), angle);
+                }
+    
+                else if(this.programParams[param]) {
+                    this.gl.uniform1f(
+                        this.gl.getUniformLocation(this.program, param), 
+                        this.params[param]);                         
+                }
+
+            }
+            if(this.gradient && this.gradient.enabled) {
+                this.gl.uniform1f(this.gl.getUniformLocation(this.program, "gradientRatio"), this.gradientRatio);
+                if(this.programProps.by_len) {
+                    this.gl.uniform1f(
+                        this.gl.getUniformLocation(this.program, "gradientLength"), 
+                        this.gradient.length);
+                }            
+                this.gl.uniform1i(
+                    this.gl.getUniformLocation(this.program, "gradientTexture"), 
+                    this.textures.GRADIENT);        
+            }
+            if(this.texture) {
+                this.gl.uniform1i(
+                    this.gl.getUniformLocation(this.program, "texture"), 
+                    this.textures.BASE); 
+            }
+
+            this._setDynamics();
+        }
+    }   
 }

@@ -16,9 +16,10 @@ export default new Vuex.Store({
                 lineWidth: {min: 1,    max: 1000, step: 1,   icon: require("../assets/img/linewidth.png")},    
                 spacing:   {min: .01,  max: 10,   step: .01, icon: require("../assets/img/spacing.png")},  
                 opacity:   {min: .01,  max: 1,    step: .01, icon: require("../assets/img/opacity.png")},
-                tolerance: {min: 1,    max: 255,  step: 1,   icon: require("../assets/img/diameter.png")},
+                tolerance: {min: 1,    max: 255,  step: 1 },
                 angle:     {min: 0,    max: 359,  step: 1,   icon: require("../assets/img/angle.png")},   
                 stretch:   {min: .001, max: 100,  step: .001,icon: require("../assets/img/stretch.png")},   
+                rAngle: {min: 0,    max: 359,  step: 1, resetTo: 0}
             },
             smoothing: {
                 curve: {min: 1, max: 25, step: 1},
@@ -33,7 +34,7 @@ export default new Vuex.Store({
                 }
             },
             pattern: {
-                scale: {min: .01, max: 100, step: .01, icon: require("../assets/img/diameter.png")}
+                scale: {min: .01, max: 100, step: .01 }
             },
             dynamics: {
                 props: {
@@ -117,11 +118,11 @@ export default new Vuex.Store({
             else if(colorType == "bg") state.colorBG = color;
         },
         changeSettings(state, {instrument, updates}) {
-            ['values', 'dynamics'].forEach(k => {
-                if(updates[k])
-                    Object.assign(
-                        state.currentToolSettings[instrument][k], 
-                        Object.assign({}, updates[k]));
+            ['values', 'dynamics', 'texture', 'gradient', 'pattern'].forEach(k => {
+                if(updates[k]) {                
+                    state.currentToolSettings[instrument][k] =    
+                        Object.assign({}, state.currentToolSettings[instrument][k]||{}, updates[k]); 
+                }
             });            
         },
         setPosition(state, {el, x, y}) {

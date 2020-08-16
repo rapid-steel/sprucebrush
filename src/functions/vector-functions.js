@@ -64,7 +64,15 @@ export function angle(vec1, vec2) {
         );
   }
 
-export   function average(vec1, vec2) {
+function vec_angle(vec) {
+  return Math.atan(vec[1] / vec[0]) + (vec[0] < 0 ? Math.PI : 0);
+}
+
+export function angle_signed(vec1, vec2) {
+   return vec_angle(vec2) - vec_angle(vec1);
+}
+
+export function average(vec1, vec2) {
   let len = (length(vec1) + length(vec2)) / 2;
   return normalized(
     sum(vec1, vec2)

@@ -22,15 +22,18 @@
             :title="$t('tools.selection.apply')"
             @click="() => $emit('apply-selection')"></button>
         <button class="icon-btn reset"
-            :title="$t('tools.selection.reset')"
+            :title="$t('common.reset')"
             @click="() => $emit('reset-selection')"></button>
       
     </div>
 
 
 
+
+
     <div class="settings">
         <ActualSettings />
+
 
         <div v-if="currentSettings.webglTool == 'brush'">
             <BrushTransformation />
@@ -88,26 +91,26 @@
 
         
 
-        <div class="textures" v-if="currentSettings.values.texture !== undefined">
+        <div class="textures" v-if="currentSettings.texture !== undefined">
             <div class="side-list-header">
                 <div class="caption">{{$t('tools.settings.texture')}}</div>
                 <SideList>
                     <div class="texture notexture" 
-                        :class="{active: currentSettings.values.texture == false}"
-                        @click.stop="() => set({values: {texture: false}})"
+                        :class="{active: currentSettings.texture == false}"
+                        @click.stop="() => set({texture: false})"
                         ></div>
                     <div class="texture"
                         v-for="texture in textures" 
                         :key="texture.k" 
-                        :class="{active: currentSettings.values.texture == texture}"
-                        @click.stop="() => set({values: {texture}})">
+                        :class="{active: currentSettings.texture == texture}"
+                        @click.stop="() => set({texture})">
                         <button class="icon-btn small delete" 
                         @click.stop="() => deleteAsset('texture', texture.k)"></button>
                         <img :src="texture.src">                
                     </div>
                     <template slot=footer>
                         <button class="add-texture" 
-                            :class="{active: currentSettings.values.texture == false}"
+                            :class="{active: currentSettings.texture == false}"
                             @click.stop="() => $refs.addTexture.click()"
                         >{{$t('tools.settings.importTexture')}}<input @change="importAsset"
                             type="file" id="texture-input"
@@ -116,36 +119,36 @@
                     </template>
                 </SideList>
             </div>
-            <div v-if="currentSettings.values.texture">
+            <div v-if="currentSettings.texture">
                 <div class="texture current">
                     <button class="icon-btn small cancel" 
-                    @click.stop="() => set({values: {texture: false}})"></button>
-                    <img :src="currentSettings.values.texture.src"> 
+                    @click.stop="() => set({texture: false})"></button>
+                    <img :src="currentSettings.texture.src"> 
                 </div>
             </div>
 
         </div>
 
-        <div class="textures" v-if="currentSettings.values.pattern !== undefined">
+        <div class="textures" v-if="currentSettings.pattern !== undefined">
             <div class="side-list-header">
                 <div class="caption">{{$t('tools.settings.pattern')}}</div>
                 <SideList>
                     <div class="texture notexture" 
-                        :class="{active: currentSettings.values.pattern.enabled == false}"
-                        @click.stop="() => set({values: {pattern: false}})"
+                        :class="{active: currentSettings.pattern.enabled == false}"
+                        @click.stop="() => set({pattern: {...currentSettings.pattern, enabled: false }})"
                         ></div>
                     <div class="texture"
                         v-for="pattern in patterns" 
                         :key="pattern.k" 
-                        :class="{active: currentSettings.values.pattern.k == pattern.k}"
-                        @click.stop="() => set({values: {pattern}})">
+                        :class="{active: currentSettings.pattern.k == pattern.k}"
+                        @click.stop="() => set({pattern: {...currentSettings.pattern, ...pattern, enabled: true}})">
                          <button class="icon-btn small delete" 
                         @click.stop="() => deleteAsset('pattern', pattern.k)"></button>
                         <img :src="pattern.src">                
                     </div>
                     <template slot=footer>
                         <button class="add-texture" 
-                            :class="{active: currentSettings.values.pattern.enabled == false}"
+                            :class="{active: currentSettings.pattern.enabled == false}"
                             @click.stop="() => $refs.addPattern.click()"
                         >{{$t('tools.settings.importPattern')}}<input @change="importAsset"
                             type="file" id="pattern-input"
@@ -154,40 +157,40 @@
                     </template>
                 </SideList>
             </div>
-            <div v-if="currentSettings.values.pattern">
+            <div v-if="currentSettings.pattern.enabled">
                 <div class="texture current">
                     <button class="icon-btn small cancel" 
-                    @click.stop="() => set({pattern: false})"></button>
-                    <img :src="currentSettings.values.pattern.src"> 
+                    @click.stop="() => set({pattern: {...currentSettings.pattern, enabled: false }})"></button>
+                    <img :src="currentSettings.pattern.src"> 
                 </div>
+
+                 <div class="setting-value">
+                    <div class="caption">{{$t('tools.settings.scale')}}</div>
+                        <RangeInput :min=".1" :step=".01" :max="10" :horizontal="true"
+                        v-model="currentSettings.pattern.scale"
+                        @input="scale => set({ pattern: {...currentSettings.pattern, scale }})" />
+                </div>   
             </div>
 
-            <div class="setting-value" v-if="!!currentSettings.values.pattern">
-                <img class="icon" 
-                    :src="settings.pattern.scale.icon" 
-                    :title="$t('tools.settings.scale')">
-                    <RangeInput :min=".1" :step=".01" :max="10" :horizontal="true"
-                    v-model="currentSettings.values.pattern.scale"
-                    @input="v => setValue({ pattern: {...currentSettings.values.pattern, scale }})" />
-            </div>   
+           
         </div>
 
 
         <div class="gradients"
-            v-if="currentSettings.values.gradient"
+            v-if="currentSettings.gradient"
         >
             <div class="side-list-header">
                 <div class="caption">{{$t('tools.settings.gradient')}}</div>
                 <SideList>
                     <div class="gradient nogradient"
-                        :class="{active: !currentSettings.values.gradient.enabled}"
+                        :class="{active: !currentSettings.gradient.enabled}"
                         @click.stop="resetGradient">{{$t('tools.settings.none')}}
                     </div>
                     <div v-for="(gradient,i) in gradients" 
                         :key="i" class="gradient"
-                        :class="{active: currentSettings.values.gradient.k == gradient.k}"
+                        :class="{active: currentSettings.gradient.colors == gradient}"
                         :style="gradient | gradientBG"
-                        @click.stop="() => setGradient(gradient)">
+                        @click.stop="() => setGradient(gradient, i)">
                         <button class="icon-btn small edit" 
                         @click.stop="() => editGradient(i)"></button>
                         <button class="icon-btn small delete" 
@@ -200,36 +203,34 @@
                 </SideList>
             </div>
 
-            <template v-if="currentSettings.values.gradient.enabled">
+            <template v-if="currentSettings.gradient.enabled">
                 <div class="select-type">
                     <img class="icon" 
                         v-for="type in currentSettings.gradientTypes"
                         :key="type"
-                        :class="{active: type == currentSettings.values.gradient.type}"
-                        :src="require('../assets/img/' + settings.gradient.types[type].icon)"
+                        :class="{active: type == currentSettings.gradient.type}"
+                        :src="settings.gradient.types[type].icon"
                         @click.stop="() => setGradientType(type)"                                                         
                      />
                 </div>
                 
                 <div>
-                    <div class="gradient current" :class="currentSettings.values.gradient.type"
-                        :style="currentSettings.values.gradient.colors | 
-                        gradientBG(currentSettings.values.gradient.type, currentSettings.values.gradient.type == 'by_wid' ? 'to bottom' : 'to right')">
+                    <div class="gradient current" :class="currentSettings.gradient.type"
+                        :style="currentSettings.gradient.colors | 
+                        gradientBG(currentSettings.gradient.type, currentSettings.gradient.type == 'by_wid' ? 'to bottom' : 'to right')">
                         <button class="icon-btn small cancel" 
                         @click.stop="resetGradient"></button>
                     </div>
                 </div>
 
-                <div class="setting-value"  v-if="currentSettings.values.gradient.type == 'by_len'">
-                    <img class="icon" 
-                        :src="require('../assets/img/' + settings.gradient.length.icon)" 
-                        :title="$t('tools.settings.length')">
+                <div class="setting-value"  v-if="currentSettings.gradient.type == 'by_len'">
+                    <div class="caption">{{$t('tools.settings.length')}}</div>
                     <RangeInput 
                         :min="settings.gradient.length.min" 
                         :max="settings.gradient.length.max" 
                         :step="settings.gradient.length.step" 
                         :horizontal="true"
-                        v-model="currentSettings.values.gradient.length"
+                        v-model="currentSettings.gradient.length"
                         @input="setGradientLength" />
                 </div>     
             </template>
@@ -279,6 +280,7 @@ export default {
                 items: [
                     {name: "picker", icon: require("@/assets/img/picker.png")},
                     {name: "hand", icon: require("@/assets/img/hand.png")},
+                    {name: "rotation", icon: require("@/assets/img/rotation.png")},
                 ]
             },{
                 group: "selection",
@@ -309,8 +311,8 @@ export default {
             return this.$store.getters.currentSettings;
         },
         gradientLength() {
-            return this.currentSettings.values.gradient ? 
-            this.gradientTypes[this.currentSettings.values.gradient.type].length
+            return this.currentSettings.gradient ? 
+            this.gradientTypes[this.currentSettings.gradient.type].length
             : false;
         }
     },
@@ -329,29 +331,24 @@ export default {
                 }
             });
         },
-        setGradient(colors) {
-            this.currentSettings.values.gradient.enabled = true;
-            this.currentSettings.values.gradient.colors = colors;
+        setGradient(colors,i) {
+            this.currentSettings.gradient.enabled = true;
+            this.currentSettings.gradient.colors = colors;
+            this.currentSettings.gradient.k = i;
             this.set({
-                values: {
-                    gradient: Object.assign({}, this.currentSettings.values.gradient)
-                }
+                gradient: Object.assign({}, this.currentSettings.gradient)                
             });
         },
         setGradientType(type) {
-            this.currentSettings.values.gradient.type = type;
+            this.currentSettings.gradient.type = type;
             this.set({
-                values: {
-                    gradient: Object.assign({}, this.currentSettings.values.gradient)
-                }
+                gradient: Object.assign({}, this.currentSettings.gradient)                
             });
         },
         resetGradient() {
-            this.currentSettings.values.gradient.enabled = false;
+            this.currentSettings.gradient.enabled = false;
             this.set({
-                values: {
-                    gradient: Object.assign({}, this.currentSettings.values.gradient)
-                }
+                gradient: Object.assign({}, this.currentSettings.gradient)                
             });
         },
         importAsset(e) {
@@ -422,10 +419,10 @@ export default {
             this.set({values: obj});
         },
         setGradientLength(v) {
-            this.currentSettings.values.gradient.length = v;
+            this.currentSettings.gradient.length = v;
             this.set({
                 values: {
-                    gradient: Object.assign({}, this.currentSettings.values.gradient)
+                    gradient: Object.assign({}, this.currentSettings.gradient)
                 }
             });
         },
@@ -504,6 +501,11 @@ export default {
 .setting-value {
     margin: 5px 0;
     display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    .caption {
+        margin-right: 25px;
+    }
 }
 .settings, 
 .gradient-length {

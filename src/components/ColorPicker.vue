@@ -284,7 +284,7 @@ export default {
     #rename-pallete {
         position: absolute;
         font: $font-select;
-        width: 160px;
+        width: 170px;
         height: 30px;
         right: 0;
         top: 0;

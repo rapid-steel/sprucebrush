@@ -6,7 +6,8 @@ export default {
     common: {
         ok: "Ok",
         save: "Save",
-        close: "Close"
+        close: "Close",
+        reset: "Reset"
     },           
     topPanel: {
         newDrawing: {
@@ -88,7 +89,8 @@ export default {
     },
     layers: {
         layers: "Layers",
-        newLayer: "Layer"
+        newLayer: "Layer",
+        background: "Background"
     },
     gradientCreator: {
         addColor: "Click to add color",
@@ -108,6 +110,7 @@ export default {
             marker: "Roller",
             pen: "Pen",
             hand: "Hand",
+            rotation: "Rotation",
             gradient: "Gradient",
             selection_rect: "Rectangular selection",
             selection_polygon: "Polygonal selection",
@@ -130,6 +133,7 @@ export default {
             importTexture: "Import texture",
             pattern: "Pattern",
             scale: "Scale",
+            rAngle: "Angle",
             importPattern: "Import pattern",
             pixel: "Pixel",
             gradient: "Gradient",
@@ -156,7 +160,6 @@ export default {
         },
         selection: {
             apply: "Apply",
-            reset: "Reset",
             crop: "Crop image",
             clipnewlayer: "Clip to new layer",
             all: "Select all"

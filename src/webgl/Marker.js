@@ -316,39 +316,9 @@ export default class Marker extends ToolWebGL {
     }
     _getProgramType() {
         return [ 
-            this.params.texture ? "texture" : "notexture",
-            this.params.gradient.enabled ? "gradient" : "color",
+            this.texture ? "texture" : "notexture",
+            this.gradient && this.gradient.enabled ? "gradient" : "color",
             ...Object.entries(this.dynamics).map(d => `${d[0]}dynamics:${d[1] ? d[1].type : 0}`)
         ].join("-");
-    }
-    setAttributes() {
-        if(this.program) {
-            for(let param in this.params) {
-                if(param == "color") {
-                    this.gl.uniform3fv(
-                        this.gl.getUniformLocation(this.program, "color"), 
-                        this._getGlColor(this.params.color));
-                } else if(this.programParams[param]) {
-                    let loc = this.gl.getUniformLocation(this.program, param);                
-                    this.gl[`uniform${this.programParams[param]}`](loc, this.params[param]);                            
-                }   
-            }
-            if(this.params.gradient.enabled) {
-                this.gl.uniform1f(this.gl.getUniformLocation(this.program, "gradientRatio"), this.params.gradientRatio);
-            }
-            this.gl.uniform1i(
-                this.gl.getUniformLocation(this.program, "texture"), 
-                this.textures.BASE);
-
-            this.gl.uniform1i(
-                this.gl.getUniformLocation(this.program, "gradientTexture"), 
-                this.textures.GRADIENT);
-
-            this.gl.uniform1f(
-                this.gl.getUniformLocation(this.program, "textureRatio"), 
-                this.params.texture ? this.params.texture.ratio || 1 : 1);
-
-            this._setDynamics();
-        }
     }
 }

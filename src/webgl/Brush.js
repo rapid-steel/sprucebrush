@@ -286,9 +286,9 @@ export default class Brush extends ToolWebGL {
     }
     _getProgramType() {
         return [ 
-            this.params.texture ? "texture" : this.params.shape,
+            this.texture ? "texture" : this.params.shape,
             this.params.pixel ? "pixel" : "smooth",
-            this.params.gradient.enabled ? "gradient-" + this.params.gradient.type : "color",
+            this.gradient && this.gradient.enabled ? "gradient-" + this.gradient.type : "color",
             ...Object.entries(this.dynamics).map(d => `${d[0]}dynamics:${d[1] ? d[1].type : 0}`)
         ].join("-")
     }
@@ -296,51 +296,4 @@ export default class Brush extends ToolWebGL {
         super.setParams(params);        
         this.pointStep = this.params.radius * this.params.spacing;
     }
-    setAttributes() {
-
-        if(this.program) {
-            for(let param in this.params) {
-                if(param == "gradient") {
-                    if(this.programProps.gradient) {
-                        if(this.programProps.by_len) {
-                            this.gl.uniform1f(
-                                this.gl.getUniformLocation(this.program, "gradientLength"), 
-                                this.params.gradient.length);
-                        }
-                    }
-                }
-                else if(param == "color") {
-                    this.gl.uniform3fv(
-                        this.gl.getUniformLocation(this.program, "color"), 
-                        this._getGlColor(this.params.color));
-                }
-                else if(param == "angle") {
-                    let angle = this.params.angle / 180 * Math.PI;
-                    this.gl.uniform1f(
-                        this.gl.getUniformLocation(this.program, "angle"), angle);
-                }
-    
-                else if(this.programParams[param]) {
-                    this.gl.uniform1f(
-                        this.gl.getUniformLocation(this.program, param), 
-                        this.params[param]);                         
-                }
-
-            }
-            if(this.params.gradient.enabled) {
-                this.gl.uniform1f(this.gl.getUniformLocation(this.program, "gradientRatio"), this.params.gradientRatio);
-            }
-
-
-            this.gl.uniform1i(
-                this.gl.getUniformLocation(this.program, "texture"), 
-                this.textures.BASE);   
-            this.gl.uniform1i(
-                this.gl.getUniformLocation(this.program, "gradientTexture"), 
-                this.textures.GRADIENT);
-
-            this._setDynamics();
-        }
-
-    }   
 }

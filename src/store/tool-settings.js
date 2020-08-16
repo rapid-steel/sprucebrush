@@ -5,7 +5,13 @@ export default {
     hand: {
         values: {}
     },
+    rotation: {
+        values: {
+            rAngle: 0
+        }
+    },
     brush: {
+        modifying: true,
         values: {
             radius: 50,
             opacity: 1,
@@ -15,9 +21,13 @@ export default {
             shape: "round",
             hardness: 1,
             overlay: false,
-            pixel: false,      
-            texture: false,
-            gradient: {enabled: false, type: "by_len", length: 100}
+            pixel: false,     
+        },
+        texture: false,
+        gradient: {
+            enabled: false, 
+            type: "by_len", 
+            length: 100
         },
         webglTool: "brush",
         dynamics: {
@@ -30,6 +40,7 @@ export default {
         gradientTypes: ['by_len', 'radial']              
     },
     eraser: {
+        modifying: true,
         values: {
             radius: 50,
             opacity: 1,
@@ -40,7 +51,6 @@ export default {
             shape: "round",
             overlay: false,
             pixel: false,      
-            texture: false,
         },
         webglTool: "brush",
         dynamics: {
@@ -53,20 +63,26 @@ export default {
         gradientTypes: []   
     },
     fill: {
+        modifying: true,
         values: {
             tolerance: 30,
-            pattern: {enabled: false, scale: 1}
-        }
+        },
+        pattern: {enabled: false, scale: 1}
     },
     marker: {
+        modifying: true,
         values: {
             lineWidth: 20,
             blurRadius: 5,
             angleSmoothing: 10,
             curveSmoothing: 3,
             opacity: 1,
-            texture: false,
-            gradient: {enabled: false, type: "by_len", length: 100}
+        },
+        texture: false,
+        gradient: {
+            enabled: false, 
+            type: "by_len", 
+            length: 100
         },
         webglTool: "marker",
         dynamics: {
@@ -77,15 +93,19 @@ export default {
         gradientTypes: ['by_len', 'by_wid']   
     },
     pen: {
+        modifying: true,
         values: {}
     },
     selection_rect: {
+        modifying: true,
         values: {}
     },
     selection_polygon: {
+        modifying: true,
         values: {}
     },
     selection_lasso: {
+        modifying: true,
         values: {}
     }
 };

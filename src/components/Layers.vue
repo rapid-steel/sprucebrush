@@ -13,7 +13,7 @@
             :list="layersReverse" 
             group="layers" 
             @end="e => $emit('reorder-layer', e)" >
-            <div v-for="(l,i) in layersReverse" 
+            <div v-for="(l) in layersReverse" 
                 :key="l.id"
                 class="layer"
                 :class="{
@@ -33,21 +33,26 @@
                         @click.stop="() => $emit('toggle-layer', l.id)" />
                     <img class="img-icon" src="@/assets/img/opacity.svg" />
                     <RangeInput 
-                    :min="0" 
-                    :max="100" 
-                    v-model="l.opacity" 
-                    @input="() => $emit('update:opacity')"
-                    />
-                    
+                        :min="0" 
+                        :max="100" 
+                        v-model="l.opacity" 
+                        @input="() => $emit('update:opacity')"
+                        />
                     <button class="icon-btn small delete"
                         :disabled="layers.length == 1" 
                         @click.stop="() => $emit('remove-layer', l.id)" />
                 </div>
                 <div>                
-                    <button class="icon-btn small merge"
+                    <button class="icon-btn toggle-btn small lock"
+                        :class="{active: l.locked}"
+                        @click.stop="() => $emit('toggle', [l, 'locked'])" />
+                    <button class="icon-btn toggle-btn small mask-layer"
+                        :class="{active: l.masked}"
+                        @click.stop="() => $emit('toggle', [l, 'masked'])" />
+                  <!--  <button class="icon-btn small merge"
                         v-if="i != layersReverse.length - 1"
-                        @click.stop="() => $emit('merge-layers', layersReverse.slice(i, i+2).map(l => l.id))" />
-                    <img class="img-icon" src="@/assets/img/compose.svg" />
+                        @click.stop="() => $emit('merge-layers', layersReverse.slice(i, i+2).map(l => l.id))" /> -->
+                    <img class="img-icon compose" src="@/assets/img/compose.svg" />
                     <v-select 
                         :options="blendModes"            
                         v-model="l.blend"
@@ -193,6 +198,8 @@ export default {
         width: 13px;
         height: 13px;
         display: inline-block;
+        margin: 3px;
+        margin-left: 15px;
     }
     .layer-name {
         width: 150px;

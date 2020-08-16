@@ -87,6 +87,7 @@
             @merge-layers="mergeLayers"
             @update:opacity="render"
             @update:blend="render"
+            @toggle="toggleLayerProp"
         />
     </div>
     <img id="logo" src="./assets/img/пушинка.png">
@@ -107,6 +108,10 @@
                 <feComposite in="SourceGraphic" in2="dil1w" operator="xor" result="comp1"/>  
                 <feComposite in="comp" in2="comp1" operator="xor" result="comp2"/>      
                 <feOffset in="comp2" dx="-3" dy="-3"/>           
+            </filter>
+             <filter id="bold">
+                <feMorphology operator="dilate" radius="1" result="bold" />      
+                <feComposite in="SourceGraphic" in2="bold" result="res"/>   
             </filter>
             <filter id="posterize">
                 <feComponentTransfer color-interpolation-filters="sRGB">
@@ -183,7 +188,7 @@ import HistoryMixin from "./mixins/HistoryMixin";
 
 import {getRgba} from "./functions/color-functions";
 import {fill} from "./functions/pixel-functions";
-import {angle, vec} from "./functions/vector-functions";
+import {angle, sum, vec, angle_signed, rotateX, rotateY, invert} from "./functions/vector-functions";
 
 
 
@@ -215,12 +220,12 @@ export default {
             title: "",
             error: false,
             colorToEdit: "fg",
-            backgroundColor: "#ffffff",
             contextMenu: {
                 show: false,
                 position: [0, 0]
             },
             translation: false,
+            rotation: false
         }
     },
     components: {
@@ -228,15 +233,23 @@ export default {
     },
     mixins: [FilterMixin, HistoryMixin],
     computed: {
-        ...mapState(['currentTool', 'currentColor', 'zoomLevels', 'activeSelection']),
+        ...mapState(['currentTool', 'currentColor', 'zoomLevels', 'activeSelection', 'colorBG']),
         ...mapGetters(['currentSettings']),
         historySize() {
             return this.$store.state.userPrefs.historySize;
+        },
+        rotationAngle() {
+            return this.$store.state.currentToolSettings.rotation.values.rAngle;
         }
     },
 watch: {
     currentColor() {
         this.setToolParams();
+    },
+    rotationAngle() {
+        let ra = this.rotationAngle / 180 * Math.PI;
+        this.$refs.canvas.style.transformOrigin = "center"
+        this.$refs.canvas.style.transform = `rotate(${this.rotationAngle}deg)`;
     },
     currentSettings: {
         deep: true,
@@ -246,15 +259,15 @@ watch: {
             if(val.pattern) {
                 if(!this.canvasPattern || 
                     val.pattern.src !== this.canvasPattern.img.src ||
-                    val.patternScale !== this.canvasPattern.scale) {
+                    val.pattern.scale !== this.canvasPattern.scale) {
                     this.canvasPattern = {
-                        scale: val.patternScale,
+                        scale: val.pattern.scale,
                         img: new Image()
                     };
                     this.canvasPattern.img.onload = () => {
                         let c = document.createElement("canvas");
-                        c.width = val.patternScale * this.canvasPattern.img.width;
-                        c.height = val.patternScale * this.canvasPattern.img.height;
+                        c.width = val.pattern.scale * this.canvasPattern.img.width;
+                        c.height = val.pattern.scale * this.canvasPattern.img.height;
                         let ctx = c.getContext("2d");
                         ctx.drawImage(this.canvasPattern.img, 
                             0, 0, this.canvasPattern.img.width, this.canvasPattern.img.height, 
@@ -454,6 +467,18 @@ created() {
             },
             up: () => {
                 this.endTranslateCanvas();
+            },
+            out: () => {}
+        },
+        rotation: {
+            down: () => {
+                this.startRotateCanvas();
+            },
+            move: () => {
+                this.rotateCanvas();
+            },
+            up: () => {
+                this.endRotateCanvas();
             },
             out: () => {}
         }
@@ -663,9 +688,9 @@ methods: {
             this.layers.forEach(layer => {
                 this.tempCtx.clearRect(...origin, this.tempCtx.canvas.width, this.tempCtx.canvas.height);
                 this.tempCtx.drawImage(layer.ctx.canvas, ...origin);
+                layer.ctx.globalCompositeOperation = "copy";
                 layer.ctx.canvas.width = this.sizes_hr.width;
-                layer.ctx.canvas.height = this.sizes_hr.height;
-                layer.ctx.clearRect(0, 0, layer.ctx.canvas.width, layer.ctx.canvas.height);              
+                layer.ctx.canvas.height = this.sizes_hr.height;        
                 layer.ctx.drawImage(this.tempCtx.canvas, 0, 0);    
             });
 
@@ -690,7 +715,7 @@ methods: {
             this.layers.forEach(layer => {
                 this.tempCtx.clearRect(...origin, this.tempCtx.canvas.width, this.tempCtx.canvas.height);
                 this.tempCtx.drawImage(layer.ctx.canvas, ...origin);
-                layer.ctx.clearRect(0, 0, layer.ctx.canvas.width, layer.ctx.canvas.height);              
+                layer.ctx.globalCompositeOperation = "copy";      
                 layer.ctx.drawImage(this.tempCtx.canvas, 0, 0);    
             });
         }
@@ -705,11 +730,12 @@ methods: {
     },
     setToolParams() {        
         if(this.currentSettings.webglTool) {
-            const {values, dynamics, webglTool} = this.currentSettings;
+            const {values, dynamics, gradient, texture, webglTool} = this.currentSettings;
             const settings = {
                 values: Object.assign({}, values),
                 dynamics,
-                color: this.currentColor
+                color: this.currentColor,
+                gradient, texture
             };
             if(values.radius) settings.values.radius *= this.sizes.px_ratio;
             if(values.lineWidth) settings.values.lineWidth *= this.sizes.px_ratio;
@@ -751,8 +777,8 @@ methods: {
     setSizeFactor() {
         const rect = this.$refs.container.getBoundingClientRect();
         this.sizeFactor = [
-            (this.sizes.width * this.zoom - rect.width) / rect.width,
-            (this.sizes.height * this.zoom - rect.height) / rect.height
+            Math.max(1, (this.sizes.width * this.zoom - rect.width) / rect.width),
+            Math.max(1, (this.sizes.height * this.zoom - rect.height) / rect.height)
         ];
     },
     getTransform() {    
@@ -836,6 +862,7 @@ methods: {
         
 
         this.$refs.container.addEventListener("pointerdown", event => {
+            if(event.target == this.$refs.container) return;
             event.preventDefault();
             this.contextMenu.show = false;
             this.setLastPoint(event);
@@ -843,7 +870,8 @@ methods: {
             
             switch(event.which) {
                 case 1:
-                    this.pointerActions.down();
+                    if(!this.currentLayer.locked || !this.currentSettings.modifying)
+                        this.pointerActions.down();
                     this.leftBtn = true;
                     break;
                 case 2:
@@ -864,7 +892,8 @@ methods: {
                 this.setCursorSelAction();  
                 this.$forceUpdate();  
             }
-            if(this.leftBtn)
+            if(this.leftBtn && 
+                !this.currentLayer.locked || !this.currentSettings.modifying)
                 this.pointerActions.move();                
 
         });
@@ -874,8 +903,11 @@ methods: {
             event.preventDefault();
             event.stopPropagation();
             this.setLastPoint(event);
+            this.leftBtn = false;
             let t = Date.now();
-            this.pointerActions.up();                        
+            if(!this.currentLayer.locked || !this.currentSettings.modifying)
+                this.pointerActions.up();
+
             this.prevClick.time = t;     
             if(this.restrictedToAxis) {
                 let p0 = this.lastTouchedPoint;
@@ -930,10 +962,39 @@ methods: {
             .map((c,i) => -c * this.sizeFactor[i] * 1.5);
             this.$refs.container.scrollBy(...delta);
         }
-
     },
     endTranslateCanvas() {
         this.translation = false;
+        this.setCursor();
+    },
+    startRotateCanvas() {
+        this.rotation = true;       
+        this.setCursor();
+    },
+    rotateCanvas() {        
+        if(this.pressure > 0.25) {
+            let container = this.$refs.container.getBoundingClientRect();
+            let center = [container.width / 2, container.height / 2];
+            let v = vec(center, this.lastPoint.containerCoords);
+            let da = angle_signed(v, sum(v, this.lastPoint.delta));
+            let rAngle = (this.currentSettings.values.rAngle + da * 180 / Math.PI) % 360;
+         //   console.log(da, rAngle)
+            if(rAngle < 0) rAngle = 360 + rAngle;
+
+            this.$store.commit("changeSettings", {
+                instrument: "rotation",
+                updates: {
+                    values: {
+                        rAngle: rAngle
+                    }
+                }
+            });
+
+            this.$refs.canvas.style.transform = `rotate(${rAngle}deg)`;
+        }
+    },
+    endRotateCanvas() {
+        this.rotation = false;
         this.setCursor();
     },
     setLastPoint(event) {
@@ -942,10 +1003,13 @@ methods: {
             this.pressure = 1;
         
         const offset = this.$refs.canvas.getBoundingClientRect();
-        const coords = [ 
+        
+        const coords = [event.offsetX, event.offsetY].map(p => p * this.sizes.px_ratio / this.zoom);
+        let containerCoords = [ 
             Math.round(event.pageX - offset.left), 
             Math.round(event.pageY - offset.top) 
-        ].map(p => p * this.sizes.px_ratio / this.zoom);
+        ];
+
         const pageCoords = [event.pageX, event.pageY];
         let prev, delta;
         if(this.lastPoint) {
@@ -960,7 +1024,7 @@ methods: {
         }       
         this.lastPoint = {
             prev, coords, delta,
-            pageCoords,
+            pageCoords, containerCoords,
             pressure: this.pressure
         };        
         this.setCursorPosition();
@@ -1163,7 +1227,7 @@ methods: {
         this.selectLayer(layers[layers.length-1].id);
     },
     fill(coords) {
-        let accuracy = this.sizes.px_ratio * 2;
+        let accuracy = this.sizes.px_ratio;
         let sizes = [this.sizes_hr.width, this.sizes_hr.height].map(c => Math.round(c / accuracy));
         this.tempCtx.drawImage(this.currentLayer.ctx.canvas, 0, 0, ...sizes);
 
@@ -1181,7 +1245,7 @@ methods: {
         
 
         if(this.selection) {                  
-            this._fillIfPattern();
+            this._fillIfPattern(this.tempCtx2);
             this.tempCtx.clearRect(0,0, this.sizes_hr.width, this.sizes_hr.height);
             this.selection.clip(this.tempCtx);
             this.tempCtx.drawImage(this.tempCtx2.canvas, 0, 0, ...sizes, 0, 0, this.sizes_hr.width, this.sizes_hr.height);
@@ -1190,19 +1254,20 @@ methods: {
             this.tempCtx.drawImage(this.tempCtx2.canvas, 0, 0, ...sizes, 0, 0, this.sizes_hr.width, this.sizes_hr.height);
         }
 
-        this._fillIfPattern();       
+        this._fillIfPattern(this.tempCtx);       
 
         this.writeHistory();
+        this.currentLayer.ctx.globalCompositeOperation = this.currentLayer.compositeMode;
         this.currentLayer.ctx.drawImage(this.tempCtx.canvas, 0, 0);
         
         this.applyTemp();
     },
-    _fillIfPattern() {
-        if(this.currentSettings.values.pattern.enabled && this.canvasPattern) {    
-            this.tempCtx2.globalCompositeOperation = "source-in";
-            this.tempCtx2.fillStyle = this.canvasPattern.pattern;
-            this.tempCtx2.fillRect( 0, 0,this.sizes_hr.width, this.sizes_hr.height);
-            this.tempCtx2.globalCompositeOperation = "source-over"; 
+    _fillIfPattern(ctx) {
+        if(this.currentSettings.pattern.enabled && this.canvasPattern) {    
+            ctx.globalCompositeOperation = "source-in";
+            ctx.fillStyle = this.canvasPattern.pattern;
+            ctx.fillRect( 0, 0,this.sizes_hr.width, this.sizes_hr.height);
+            ctx.globalCompositeOperation = "source-over"; 
         } 
     },
     layerToSelection(id) {
@@ -1241,8 +1306,6 @@ methods: {
     render(temp) {
         const {width, height} = this.blender.canvas;
         this.blender.clearRect(0,0, width, height);
-        this.blender.fillStyle = this.backgroundColor;
-        this.blender.fillRect(0,0, width, height);      
         
         this.layers.forEach(l => {
             if(l.visible) {
@@ -1269,7 +1332,7 @@ methods: {
     draw(point, tool) {
         this._addPoint(point, tool);  
         this.updateFunc = () => {
-            this._draw(point, tool);       
+            this._draw(point, tool, this.currentLayer.compositeMode);       
             this.render(true);    
             this.animate();
         };
@@ -1295,8 +1358,8 @@ methods: {
             this._addPoint(point, tool);  
             this.writeHistory();
             this.updateFunc = () => {
-                this._draw(point, tool);  
-                this.currentLayer.ctx.globalCompositeOperation = "source-over";            
+                this._draw(point, tool, this.currentLayer.compositeMode);  
+                this.currentLayer.ctx.globalCompositeOperation = this.currentLayer.compositeMode;            
                 if(this.selection) {
                     this.selection.clip(this.currentLayer.ctx);
                 } 
@@ -1367,13 +1430,15 @@ methods: {
         this.cursorStyles["background-image"] = null;
         this.cursorStyles.width = null;
         this.cursorStyles.height = null;
-        if(this.translation) this.cursorClasses = ["grab"];
-        else this.cursorClasses = [values.shape];
-        if(!this.shortcutTool && ["brush", "eraser", "marker"].indexOf(this.currentTool) !== -1) {                
+        this.cursorClasses = [];
+        if(this.translation) 
+            this.cursorClasses = ["grab"];
+        
+        if(!this.shortcutTool && this.currentSettings.webglTool) {                
             if(this.currentTool == "marker") {
                 this.cursorStyles.height = values.lineWidth  + "px";
                 this.cursorStyles.width = "15px";
-            } else {
+            } else {               
                 this.cursorStyles.width = values.radius * this.zoom  + "px";
                 this.cursorStyles.height = values.radius * this.zoom  + "px";
                 this.cursorStyles.transform = [ 
@@ -1384,12 +1449,16 @@ methods: {
                 ].join("");
             }
             this.cursorStyles["background-color"] = "transparent"; 
-            if(values.texture) {
+            if(this.currentSettings.texture) {
                 this.cursorClasses = ["texture"];
-                this.cursorStyles["background-image"] = `url(${values.texture.src})`;
-            }    
+                this.cursorStyles["background-image"] = `url(${this.currentSettings.texture.src})`;
+            } else  
+                this.cursorClasses = [values.shape];
         }
-        
+
+        if(this.currentSettings.modifying && 
+            this.currentLayer.locked) 
+            this.cursorClasses = ["locked"];       
 
 
 
@@ -1440,7 +1509,7 @@ methods: {
         this.layers.forEach(layer => {
             this.tempCtx.clearRect(0, 0, this.tempCtx.canvas.width, this.tempCtx.canvas.height);
             this.tempCtx.drawImage(layer.ctx.canvas, ...rect1, ...rect);
-            layer.ctx.clearRect(0, 0, layer.ctx.canvas.width, layer.ctx.canvas.height);        
+            layer.ctx.globalCompositeOperation = "copy";      
             layer.ctx.canvas.width = this.sizes_hr.width;
             layer.ctx.canvas.height = this.sizes_hr.height;            
             layer.ctx.drawImage(this.tempCtx.canvas, 0, 0, this.sizes_hr.width, this.sizes_hr.height);    
@@ -1495,6 +1564,7 @@ methods: {
         }
         this.clearHistory();
         this.title = title;
+        this.makeBGLayer();
         this.appendLayer(this.$t("layers.newLayer") + " 1");
     },
     copyCurrentLayer() {
@@ -1532,11 +1602,14 @@ methods: {
             }, nameBase + " 1");            
         }
         const layer = {
-            id: Date.now(), 
+            id: Math.random(), 
             name, 
             opacity: 100,
             visible: true,
-            blend: "source-over"
+            locked: false,
+            masked: false,
+            blend: "source-over",
+            compositeMode: "source-over"
         };
         layer.ctx = (new OffscreenCanvas(this.sizes_hr.width, this.sizes_hr.height)).getContext("2d");
          if(paste) {
@@ -1544,6 +1617,18 @@ methods: {
             ...[paste.x, paste.y, paste.width, paste.height].map(v => v * this.sizes.px_ratio));
         }        
         return layer;
+    },
+    makeBGLayer() {
+        const layer = this.createLayer(this.$t('layers.background'));
+        layer.ctx.fillStyle = this.colorBG;
+        layer.ctx.fillRect(0, 0, this.sizes_hr.width, this.sizes_hr.height);
+        layer.locked = true;
+        
+        this.layers = this.layers.slice(0, this.currentLayerIndex+1)
+            .concat([layer])
+            .concat(this.layers.slice(this.currentLayerIndex+1));
+
+        this.render();    
     },
     appendLayer(name, paste) {
         const layer = this.createLayer(name, paste);
@@ -1573,6 +1658,7 @@ methods: {
         if(this.currentLayerIndex >= 0) {
             this.currentLayer = this.layers[this.currentLayerIndex];
             this.render();
+            this.setCursor();
         }
         
     },
@@ -1618,6 +1704,13 @@ methods: {
             this.layers.splice(this.layers.indexOf(layer), 1);
         });
         this.selectLayer(merged.id);
+    },
+    toggleLayerProp([l, prop]) {
+        l[prop] = !l[prop];
+        if(l == this.currentLayer && prop == 'locked') this.setCursor();
+        if(prop == "masked") {
+            l.compositeMode = l.masked ? "source-atop" : "source-over";
+        }
     }
 }
 }
@@ -1662,6 +1755,14 @@ ul[role=listbox] {
         repeat: no-repeat;
         size: 60% 60%;
     }
+    &.toggle-btn {
+        opacity: .8;
+        &.active {
+            opacity: 1;
+            border: 1px black solid;
+            border-radius: 5px;
+        }
+    }
     &.small {
         width: $icon-btn-size-small;
         flex: 0 0 $icon-btn-size-small;
@@ -1683,6 +1784,9 @@ ul[role=listbox] {
     &.cancel { background-image: url("./assets/img/cancel.svg"); }
     &.merge { background-image: url("./assets/img/merge.svg"); }
     &.delete { background-image: url("./assets/img/trash.svg"); }
+    
+    &.lock { background-image: url("./assets/img/lock.svg"); }
+    &.mask-layer { background-image: url("./assets/img/mask-layer.svg"); }
     &.visible { background-image: url("./assets/img/visible.svg"); }
     &.swap { background-image: url("./assets/img/swap.svg"); }
     &.link { background-image: url("./assets/img/link.svg"); }
@@ -1716,6 +1820,7 @@ body {
         flex-flow: column nowrap;
     }
     .panel {
+        z-index: 100;
         padding: $panel_padding;       
         display: flex;
         flex-flow: column nowrap;
@@ -1749,16 +1854,14 @@ body {
     width: $canvas_width;
     height: $canvas_height;
     max-height: $canvas_height;
-    &:hover  #cursor {
-        z-index: $z-index_canvas-cursor;
-        visibility: visible;
-    }
+    
 }
 
 #canvas-container {    
     outline: 2px solid black;
     box-sizing: border-box;
-    overflow: auto;
+  //  overflow: auto;
+    overflow: hidden;
     background-image: url("./assets/img/forest.jpg");
     background-size: 100% 100%;
     background-repeat: no-repeat;
@@ -1772,11 +1875,27 @@ body {
     vertical-align: middle;
     cursor: none;
     #canvas {
-        background: white;
+        background: url("./assets/img/transparent.png");
+        outline: 1px solid black;
         position: relative;
         margin: auto;
         display: inline-block;
         vertical-align: middle;
+        &:before {
+            width: 100%;
+            height: 100%;
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            z-index: 1;
+            content: "";
+            display: block;
+            transform: translate(-50%,-50%)scale(10,10);
+        }
+    }
+    &:hover  #cursor {
+        z-index: $z-index_canvas-cursor;
+        visibility: visible;
     }
     
     canvas {
@@ -1813,6 +1932,7 @@ body {
     visibility: hidden;
     transform: translate(-50%,-50%);
     transform-origin: 50% 50%;
+
 
     &.brush, &.eraser, &.picker, &.marker {
         border: .5px solid rgba(255,255,255,.75);
@@ -1896,6 +2016,27 @@ body {
         }
         &.resize {
             background-image: url("./assets/img/resize3.svg");
+        }
+    }
+
+    &.rotation {
+        transform: translate(-50%,-50%);
+        background-image: url("./assets/img/crosshair.png");
+        background-size: cover;
+        width: 16px!important;
+        height: 16px!important;
+        background-image: url("./assets/img/rotate.svg");
+
+    }
+
+    &.locked {
+        width: 16px!important;
+        height: 16px!important;
+        background-size: cover;
+        border: none!important;
+        background-image: url("./assets/img/none.gif")!important;
+        &::after {
+            display: none!important;
         }
     }
 }
