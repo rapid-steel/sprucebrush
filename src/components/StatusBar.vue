@@ -3,13 +3,13 @@
         <input type="text" id="title"
             :value="title"
             @keydown.stop
-            @change="e => $emit('update:title', e.target.value)" 
+            @change="e => $store.commit('setTitle', e.target.value)" 
         >
         <button class="icon-btn undo small" 
-            :disabled="emptyHistory"
+            :disabled="!historyCounter.undo"
             @click="$emit('undo')"></button>
         <button class="icon-btn redo small" 
-            :disabled="noUndone"
+            :disabled="!historyCounter.redo"
             @click="$emit('redo')"></button>
         <button class="icon-btn zoom-out small"
             :disabled="zoom <= zoomLevels[0]"
@@ -18,7 +18,9 @@
         <button class="icon-btn zoom-in small"
             :disabled="zoom >= zoomLevels[zoomLevels.length-1]"
             @click="$emit('zoom-in')"></button>
-
+        <button class="icon-btn small"
+            :class="viewMode == 'normal' ? 'to-full-view' : 'to-normal-view'" 
+            @click="() => $emit('switch-view-mode')"></button>
     </div>
 </template>
 
@@ -27,9 +29,8 @@ import {mapState} from "vuex";
 
 export default {
   name: 'saveSettings',
-  props: ['zoom', 'emptyHistory', 'noUndone', 'title'], 
   computed: {
-      ...mapState(['zoomLevels']),
+      ...mapState(['zoomLevels', 'zoom', 'viewMode', 'historyCounter', 'title']),
   }
 }
 </script>

@@ -57,6 +57,10 @@ export default new Vuex.Store({
         currentColor: "rgb(0,0,0)",
         colorBG: "rgb(255,255,255)",
         currentLayer: 0,
+        viewMode: 'normal',
+        zoom: 1,
+        historyCounter: {undo: 0, redo: 0},
+        title: "Васина мазня",
         textures: {
             brush: assets.textures_brush,
             marker: assets.textures_roller
@@ -104,6 +108,18 @@ export default new Vuex.Store({
         }
     },
     mutations: {
+        setZoom(state, zoom) {
+            state.zoom = zoom;
+        },
+        setViewMode(state, viewMode) {
+            state.viewMode = viewMode;
+        },
+        setHistoryCounter(state, counters) {
+            Object.assign(state.historyCounter, counters);
+        },
+        setTitle(state, title) {
+            state.title = title;
+        },
         setActiveSelection(state) {
             state.activeSelection = true;
         },
@@ -124,10 +140,7 @@ export default new Vuex.Store({
                         Object.assign({}, state.currentToolSettings[instrument][k]||{}, updates[k]); 
                 }
             });            
-        },
-        setPosition(state, {el, x, y}) {
-            state.userPref[el].x = x;
-            state.userPref[el].y = y;
+            
         },
 
         createGradient(state, gradient) {

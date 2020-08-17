@@ -17,6 +17,8 @@ export default {
         clearHistory() {
             history.clear();
             this.storedCounter = 0;
+            this.backCounter = 0;
+            this.$store.commit("setHistoryCounter", {undo: 0, redo: 0});
         },
         writeHistory() {
             this.backCounter = 0;
@@ -28,6 +30,10 @@ export default {
                 layer: this.currentLayer,
                 state:  this.currentLayer.ctx.getImageData(0, 0, this.sizes_hr.width, this.sizes_hr.height)
             });          
+            this.$store.commit("setHistoryCounter", {
+                undo: this.storedCounter, 
+                redo: this.backCounter
+            });
         },
         writeHistoryAction(params) {
             this.backCounter = 0;
@@ -39,6 +45,10 @@ export default {
             }
             history.forward();
             history.put(params);
+            this.$store.commit("setHistoryCounter", {
+                undo: this.storedCounter, 
+                redo: this.backCounter
+            });
         },
         undoLastAction() {
             let c = this.backCounter;
@@ -50,6 +60,10 @@ export default {
                 history.back();                
             }
             this.backCounter = ++c;
+            this.$store.commit("setHistoryCounter", {
+                undo: this.storedCounter, 
+                redo: this.backCounter
+            });
         },
         redoLastAction() {
             if(this.backCounter) {
@@ -62,6 +76,10 @@ export default {
                 }
                 this.backCounter = --c;
             }
+            this.$store.commit("setHistoryCounter", {
+                undo: this.storedCounter, 
+                redo: this.backCounter
+            });
         },
         processShot(sshot) {        
             if(sshot.action) {

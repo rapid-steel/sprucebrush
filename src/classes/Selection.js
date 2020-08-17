@@ -303,9 +303,9 @@ export default class Selection {
         }
         let c2 = coords.map((c,i) => c - this.center[i]);
         let a1 = Math.atan(c1[1] / c1[0]);
-        if(c1[0] < 0) a1 += Math.PI
+        if(c1[0] < 0) a1 += Math.PI;
         let a2 = Math.atan(c2[1] / c2[0]);
-        if(c2[0] < 0) a2 += Math.PI
+        if(c2[0] < 0) a2 += Math.PI;
         let da = (a2 - a1);
         
         if(restricted) {

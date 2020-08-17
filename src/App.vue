@@ -25,7 +25,8 @@
                 @transform-canvas="transformCanvas"
             />
         </div>
-        <div id="wrapper" ref="wrapper">
+        <div id="wrapper" 
+            ref="wrapper">
             <div id="canvas-container" 
                 @dragenter.prevent
                 @dragover.prevent
@@ -58,10 +59,7 @@
         </div>
         <div class="panel bottom">
             <StatusBar
-                :zoom="zoom"
-                :emptyHistory="!storedCounter"
-                :noUndone="!backCounter"
-                :title.sync="title"
+                @switch-view-mode="switchViewMode"
                 @undo="undoLastAction"
                 @redo="redoLastAction"
                 @zoom-in="() => changeZoom(1)"
@@ -198,7 +196,6 @@ export default {
     name: 'app',
     data() {
         return {
-            viewMode: 'normal',
             layers: [],
             cursorStyles: {},
             canvasSizes: {},
@@ -213,11 +210,9 @@ export default {
             currentLayerIndex: 0,
             shortcutTool: false,
             cursorClasses: [],
-            zoom: 1,
             selection: null,
             texture: null,
             canvasPattern: null,
-            title: "",
             error: false,
             colorToEdit: "fg",
             contextMenu: {
@@ -233,7 +228,7 @@ export default {
     },
     mixins: [FilterMixin, HistoryMixin],
     computed: {
-        ...mapState(['currentTool', 'currentColor', 'zoomLevels', 'activeSelection', 'colorBG']),
+        ...mapState(['currentTool', 'currentColor', 'zoomLevels', 'activeSelection', 'colorBG', 'viewMode', 'zoom', 'title']),
         ...mapGetters(['currentSettings']),
         historySize() {
             return this.$store.state.userPrefs.historySize;
@@ -249,7 +244,8 @@ watch: {
     rotationAngle() {
         let ra = this.rotationAngle / 180 * Math.PI;
         this.$refs.canvas.style.transformOrigin = "center"
-        this.$refs.canvas.style.transform = `rotate(${this.rotationAngle}deg)`;
+        this.$refs.canvas.style.transform = ` translate3d(-50%,-50%,0)rotate(${this.rotationAngle}deg)`;
+        this._setContainerSize();
     },
     currentSettings: {
         deep: true,
@@ -725,7 +721,7 @@ methods: {
 
     },
     switchViewMode() {
-        this.viewMode = this.viewMode == "normal" ? "full" : "normal";
+        this.$store.commit('setViewMode', this.viewMode == "normal" ? "full" : "normal");
         this.setSizeFactor();
     },
     setToolParams() {        
@@ -755,14 +751,14 @@ methods: {
                 [0, this.zoomLevels[0]]
             )[0];
             i = Math.min(this.zoomLevels.length-1, Math.max(0, i + dir));
-            this.zoom = this.zoomLevels[i];
-            this.canvasStyles.width = this.canvasSizes.width * this.zoom + "px";
-            this.canvasStyles.height = this.canvasSizes.height * this.zoom + "px";       
+            this.$store.commit('setZoom', this.zoomLevels[i]);
+            this.canvasStyles.width = this.canvasSizes.width * this.zoom;
+            this.canvasStyles.height = this.canvasSizes.height * this.zoom;       
 
             ["canvas", "blender", "selection"].forEach(s => {
                 if(!this.$refs[s]) return;
-                this.$refs[s].style.width = this.canvasStyles.width;
-                this.$refs[s].style.height = this.canvasStyles.height;
+                this.$refs[s].style.width = this.canvasStyles.width + "px";
+                this.$refs[s].style.height = this.canvasStyles.height + "px";
             });     
             if(this.lastPoint != null) {
                 this.setCursorPosition();
@@ -772,10 +768,13 @@ methods: {
                 this.selection.setZoom(this.zoom);
             this.setCursor();
             this.setSizeFactor();
+
+            this._setContainerSize();
+            
         }
     },
     setSizeFactor() {
-        const rect = this.$refs.container.getBoundingClientRect();
+        const rect = this.$refs.wrapper.getBoundingClientRect();
         this.sizeFactor = [
             Math.max(1, (this.sizes.width * this.zoom - rect.width) / rect.width),
             Math.max(1, (this.sizes.height * this.zoom - rect.height) / rect.height)
@@ -944,12 +943,12 @@ methods: {
         this.$refs.container.addEventListener("pointerout", event => {
             event.preventDefault();
             event.stopPropagation();
-     /*       if(this.lastPoint) {
+            if(this.lastPoint && !this.restrictedToAxis) {
                 this.setLastPoint(event);
                 this.pointerActions.out();      
                 this.applyTemp();
-                this.lastPoint = null; 
-            }            */
+                this.lastTouchedPoint = Object.assign({}, this.lastPoint);
+            }           
         });
     },
     startTranslateCanvas() {
@@ -960,7 +959,7 @@ methods: {
         if(this.pressure > 0.25) {
             const delta = this.lastPoint.delta
             .map((c,i) => -c * this.sizeFactor[i] * 1.5);
-            this.$refs.container.scrollBy(...delta);
+            this.$refs.wrapper.scrollBy(...delta);
         }
     },
     endTranslateCanvas() {
@@ -1521,9 +1520,7 @@ methods: {
             if(this.selection) 
                 this.selection.setPxRatio(this.sizes.px_ratio);
             this.setToolParams();
-        }
-
-        
+        }        
 
         this.render();
     },
@@ -1531,8 +1528,8 @@ methods: {
         this.canvasSizes.width =  width;
         this.canvasSizes.height = height;
 
-        this.canvasStyles.width = width * this.zoom + "px";
-        this.canvasStyles.height = height * this.zoom + "px";       
+        this.canvasStyles.width = width * this.zoom;
+        this.canvasStyles.height = height * this.zoom;       
         this.sizes_hr = {
             width: Math.round(width * px_ratio),
             height: Math.round(height * px_ratio)
@@ -1541,8 +1538,8 @@ methods: {
         ['canvas', "blender", "selection"].forEach(s => {
             this.$refs[s].width = this.sizes_hr.width;
             this.$refs[s].height = this.sizes_hr.height;
-            this.$refs[s].style.width = this.canvasStyles.width;
-            this.$refs[s].style.height = this.canvasStyles.height;
+            this.$refs[s].style.width = this.canvasStyles.width + "px";
+            this.$refs[s].style.height = this.canvasStyles.height + "px";
         });     
 
     
@@ -1552,10 +1549,21 @@ methods: {
         });
 
         Object.assign(this.sizes, {width, height});   
+        this._setContainerSize();
         
         this.brush.setSizes(this.sizes_hr);
         this.marker.setSizes(this.sizes_hr);
         this.setSizeFactor();
+    },
+    _setContainerSize() {
+        let a = this.rotationAngle / 180 * Math.PI;
+        let sin = Math.abs(Math.sin(a));
+        let cos = Math.abs(Math.cos(a));
+        let {width, height} = this.canvasStyles;
+        this.$refs.container.style.width = width * cos + height * sin + "px";
+        this.$refs.container.style.height = height * cos + width * sin + "px";
+        
+        console.log( width * cos + height * sin)
     },
     newDrawing(title = this.$t('newDrawingTitle')) {
         this.layers = [];
@@ -1563,7 +1571,7 @@ methods: {
             this.dropSelection();
         }
         this.clearHistory();
-        this.title = title;
+        this.$store.commit('setTitle', title);
         this.makeBGLayer();
         this.appendLayer(this.$t("layers.newLayer") + " 1");
     },
@@ -1794,6 +1802,8 @@ ul[role=listbox] {
     &.apply { background-image: url("./assets/img/check.svg"); }
     &.reset { background-image: url("./assets/img/none.gif"); }
 
+    &.to-full-view { background-image: url("./assets/img/to-full-view.svg"); }
+    &.to-normal-view { background-image: url("./assets/img/to-normal-view.svg"); }
     &.undo { background-image: url("./assets/img/undo.png"); }
     &.redo { background-image: url("./assets/img/redo.png"); }
     &.zoom-in { background-image: url("./assets/img/zoom-in.png"); }
@@ -1854,43 +1864,44 @@ body {
     width: $canvas_width;
     height: $canvas_height;
     max-height: $canvas_height;
-    
-}
-
-#canvas-container {    
     outline: 2px solid black;
     box-sizing: border-box;
-  //  overflow: auto;
-    overflow: hidden;
+    overflow: auto;
+  //  overflow: hidden;
     background-image: url("./assets/img/forest.jpg");
     background-size: 100% 100%;
     background-repeat: no-repeat;
     background-color: grey;
-    width: $canvas_width;
-    height: $canvas_height;
-    max-height: $canvas_height;
-    line-height: $canvas_height;
-    text-align: center;
+}
+
+#canvas-container {    
+    overflow: hidden;
+    min-width: $canvas_width;
+    min-height: $canvas_height;
     position: relative;
-    vertical-align: middle;
     cursor: none;
     #canvas {
         background: url("./assets/img/transparent.png");
         outline: 1px solid black;
-        position: relative;
+        position: absolute;
         margin: auto;
         display: inline-block;
         vertical-align: middle;
+        left: 50%;
+        top: 50%;
+        transform: translate3d(-50%,-50%,0)rotate(0deg);
+        // needed for capturing pointer events on wrapper but outside the canvas
+        // so offsetXY are still being in the canvas coordinate system
         &:before {
-            width: 100%;
-            height: 100%;
+            width: 100vw;
+            height: 100vh;
             position: fixed;
             left: 50%;
             top: 50%;
             z-index: 1;
             content: "";
             display: block;
-            transform: translate(-50%,-50%)scale(10,10);
+            transform: translate(-50%,-50%)scale(2,2);
         }
     }
     &:hover  #cursor {
@@ -1921,7 +1932,7 @@ body {
         width: $canvas_width_full;
     }
     #canvas-container {
-        width: $canvas_width_full;
+        min-width: $canvas_width_full;
     }
 }
 
