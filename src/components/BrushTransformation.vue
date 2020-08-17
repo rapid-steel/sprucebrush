@@ -20,8 +20,14 @@
 import {mapState, mapGetters} from "vuex";
 export default {
     computed: {
-        ...mapState(['currentTool']),
+        ...mapState(['currentTool', 'settings']),
         ...mapGetters(['currentSettings']),
+        steps() {
+            return {
+                angle: this.settings.values.angle.step,
+                stretch: this.settings.values.stretch.step
+            };
+        },
          angleStretchStyles() {
             if(this.currentSettings.webglTool !== 'brush') return {};
             let {angle, stretch} = this.currentSettings.values;
@@ -51,7 +57,9 @@ export default {
                 let [x, y] = [event.clientX - left, event.clientY - top];
                 let len = Math.sqrt(x*x + y*y);
                 if(len > 0) {
-                    let k = Math.min(1, len / width);
+                    let k = Math.round(
+                        Math.min(1, len / width) / this.steps.stretch
+                    ) * this.steps.stretch;
                     this.$store.commit("changeSettings", {
                         instrument: this.currentTool,
                         updates: {
@@ -68,7 +76,9 @@ export default {
                 let [x, y] = [event.clientX - left, event.clientY - top];
                 let len = Math.sqrt(x*x + y*y);
                 if(len > 0) {
-                    let k = Math.max(1, 1 / (len / width));
+                    let k = Math.round(
+                        Math.max(1, 1 / (len / width)) / this.steps.stretch
+                    ) * this.step.stretch;
                     this.$store.commit("changeSettings", {
                         instrument: this.currentTool,
                         updates: {
@@ -95,7 +105,8 @@ export default {
             this.fireHandler(e => {
                 let [x, y] = [event.clientX - left, event.clientY - top];
                 let angle1 = this.getAngle(x, y);
-                let a = (this.currentSettings.values.angle + (angle1 - angle0)) % 360;
+                let a = (360 + this.currentSettings.values.angle + (angle1 - angle0)) % 360;
+                a = Math.round(a / this.steps.angle) * this.steps.angle;
                 this.$store.commit("changeSettings", {
                     instrument: this.currentTool,
                     updates: {

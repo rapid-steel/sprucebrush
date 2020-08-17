@@ -32,12 +32,31 @@
 
 
     <div class="settings">
-        <ActualSettings />
-
-
         <div v-if="currentSettings.webglTool == 'brush'">
-            <BrushTransformation />
-            <Shapes />
+            <ActualSettings 
+                :tool="currentTool"
+                :type="'values'"
+                :keys="['radius', 'opacity', 'spacing']" />
+            <div class="side-list-header">
+                <div class="caption">{{$t('tools.settings.shape')}}</div>                
+                <SideList>
+                    <div class="shape-settings">
+                        <ActualSettings 
+                            :tool="currentTool"
+                            :type="'values'"
+                            :keys="['angle', 'stretch']" />
+                        <Shapes />
+                        <BrushTransformation />
+                    </div>
+                </SideList>
+            </div>           
+        </div>
+
+        <div v-else>
+            <ActualSettings 
+                :tool="currentTool"
+                :type="'values'"
+                :keys="Object.keys(currentSettings.values).filter(k => settings.values[k] !== undefined)" />
         </div>
 
         <div class="dynamics" v-if="currentSettings.webglTool">
@@ -164,12 +183,10 @@
                     <img :src="currentSettings.pattern.src"> 
                 </div>
 
-                 <div class="setting-value">
-                    <div class="caption">{{$t('tools.settings.scale')}}</div>
-                        <RangeInput :min=".1" :step=".01" :max="10" :horizontal="true"
-                        v-model="currentSettings.pattern.scale"
-                        @input="scale => set({ pattern: {...currentSettings.pattern, scale }})" />
-                </div>   
+                <ActualSettings 
+                    :tool="currentTool"
+                    :type="'pattern'"
+                    :keys="['scale']" />
             </div>
 
            
@@ -223,16 +240,10 @@
                     </div>
                 </div>
 
-                <div class="setting-value"  v-if="currentSettings.gradient.type == 'by_len'">
-                    <div class="caption">{{$t('tools.settings.length')}}</div>
-                    <RangeInput 
-                        :min="settings.gradient.length.min" 
-                        :max="settings.gradient.length.max" 
-                        :step="settings.gradient.length.step" 
-                        :horizontal="true"
-                        v-model="currentSettings.gradient.length"
-                        @input="setGradientLength" />
-                </div>     
+                <ActualSettings 
+                    :tool="currentTool"
+                    :type="'gradient'"
+                    :keys="['length']" />
             </template>
 
          
@@ -561,6 +572,23 @@ img.icon {
     width: 100%;
 }
 
+.shape-settings {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: column;
+    max-height: 150px;
+    width: 100%;
+    overflow: hidden;
+    .brush-transformation {
+        margin: 5px;
+        .world-axes {
+            width: 100px;
+            height: 100px;
+        }
+    }
+
+}
+
 .textures, .gradients {
     margin-top: 20px!important;
     display: flex;
@@ -684,10 +712,7 @@ img.icon {
     }
 }
 
-.brush-transformation .world-axes {
-    width: 60px;
-    height: 60px;
-}
+
 
 .controls {
     width: 100%;
@@ -717,6 +742,16 @@ img.icon {
 .setting-dynamic {
     width: 100%;
     display: flex;
+}
+
+@media screen and (max-height: 800px) {
+    .current-instrument {
+        img {
+            max-width: $tool-selected-size_sm;
+            width: $tool-selected-size_sm;
+            height: $tool-selected-size_sm;
+        }
+    }
 }
 
 </style>

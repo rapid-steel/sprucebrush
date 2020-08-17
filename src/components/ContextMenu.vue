@@ -6,9 +6,14 @@
 
     <template v-if="currentSettings.webglTool"> 
         <div class="tool-settings">
-            <ActualSettings />
-            <BrushTransformation  
-                v-if="currentSettings.webglTool == 'brush'" />
+            <ActualSettings 
+                :tool="currentTool"
+                :type="'values'"
+                :keys="Object.keys(currentSettings.values).filter(k => settings.values[k] !== undefined)" />
+            <div v-if="currentSettings.webglTool == 'brush'">
+                <BrushTransformation />
+                <Shapes />
+            </div>
         </div>
     </template>
     
@@ -34,6 +39,7 @@
 import {mapState, mapGetters} from 'vuex';
 import BrushTransformation from "./BrushTransformation";
 import ActualSettings from "./ActualSettings";
+import Shapes from "./Shapes";
 
 export default {
     props: ['position'],
@@ -58,7 +64,7 @@ export default {
         };
     },
     components: {
-        BrushTransformation, ActualSettings
+        BrushTransformation, ActualSettings, Shapes
     },
     computed: {
         menuPosition() {
@@ -67,7 +73,7 @@ export default {
                 top: this.position[1] + 'px'
             };
         },
-        ...mapState(['currentTool', 'activeSelection']),
+        ...mapState(['currentTool', 'activeSelection', 'settings']),
         ...mapGetters(['currentSettings'])
     },
     methods: {

@@ -1,7 +1,7 @@
 <template>
-    <div class="actual-settings" v-if="currentSettings.values">
+    <div class="actual-settings" v-if="settings.values">
         <div class="setting-value"
-            v-for="s in actualSettings" 
+            v-for="s in settingsList" 
             :key="s[0]">
             <img class="icon" 
                 v-if="s[1].icon"
@@ -13,7 +13,7 @@
               <button class="icon-btn small reset"
                 v-if="s[1].resetTo !== undefined"
                 :style="{
-                    visibility : currentSettings.values[s[0]] !== s[1].resetTo ? 'visible' : 'hidden' 
+                    visibility : valuesMap[s[0]] !== s[1].resetTo ? 'visible' : 'hidden' 
                 }"
                 :title="$t('common.reset')"
                 @click="() => setValue({[s[0]]: s[1].resetTo})"></button>
@@ -22,7 +22,7 @@
                 :max="s[1].max" 
                 :step="s[1].step" 
                 :horizontal="true"
-                v-model="currentSettings.values[s[0]]"
+                v-model="valuesMap[s[0]]"
                 @input="v => setValue({[s[0]]: v})" />
            
         </div>
@@ -31,19 +31,40 @@
 <script>
 import { mapState, mapGetters } from 'vuex';
 export default {
+    props: {
+        tool: {
+            type: String
+        },
+        type: {
+            type: String
+        },
+        keys: {
+            type: Array
+        }
+    },
     computed: {
-        ...mapState(['settings', 'currentTool']),
-        ...mapGetters(['currentSettings']),
-        actualSettings() {
-            return Object.entries(this.settings.values)
-            .filter(([k,v]) => !v.special && this.currentSettings.values[k] != undefined);
+        ...mapState(['settings', 'currentToolSettings']),
+        valuesMap() {
+            return Object.fromEntries(this.keys.map(k =>  [
+                k, this.currentToolSettings[this.tool][this.type][k]
+            ]));
+        },
+        settingsList() {
+            return this.keys.map(k =>  [
+                k, this.settings[this.type][k]
+            ]);
         },
     },
     methods: {
-        setValue(values) {
+        setValue(updates) {
             this.$store.commit("changeSettings", {
-                instrument: this.currentTool,
-                updates: {values}
+                instrument: this.tool,
+                updates: {
+                    [this.type]: Object.assign(
+                        this.currentToolSettings[this.tool][this.type], 
+                        updates
+                    )
+                }
             });
         }
     }

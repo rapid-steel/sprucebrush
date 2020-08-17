@@ -943,12 +943,12 @@ methods: {
         this.$refs.container.addEventListener("pointerout", event => {
             event.preventDefault();
             event.stopPropagation();
-            if(this.lastPoint && !this.restrictedToAxis) {
+        /*    if(this.lastPoint && !this.restrictedToAxis) { 
                 this.setLastPoint(event);
                 this.pointerActions.out();      
                 this.applyTemp();
                 this.lastTouchedPoint = Object.assign({}, this.lastPoint);
-            }           
+            }        */   
         });
     },
     startTranslateCanvas() {
@@ -977,7 +977,6 @@ methods: {
             let v = vec(center, this.lastPoint.containerCoords);
             let da = angle_signed(v, sum(v, this.lastPoint.delta));
             let rAngle = (this.currentSettings.values.rAngle + da * 180 / Math.PI) % 360;
-         //   console.log(da, rAngle)
             if(rAngle < 0) rAngle = 360 + rAngle;
 
             this.$store.commit("changeSettings", {
@@ -1354,6 +1353,7 @@ methods: {
     },
     endDraw(point, tool) {
         if(tool.notEmpty()) {
+             console.log(this.brush)
             this._addPoint(point, tool);  
             this.writeHistory();
             this.updateFunc = () => {
@@ -1371,6 +1371,7 @@ methods: {
             this.animate();  
         }    
         this.update = false; 
+       
     },
     endErase(point) {
         if(this.brush.notEmpty()) {
@@ -1560,10 +1561,8 @@ methods: {
         let sin = Math.abs(Math.sin(a));
         let cos = Math.abs(Math.cos(a));
         let {width, height} = this.canvasStyles;
-        this.$refs.container.style.width = width * cos + height * sin + "px";
-        this.$refs.container.style.height = height * cos + width * sin + "px";
-        
-        console.log( width * cos + height * sin)
+        this.$refs.container.style.width = Math.round(width * cos + height * sin) + "px";
+        this.$refs.container.style.height = Math.round(height * cos + width * sin) + "px";
     },
     newDrawing(title = this.$t('newDrawingTitle')) {
         this.layers = [];
@@ -1583,10 +1582,10 @@ methods: {
             if(regCopy.test(layer.name)) {
                 let res = regCopy.exec(layer.name);
                 let name1 = nameBase + " copy " + ((res[1].length ? parseInt(res[1]) : 1) + 1);
-                if(name1 > last) return name1;
+                if(name1.length > last.length || name1 > last) return name1;
             }
             return last;
-            }, nameBase + " copy");
+        }, nameBase + " copy");
 
         let {blend, opacity, visible} = this.currentLayer;
         this.appendLayer(name, {
@@ -1602,11 +1601,11 @@ methods: {
             this.regLayer = this.regLayer || new RegExp(this.$t("layers.newLayer") + '\\s*(\\d+)$', "i");
             let nameBase = this.$t("layers.newLayer") + " ";
             name = this.layers.reduce((last, layer) => {
-            if(this.regLayer.test(layer.name)) {
-                let name1 = nameBase + (parseInt(this.regLayer.exec(layer.name)[1]) + 1);
-                if(name1 > last) return name1;
-            }
-            return last;
+                if(this.regLayer.test(layer.name)) {
+                    let name1 = nameBase + (parseInt(this.regLayer.exec(layer.name)[1]) + 1);
+                    if(name1.length > last.length || name1 > last) return name1;
+                }
+                return last;
             }, nameBase + " 1");            
         }
         const layer = {

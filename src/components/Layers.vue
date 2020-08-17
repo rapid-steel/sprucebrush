@@ -199,10 +199,9 @@ export default {
         height: 13px;
         display: inline-block;
         margin: 3px;
-        margin-left: 15px;
     }
     .layer-name {
-        width: 150px;
+        flex: 2 0 90px;
         overflow: hidden;
         text-overflow: ellipsis;
         background: none;
