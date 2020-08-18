@@ -87,6 +87,7 @@ export default class ToolWebGL {
         this.texture = false;
         this.gradient = {enabled: false};
         this.dynamics = {};
+        this.smoothing = {};
         this.programParams = {};
         this.programType = "";
         this.programProps = {};
@@ -206,13 +207,20 @@ export default class ToolWebGL {
     loadTexture(src, attrib, index = this.textures.BASE) {
         const img = new Image();
         img.crossOrigin = "anonymous";
-        img.onload = () => 
+        img.onload = () => {
             this._createTexture(img, index);  
+            if(index == this.textures.BASE) {
+                this.textureRatio = img.width / img.height;
+                this.gl.uniform1f(
+                    this.gl.getUniformLocation(this.program, "textureRatio"),  
+                    this.textureRatio);
+            }
             if(this.program) {
                 this.gl.uniform1i(
                     this.gl.getUniformLocation(this.program, attrib),  
-                    index);  
+                    index);
             }    
+        };
         img.src = src;
     }
     _updateParams(params){
@@ -223,6 +231,7 @@ export default class ToolWebGL {
         this.texture = params.texture;
         this.gradient = params.gradient;
         this.dynamics = params.dynamics;
+        this.smoothing = params.smoothing;
     }
     animate() {
         if(this.update) {
@@ -293,7 +302,6 @@ export default class ToolWebGL {
             if(old.texture !== this.texture) 
                 this.loadTexture(this.texture.src, "texture", this.textures.BASE);
         } 
-        
         if(this.gradient && old.gradient !== this.gradient && this.gradient.enabled) {      
             let size_ratio = [1, 1];
             let h_ratio = 1;
@@ -371,6 +379,10 @@ export default class ToolWebGL {
                 this.gl.uniform1i(
                     this.gl.getUniformLocation(this.program, "texture"), 
                     this.textures.BASE); 
+                this.gl.uniform1f(
+                    this.gl.getUniformLocation(this.program, "textureRatio"), 
+                    this.textureRatio
+                );
             }
 
             this._setDynamics();

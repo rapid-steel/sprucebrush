@@ -18,10 +18,24 @@
     </template>
     
 
-    <template v-if="currentTool.indexOf('selection') !== -1 && activeSelection">
+    <template v-else-if="currentTool.indexOf('selection') !== -1 && activeSelection">
         <div class="menu">
             <div class="menu-item" 
-                v-for="action in activeSelectionActions"
+                v-for="action in menuActions.selection"
+                :key="action.k" 
+                @click="action.action"
+                >
+                <div class="label">{{$t(action.k)}}</div>
+                <div class="hint" 
+                    v-if="action.key">{{action.key}}</div>
+            </div>     
+        </div>
+    </template>
+
+    <template v-else-if="menuActions[currentTool]">
+        <div class="menu">
+            <div class="menu-item" 
+                v-for="action in menuActions[currentTool]"
                 :key="action.k" 
                 @click="action.action"
                 >
@@ -45,22 +59,31 @@ export default {
     props: ['position'],
     data() {
         return {
-            activeSelectionActions: [{
-                k: 'tools.selection.apply', 
-                action: () => this.$emit('apply-selection'),
-                key: "Enter", 
-            }, {
-                k: "tools.selection.reset",
-                action: () => this.$emit('reset-selection'),
-                key: "Ctrl + Z",              
-            }, {
-                k: "tools.selection.clipnewlayer",
-                action: () => this.$emit('clipnewlayer-selection'),
-            },{
-                k: "tools.selection.crop",
-                action: () => this.$emit('crop-selection'),
-                key: "Ctrl + T", 
-            }],
+            menuActions: {
+                selection: [{
+                    k: 'tools.selection.apply', 
+                    action: () => this.$emit('apply-selection'),
+                    key: "Enter", 
+                }, {
+                    k: "tools.selection.reset",
+                    action: () => this.$emit('reset-selection'),
+                    key: "Ctrl + Z",              
+                }, {
+                    k: "tools.selection.clipnewlayer",
+                    action: () => this.$emit('clipnewlayer-selection'),
+                },{
+                    k: "tools.selection.crop",
+                    action: () => this.$emit('crop-selection'),
+                    key: "Ctrl + T", 
+                }],
+                rotation: [{
+                    k: "common.reset",
+                    action: () => {
+                        this.set({values: {rAngle: 0}});
+                        this.$emit("close");
+                    }
+                }]
+            },
         };
     },
     components: {
@@ -77,10 +100,10 @@ export default {
         ...mapGetters(['currentSettings'])
     },
     methods: {
-        set(settings) {
+        set(updates) {
             this.$store.commit("changeSettings", {
-                instrument: this.currentTool,
-                settings
+                tool: this.currentTool,
+                updates
             });
         }
     }

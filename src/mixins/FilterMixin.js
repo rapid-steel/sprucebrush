@@ -1,8 +1,4 @@
-<template>
-    <div></div>
-</template>
 
-<script>
 import {getRgba} from "../functions/color-functions";
 
 const filterFunctions = {
@@ -106,5 +102,4 @@ export default {
             this.render();
         }
     }
-}
-</script>
+};

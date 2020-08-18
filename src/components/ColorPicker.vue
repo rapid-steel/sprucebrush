@@ -69,73 +69,80 @@ import {toHex} from "../functions/color-functions";
 import {mapState} from "vuex";
 
 export default {
-  name: 'Tools',
-  data() {
+    name: 'Tools',
+    data() {
       return {
-          colorSelected: false,
-          pallete: null,
-          namePallete: false
-      }
-  },
-  props: ['colorToEdit'],
-  computed: {
-      ...mapState(['currentColor', 'colorBG']),
-      palletes() { 
-          return this.$store.state.userPref.palletes; 
+            colorSelected: false,
+            pallete: null,
+            namePallete: false
+        };
+    },
+    props: ['colorToEdit'],
+    computed: {
+        ...mapState(['currentColor', 'colorBG']),
+        palletes() { 
+            return this.$store.state.userPref.palletes; 
         },
+        colorVal() {
+            return toHex(
+                this.colorToEdit === "fg" ? 
+                this.currentColor 
+                : this.colorBG
+            );
+        }
+    },
+    watch: {
       colorVal() {
-          return toHex(
-            this.colorToEdit === "fg" ? 
-              this.currentColor 
-            : this.colorBG);
+            this.colorSelected = this.pallete.colors.find(c => 
+                toHex(c) == toHex(this.colorVal)
+            );
       }
-  },
-  watch: {
-      colorVal() {
-         this.colorSelected = this.pallete.colors.find(c => toHex(c) == toHex(this.colorVal));
-      }
-  },
-  created() {
-      this.pallete = this.palletes[0];
-  },
-  methods: {
-      addColor(color) {
-          this.$store.commit("addColorToPallete", [this.pallete.id, color]);
-      },
-      swapColors() {
-        const c = this.currentColor;
-        this.$store.commit("selectColor", ['fg', this.colorBG]);
-        this.$store.commit("selectColor", ['bg', c]);
-      },
-      select(color, fromPallete) {
-          if(fromPallete) 
-            this.colorSelected = color;
-           else if(this.colorSelected && toHex(color) != toHex(this.colorSelected)) 
+    },
+    created() {
+        this.pallete = this.palletes[0];
+    },
+    methods: {
+        addColor(color) {
+            this.$store.commit("addColorToPallete", [this.pallete.id, color]);
+        },
+        swapColors() {
+            const c = this.currentColor;
+            this.$store.commit("selectColor", ['fg', this.colorBG]);
+            this.$store.commit("selectColor", ['bg', c]);
+        },
+        select(color, fromPallete) {
+            if(fromPallete) 
+                this.colorSelected = color;
+            else if(this.colorSelected && 
+                toHex(color) != toHex(this.colorSelected)
+            ) 
+                this.colorSelected = false;
+            this.$store.commit("selectColor", [this.colorToEdit, color]);
+        },
+        selectPallete(e) {
+            this.pallete = e;
+        },
+        deleteSelected() {
+            this.$store.commit("deleteColorFromPallete",
+                [this.pallete.id, this.colorSelected]
+            );
             this.colorSelected = false;
-          this.$store.commit("selectColor", [this.colorToEdit, color]);
-      },
-      selectPallete(e) {
-          this.pallete = e;
-      },
-      deleteSelected() {
-          this.$store.commit("deleteColorFromPallete", [this.pallete.id, this.colorSelected]);
-          this.colorSelected = false;
-      },
-      addPallete() {
-          this.$store.commit("addPallete", this.$t("colorPicker.newPallete"));
-          this.pallete = this.palletes[this.palletes.length-1];
-          this.colorSelected = false;
-      },
-      deletePallete() {
-          let i = this.palletes.indexOf(this.pallete);
-          this.$store.commit("deletePallete", this.pallete.id);
-          i = i > 0 ? i-1 : i;
-          this.pallete = this.palletes[i];
-      },
-      renamePallete(e) {
-           this.$store.commit("renamePallete", [this.pallete.id, e.target.value]);
-           this.namePallete = false;
-      }
+        },
+        addPallete() {
+            this.$store.commit("addPallete", this.$t("colorPicker.newPallete"));
+            this.pallete = this.palletes[this.palletes.length-1];
+            this.colorSelected = false;
+        },
+        deletePallete() {
+            let i = this.palletes.indexOf(this.pallete);
+            this.$store.commit("deletePallete", this.pallete.id);
+            i = i > 0 ? i-1 : i;
+            this.pallete = this.palletes[i];
+        },
+        renamePallete(e) {
+            this.$store.commit("renamePallete", [this.pallete.id, e.target.value]);
+            this.namePallete = false;
+        }
   }
 }
 </script>

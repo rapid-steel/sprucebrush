@@ -64,7 +64,7 @@ export function angle(vec1, vec2) {
         );
   }
 
-function vec_angle(vec) {
+export function vec_angle(vec) {
   return Math.atan(vec[1] / vec[0]) + (vec[0] < 0 ? Math.PI : 0);
 }
 

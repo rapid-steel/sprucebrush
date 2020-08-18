@@ -160,6 +160,7 @@ export default {
         },
         selection: {
             apply: "Apply",
+            reset: "Reset",
             crop: "Crop image",
             clipnewlayer: "Clip to new layer",
             all: "Select all"

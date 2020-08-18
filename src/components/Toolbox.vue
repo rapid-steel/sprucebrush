@@ -11,7 +11,7 @@
             </div>
         </div>       
     </div>
-    <div class="current-instrument">        
+    <div class="current-tool">        
         <img :src="currentItem.icon">
         <div>{{$t('tools.tools.' + currentTool)}}</div>
     </div>
@@ -37,6 +37,7 @@
                 :tool="currentTool"
                 :type="'values'"
                 :keys="['radius', 'opacity', 'spacing']" />
+
             <div class="side-list-header">
                 <div class="caption">{{$t('tools.settings.shape')}}</div>                
                 <SideList>
@@ -336,7 +337,7 @@ export default {
             console.log(prop, updates)
             Object.assign(this.currentSettings.dynamics[prop], updates);
                this.$store.commit("changeSettings", {
-                instrument: this.currentTool,
+                tool: this.currentTool,
                 updates: {
                     dynamics: Object.assign({}, this.currentSettings.dynamics)
                 }
@@ -423,8 +424,8 @@ export default {
             }
             this.gradientToEdit = false;
         },
-        select(instrument) {
-            this.$store.commit("selectInstrument", instrument.name);
+        select(tool) {
+            this.$store.commit("selectTool", tool.name);
         },
         setValue(obj) {
             this.set({values: obj});
@@ -439,7 +440,7 @@ export default {
         },
         set(updates) {
             this.$store.commit("changeSettings", {
-                instrument: this.currentTool,
+                tool: this.currentTool,
                 updates
             });
         }
@@ -482,7 +483,7 @@ export default {
     }
 }
 
-.current-instrument {
+.current-tool {
     text-align: center;
     max-width: $tool-size * 2;
     font: $font-tool-title;
@@ -628,7 +629,7 @@ img.icon {
 
 .input-checkbox {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     input[type=checkbox] {
         -webkit-appearance: none;
         padding: 0;
@@ -745,7 +746,7 @@ img.icon {
 }
 
 @media screen and (max-height: 800px) {
-    .current-instrument {
+    .current-tool {
         img {
             max-width: $tool-selected-size_sm;
             width: $tool-selected-size_sm;

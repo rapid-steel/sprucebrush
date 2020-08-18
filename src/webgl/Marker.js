@@ -1,5 +1,5 @@
 import ToolWebGL from "./ToolWebGL";
-import {vec, normal, length, invert, equal, angle, rotateY, average} from "../functions/vector-functions";
+import {vec, normal, length, invert, equal, angle, rotateY, average, vec_angle, sum, normalized} from "../functions/vector-functions";
 
 
 const DEBUG = process.env.NODE_ENV !== 'production';
@@ -18,6 +18,8 @@ export default class Marker extends ToolWebGL {
             indexes:  { attrib: "index",  size: 1, type: this.gl.FLOAT }
         };
         this.PRIMITIVE_TYPE = this.gl.TRIANGLES;
+
+        this.hAngle = 0;
 
         this._init();    
     }
@@ -166,6 +168,7 @@ export default class Marker extends ToolWebGL {
         let norm = normal(line_vec);
 
         line = Object.assign(line, {
+            norm,
             miter1: norm,
             miter2: norm,
             length: len,
@@ -198,23 +201,24 @@ export default class Marker extends ToolWebGL {
 
     }
     _addPoint(point) {
-        let avgLines = Math.min(this.params.angleSmoothing, this.lines.length);
+        let avgLines = Math.min(this.smoothing.angle, this.lines.length);
         let p2 = point.coords;
         let p1 = this.points[this.points.length-1];
 
 
-        let avgPoints = Math.min(this.lines.length, this.params.curveSmoothing+1);
+        let avgPoints = Math.min(this.lines.length, this.smoothing.curve+1);
+
 
         let delLines = Math.max(avgLines+1, avgPoints+2)
 
         if(p1) {
-
+            //average points
             for(let i = avgPoints; i > 0; --i) {
                 let l = this.lines[this.lines.length-i];
                 let l1 = this.lines[this.lines.length-i+1];
                 
                 if(l1) {
-                    l1.p1 = (l.p2 = l.p1.map((c,j) => (c + l1.p2[j]) / 2));
+                  l1.p1 = (l.p2 = l.p1.map((c,j) => (c + l1.p2[j]) / 2));
 
                 } else {
                     l.p2 = l.p1.map((c,j) => (c + p2[j]) / 2);    
@@ -235,9 +239,10 @@ export default class Marker extends ToolWebGL {
                 let l0 =  this.lines[this.lines.length-2-j];
                 let v = average(l0.miter1, l.miter2);
                 if(length(v))
-                    l0.miter2 = (l.miter1 = v) 
+                    l0.miter2 = (l.miter1 = v); 
             }   
             this.lines.push(line);
+            this.hAngle = (this.hAngle * avgLines + vec_angle(vec(line.p1, line.p2))) / (avgLines + 1);
 
 
         }
@@ -310,8 +315,12 @@ export default class Marker extends ToolWebGL {
             this.animate();
         }
     }   
+    cursorAngle() {        
+        return this.hAngle;
+    }
     dropLine() {
-        this.lines = [];        
+        this.lines = [];      
+        this.hAngle = 0;  
         super.dropLine();
     }
     _getProgramType() {

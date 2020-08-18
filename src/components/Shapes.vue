@@ -31,13 +31,13 @@ export default {
     methods: {
         setShape(shape) {
             this.$store.commit('changeSettings', {
-                instrument: this.currentTool,
+                tool: this.currentTool,
                 updates: {values: {shape: shape.k}}
             });
         },
         setPixel(val) {
             this.$store.commit('changeSettings', {
-                instrument: this.currentTool,
+                tool: this.currentTool,
                 updates: {values: {pixel: val}}
             });
         }

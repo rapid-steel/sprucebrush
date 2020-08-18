@@ -1,8 +1,3 @@
-<template>
-    <div></div>
-</template>
-<script>
-
 import { History } from "../classes";
 
 const history = new History();
@@ -158,6 +153,4 @@ export default {
         },
 
     }
-}
-
-</script>
+};

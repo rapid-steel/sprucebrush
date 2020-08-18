@@ -58,7 +58,7 @@ export default {
     methods: {
         setValue(updates) {
             this.$store.commit("changeSettings", {
-                instrument: this.tool,
+                tool: this.tool,
                 updates: {
                     [this.type]: Object.assign(
                         this.currentToolSettings[this.tool][this.type], 

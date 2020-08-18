@@ -61,7 +61,7 @@ export default {
                         Math.min(1, len / width) / this.steps.stretch
                     ) * this.steps.stretch;
                     this.$store.commit("changeSettings", {
-                        instrument: this.currentTool,
+                        tool: this.currentTool,
                         updates: {
                             values: { stretch: k }
                         }
@@ -80,7 +80,7 @@ export default {
                         Math.max(1, 1 / (len / width)) / this.steps.stretch
                     ) * this.step.stretch;
                     this.$store.commit("changeSettings", {
-                        instrument: this.currentTool,
+                        tool: this.currentTool,
                         updates: {
                             values: { stretch: k }
                         }
@@ -108,7 +108,7 @@ export default {
                 let a = (360 + this.currentSettings.values.angle + (angle1 - angle0)) % 360;
                 a = Math.round(a / this.steps.angle) * this.steps.angle;
                 this.$store.commit("changeSettings", {
-                    instrument: this.currentTool,
+                    tool: this.currentTool,
                     updates: {
                         values: { angle: a }
                     }

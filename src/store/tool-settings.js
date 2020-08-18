@@ -12,6 +12,7 @@ export default {
     },
     brush: {
         modifying: true,
+        drawing: true,
         values: {
             radius: 50,
             opacity: 1,
@@ -23,6 +24,7 @@ export default {
             overlay: false,
             pixel: false,     
         },
+        smoothing: {},
         texture: false,
         gradient: {
             enabled: false, 
@@ -41,6 +43,8 @@ export default {
     },
     eraser: {
         modifying: true,
+        drawing: true,
+        smoothing: {},
         values: {
             radius: 50,
             opacity: 1,
@@ -64,6 +68,7 @@ export default {
     },
     fill: {
         modifying: true,
+        drawing: true,
         values: {
             tolerance: 30,
         },
@@ -71,12 +76,15 @@ export default {
     },
     marker: {
         modifying: true,
+        drawing: true,
         values: {
             lineWidth: 20,
             blurRadius: 5,
-            angleSmoothing: 10,
-            curveSmoothing: 3,
             opacity: 1,
+        },
+        smoothing: {
+            curve: 10,
+            angle: 3
         },
         texture: false,
         gradient: {
@@ -98,14 +106,20 @@ export default {
     },
     selection_rect: {
         modifying: true,
+        selection: true,
+        type: "rect",
         values: {}
     },
     selection_polygon: {
         modifying: true,
+        selection: true,
+        type: "polygon",
         values: {}
     },
     selection_lasso: {
         modifying: true,
+        selection: true,
+        type: "lasso",
         values: {}
     }
 };
