@@ -78,7 +78,7 @@ export default {
                 if(len > 0) {
                     let k = Math.round(
                         Math.max(1, 1 / (len / width)) / this.steps.stretch
-                    ) * this.step.stretch;
+                    ) * this.steps.stretch;
                     this.$store.commit("changeSettings", {
                         tool: this.currentTool,
                         updates: {

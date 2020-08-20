@@ -16,6 +16,21 @@ export default class ToolWebGL {
         this.commonCodeBlocks = {
             dynamics: `
             #define PI2 6.2832
+
+            float rand(vec2 co){
+                return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+            }
+            float rand(vec2 co, float index) {
+                return rand(vec2(rand(co), index));
+            }
+            float rand(vec2 co, float index, float s) {
+                return rand(vec2(rand(co), index), s);
+            }
+
+            float dynamics_random(float base, float dynr, vec2 coords, float index, float s) {
+                return (1.0 - dynr * rand(coords, index, s)) * base;
+            }
+
             float dynamics_down(float base, float index, float length) {
                 if(index > length) return 0.0;
                 return base * (length - index) / length;
@@ -56,7 +71,70 @@ export default class ToolWebGL {
 
             float dynamics_pressure(float base, float dynr, float pressure) {
                 return base * (1.0 - (1.0 - pressure) * dynr);
-            }`
+            }            
+            `,
+            color_func: `
+            vec3 rgb2hsl(vec3 rgb) {
+                float minc = min(rgb.r, min(rgb.b, rgb.g));
+                float maxc = max(rgb.r, max(rgb.b, rgb.g));
+                float hue = 0.0;
+                if(maxc != minc) {
+                    float angle = 0.0;
+                    float dc;
+                    if(rgb.r == maxc) {
+                        dc = rgb.g - rgb.b;
+                        if(dc < 0.0) {
+                            angle = 1.0;
+                        } 
+                    } else {
+                        if(rgb.g == maxc) {
+                            dc = rgb.b - rgb.r;
+                            angle = 0.333333;
+                        } else {
+                            dc = rgb.r - rgb.g;
+                            angle = 0.666667;
+                        }
+                    }
+                    hue = fract((dc / (maxc - minc) + angle));
+                } 
+                float saturation = (maxc - minc) / (1.0 - abs(1.0 - (maxc + minc)));               
+                float lightness = (minc + maxc) / 2.0;
+                return vec3(hue, saturation, lightness);
+            }
+            float cp(float t, float p, float q) {
+                float c = p;
+                if(t < 0.166667) {
+                    c += (p - q) * 6.0 * t;
+                } else if(t < 0.5) {
+                    c = q;
+                } else if(t < 0.666667) {
+                    c += (p - q) * (0.666667 - t) * 6.0;
+                } 
+                return c;
+            }
+            vec3 hsl2rgb(vec3 hsl) {
+                float q;
+                float h = hsl.x;
+                float s = hsl.y;
+                float l = hsl.z;
+                if(l < 0.5) {
+                    q = l * (1.0 + s);
+                } else {
+                    q = l + s - l * s;
+                }
+                float p = 2.0 * l - q;
+                vec3 t = vec3(
+                    fract(h + 0.333333),
+                    fract(h),
+                    fract(h - 0.333333)
+                );
+                return vec3(
+                    cp(t.r, p, q),
+                    cp(t.g, p, q),
+                    cp(t.b, p, q)
+                );
+            }
+            `
         };
 
     }

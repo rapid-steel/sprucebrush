@@ -7,7 +7,10 @@ export default Object.freeze({
         tolerance: {min: 1,    max: 255,  step: 1 },
         angle:     {min: 0,    max: 359,  step: 1,   icon: require("../assets/img/angle.png")},   
         stretch:   {min: .001, max: 100,  step: .001,icon: require("../assets/img/stretch.png")},   
-        rAngle: {min: 0,    max: 359,  step: 1, resetTo: 0}
+        rAngle: {min: 0,    max: 359,  step: 1, resetTo: 0},
+        hue: {icon: require("../assets/img/opacity.png")},
+        saturation: {icon: require("../assets/img/opacity.png")},
+        lightness: {icon: require("../assets/img/opacity.png")}
     },
     smoothing: {
         curve: {min: 1, max: 25, step: 1},
@@ -31,11 +34,12 @@ export default Object.freeze({
         },
         types: {
             0: {n: 0, props: "all", k: "disabled"},
-            1: {n: 1, props: "all", k: "fade", length: true},
+            1: {n: 1, props: ["lineWidth", "radius", "opacity", "stretch", "angle"], k: "fade", length: true},
             2: {n: 2, props: "all", k: "periodic_max", length: true, range: 1},
-            3: {n: 3, props: ["lineWidth", "radius", "opacity", "stretch"],k: "pressure", length: true, range: 1},
+            3: {n: 3, props: ["lineWidth", "radius", "opacity", "stretch", "hue", "saturation", "lightness"], k: "pressure", length: true, range: 1},
             4: {n: 4, props: ["stretch"], k: "periodic_ampl", length: true, range: 1},
-            5: {n: 5, props: ["angle"], k: "circular", length: true}
+            5: {n: 5, props: ["angle"], k: "circular", length: true},
+            6: {n: 6, props: "all", k: "random", range: true}
         }               
     }               
 });

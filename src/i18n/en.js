@@ -127,6 +127,9 @@ export default {
             opacity: "Opacity",                
             spacing: "Spacing",
             tolerance: "Tolerance", 
+            hue: "Hue",
+            saturation: "Saturation",
+            lightness: "Lightness",
             shape: "Shape",
             texture: "Texture",
             textureColor: "Colorize",
@@ -153,7 +156,8 @@ export default {
                 periodic_max: "Periodic",
                 periodic_ampl: "Periodic",
                 pressure: "Presure",
-                circular: "Circular"
+                circular: "Circular",
+                random: "Random"
             },
             createGradient: "Create gradient",
             none: "None"

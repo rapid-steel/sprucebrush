@@ -37,6 +37,9 @@ export default {
             opacity: {type: 0, length: 100, range: 1},
             stretch: {type: 0, length: 100, range: 1},
             angle:   {type: 0, length: 100, range: 1},
+            hue:        {type: 0, length: 100, range: 1},
+            saturation: {type: 0, length: 100, range: 1},
+            lightness:  {type: 0, length: 100, range: 1},
         },
         textype: "brush",  
         gradientTypes: ['by_len', 'radial']              
