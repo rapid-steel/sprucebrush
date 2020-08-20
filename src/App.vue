@@ -680,16 +680,8 @@ methods: {
 
     },
     saveToFile(ext = "png") {
-        this.render()
-        let c = document.createElement("canvas").getContext("2d");
-        Object.assign(c.canvas, this.sizes);
-        c.canvas.style.width = this.sizes.width + "px";
-        c.canvas.style.height = this.sizes.height + "px";
-        c.drawImage(this.mainCanvas.canvas,
-            0, 0, this.sizes_hr.width, this.sizes_hr.height, 
-            0, 0, this.sizes.width, this.sizes.height, );
-        c.canvas.toBlob(blob => {
-            saveAs(blob, `${this.title}.${ext}`);
+        this._canvasToBlob().then(blob => {
+             saveAs(blob, `${this.title}.${ext}`);
         });
     },
     initControls() {
@@ -1000,12 +992,11 @@ methods: {
 
         this._updateCanvasesSize(rect);
        
-        if(px_ratio != this.sizes.px_ratio) {
-            this.sizes.px_ratio = px_ratio;
-            if(this.selection) 
-                this.selection.setPxRatio(this.sizes.px_ratio);
-            this.setToolParams();
-        }        
+        this.sizes.px_ratio = px_ratio;
+        if(this.selection) 
+            this.selection.setPxRatio(this.sizes.px_ratio);
+        this.setToolParams();
+               
 
         this.render();
     },

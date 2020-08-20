@@ -67,10 +67,6 @@ Vue components used:
 
  Caution! Use this at your own risk!
 
- - This couldn't work in Firefox, if OffscreenCanvas feature is disabled. You can
- try to enable flag gfx.offscreencanvas.enabled in about:config. Note that it can 
- lead to other problems.
-
  - An image looks blurry on zoom in. This is a drawback of HTML Canvas. A possible 
  trick to make canvas bigger, but performance will suffer. You can try to set 
  resolution to x2 in settings, but see if this wouldn't significantly slow down

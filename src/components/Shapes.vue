@@ -1,8 +1,7 @@
 <template>
 <div class="shapes" 
-    :class="{disabled: !!currentSettings.values.texture}" >
-    <div class="select-type" 
-        v-if="!currentSettings.values.texture">
+    :class="{disabled: !!currentSettings.texture}" >
+    <div class="select-type" >
         <div v-for="shape in shapes" 
         :key="shape.k" 
         class="shape"
@@ -10,8 +9,7 @@
         @click.stop="() => setShape(shape)">
         </div>
     </div>
-    <div class="input-checkbox" 
-    v-if="currentSettings.values.pixel !== undefined && !currentSettings.values.texture">
+    <div class="input-checkbox" >
         <div class="caption">{{$t('tools.settings.pixel')}}</div>
         <input type="checkbox" 
             :class="{checked: currentSettings.values.pixel}"

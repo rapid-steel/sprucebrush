@@ -1,13 +1,10 @@
+import Ctx from "../functions/ctx";
+
 export default class Selection {
     constructor(p1, selCtx, ratio, zoom) {
-        this.imgCtx = new OffscreenCanvas(selCtx.canvas.width, selCtx.canvas.height).getContext("2d");
-        this.imgCtx.imageSmoothingEnabled = false;
-        this.imgCtx.lineWidth = ratio;
         this.selCtx = selCtx;
-        let sCopy = new OffscreenCanvas(selCtx.canvas.width, selCtx.canvas.height);
-        sCopy.width = this.imgCtx.canvas.width;
-        sCopy.height = this.imgCtx.canvas.height;
-        this.sourceCopy = sCopy.getContext("2d");
+        this.imgCtx = Ctx.create(selCtx.canvas.width, selCtx.canvas.height, "2d");
+        this.sourceCopy = Ctx.create(selCtx.canvas.width, selCtx.canvas.height, "2d");
         this.contexts = [this.imgCtx, this.selCtx, this.sourceCopy];
 
         this.ready = false;
@@ -16,31 +13,31 @@ export default class Selection {
         this.path = [p1.slice(), p1.slice()];
         this.bbox = [p1.slice(), p1.slice()];
 
-        this.selCtx.lineWidth = ratio;
-        this.rectW = 10 * ratio;
         this.origin = [0, 0];
         this.scale = [1, 1];
         this.angle = 0;
-
         this.movePoint = [0, 0];
+
         this.zoom = zoom;
         this.ratio = ratio;
-        this.clipPath = document.getElementById("sClip");
+        this._zoomRatioChanged();
+
         this.calculateControls();
         this.drawSelection();
-
     }
-    setZoom(zoom) {
-        this.selCtx.lineWidth = this.ratio / zoom;
-        this.rectW = 10 / zoom * this.ratio;
+    _zoomRatioChanged() {
+        this.imgCtx.lineWidth = this.ratio;
+        this.selCtx.lineWidth = this.ratio / this.zoom;
+        this.rectW = 10 / this.ratio * this.zoom;
+    }
+    setZoom(zoom) {        
         this.zoom = zoom;
+        this._zoomRatioChanged();
         this.drawSelection();
     }
     setRatio(ratio) {
-        this.selCtx.lineWidth = ratio / this.zoom;
-        this.imgCtx.lineWidth = ratio;
-        this.rectW = 10 * ratio / this.zoom;
         this.ratio = ratio;
+        this._zoomRatioChanged();
         this.drawSelection();
     }
     getBbox() {
@@ -48,8 +45,7 @@ export default class Selection {
     }
     setSize({width, height}) {
         this.contexts.forEach(ctx => {
-            ctx.canvas.width = width;
-            ctx.canvas.height = height;
+            Ctx.resize(ctx, width, height);
         });
     }
     setPoint(p2) {

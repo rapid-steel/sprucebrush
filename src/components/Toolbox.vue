@@ -270,6 +270,8 @@ import BrushTransformation from "./BrushTransformation";
 import ActualSettings from "./ActualSettings";
 import Shapes from "./Shapes";
 import {round2n} from "../functions/math-functions";
+import Ctx from "../functions/ctx";
+
 
 export default {
     name: 'Tools',
@@ -367,35 +369,31 @@ export default {
             const type = e.target.id.replace("-input", "");
             const textype = this.currentSettings.textype;
             Array.from(e.target.files).forEach(file => {
-                let img = new Image();
-                    img.onload = () => {
-                        if(type.indexOf("texture") !== -1) {
-                            let {k, w1,h1, imgW, imgH, dw, dh} = round2n(img.width, img.height);
-                            let ctx = new OffscreenCanvas(w1, h1).getContext("2d");
-                            ctx.drawImage(img, dw, dh, imgW, imgH);
-                            img = new Image();
-                            img.onload = () => {
-                                this.$store.commit("addAsset", [
-                                    {type, textype}, {
-                                    k: Date.now(),
-                                    src: img.src,
-                                    ratio: k
-                                }]);
-                            };
-                            ctx.canvas.convertToBlob({
-                                type: "image/png"
-                            })
-                            .then(blob => img.src = URL.createObjectURL(blob));  
-                            
-
-                        } else {
-                            this.$store.commit("addAsset", [{type}, {
+                if(type == "pattern") {
+                    const img = new Image();
+                    img.onload = () => 
+                        this.$store.commit("addAsset", [{type}, {
+                            k: Date.now(),
+                            src: img.src
+                        }]);
+                    img.src = URL.createObjectURL(file);   
+                } else {
+                    Ctx.loadImg(
+                        URL.createObjectURL(file), 
+                        (width, height) =>  round2n(width, height)
+                    ).then(ctx => {
+                        const img = new Image();
+                        img.onload = () => {
+                            this.$store.commit("addAsset", [
+                                {type, textype}, {
                                 k: Date.now(),
-                                src: img.src
+                                src: img.src,
+                                ratio: img.width / img.height
                             }]);
-                        }
-                    }
-                    img.src = URL.createObjectURL(file);    
+                        };
+                        ctx.canvas.toBlob(blob => img.src = URL.createObjectURL(blob));  
+                    });
+                }
             });
 
         },

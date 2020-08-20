@@ -1,4 +1,6 @@
+import Ctx from "../functions/ctx"
 const DEBUG = process.env.NODE_ENV !== 'production';
+
 
 function n2(n) {
     let k = 2; // eslint-disable-next-line
@@ -6,18 +8,14 @@ function n2(n) {
     return k >>>= 1;
 }
 
-
 export default class ToolWebGL {
     constructor() { 
-        this.canvas = new OffscreenCanvas(100, 100);
-        this.gl = this.canvas.getContext("webgl", {
-            premultipliedAlpha: true,
-            depth: false
-        });
+        this.gl =  Ctx.create(100, 100, "webgl");
+        this.canvas = this.gl.canvas;
 
         this.commonCodeBlocks = {
             dynamics: `
-            #define PI2 6.283185
+            #define PI2 6.2832
             float dynamics_down(float base, float index, float length) {
                 if(index > length) return 0.0;
                 return base * (length - index) / length;
@@ -180,7 +178,7 @@ export default class ToolWebGL {
     }
     createGradientTexture({colors, type}, [w, h] = [1, 1]) {
         const k = 1024;
-        const ctx = new OffscreenCanvas(k*w, k*h).getContext("2d");
+        const ctx = Ctx.create(k*w, k*h, "2d");
         const position = {
             radial: [0, 0, 0, k*h],
             by_wid: [0, 0, k*w, 0],
@@ -196,13 +194,12 @@ export default class ToolWebGL {
         ctx.fillRect(0, 0, k*w, k*h);
 
 
-        ctx.canvas.convertToBlob({type: "image/png"})
-        .then(blob => 
+        ctx.canvas.toBlob(blob => 
             this.loadTexture(
                 URL.createObjectURL(blob), 
                 "gradientTexture",
                 this.textures.GRADIENT
-            ));  
+        ));  
     }
     loadTexture(src, attrib, index = this.textures.BASE) {
         const img = new Image();

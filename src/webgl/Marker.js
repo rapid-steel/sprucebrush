@@ -27,6 +27,8 @@ export default class Marker extends ToolWebGL {
         return  Object.entries(props)
         .map(p => `#define ${p[0].toUpperCase()} ${p[1]}`)
         .join("\n") +   `
+    precision mediump float;
+
     uniform float lineWidth;
     uniform float width2;
     uniform float height2;
@@ -120,7 +122,7 @@ export default class Marker extends ToolWebGL {
         # define COLORFUNC
         #endif
     
-        precision highp float;
+        precision mediump float;
         uniform vec3 color;        
         uniform float lineWidth;
         uniform sampler2D texture;

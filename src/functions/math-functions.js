@@ -13,19 +13,22 @@ export function round2n(w, h) {
 
     k = k >= 0 ? 1 << k : 1 / (1 << -k) 
 
-    let dw = w1 - w;
-    let dh = h1 - h;
-    let imgW, imgH;
-    if(dw < dh * k) {
-        imgW = w1;
-        imgH = Math.ceil(h * imgW / w);
-        dw = 0;
-        dh = (h1 - imgH) >> 1;            
+    let offsetX = w1 - w;
+    let offsetY = h1 - h;
+    let imgWidth, imgHeight;
+    if(offsetX < offsetY * k) {
+        imgWidth = w1;
+        imgHeight = Math.ceil(h * imgWidth / w);
+        offsetX = 0;
+        offsetY = (h1 - imgHeight) >> 1;            
     } else {
-        imgH = h1;
-        imgW = Math.ceil(w * imgH / h);
-        dh = 0;
-        dw = (w1 - imgW) >> 1;
+        imgHeight = h1;
+        imgWidth = Math.ceil(w * imgHeight / h);
+        offsetY = 0;
+        offsetX = (w1 - imgWidth) >> 1;
     }
-    return {k, imgW, imgH, w1, h1, dw, dh};
+    return {
+        k, imgWidth, imgHeight, offsetX, offsetY,
+        width: w1, height: h1
+    };
 }

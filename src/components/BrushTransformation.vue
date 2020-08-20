@@ -5,7 +5,7 @@
         <div class="x-axis"></div>
         <div class="y-axis"></div>
         <div class="shape-axes"
-            :class="currentSettings.values.texture ? 'texture' : currentSettings.values.shape " 
+            :class="currentSettings.texture ? 'texture' : currentSettings.values.shape " 
             :style="angleStretchStyles"
             @mousedown.stop="startRotate">
             <div class="center" ref="center" ></div>
@@ -35,8 +35,8 @@ export default {
                 width:  100 * Math.min(1, stretch) + "%",
                 height: 100 / Math.max(1, stretch) + "%",
                 transform: `translate(-50%,-50%)rotate(${angle}deg)`,
-                backgroundImage: this.currentSettings.values.texture ? 
-                    `url(${this.currentSettings.values.texture.src})` 
+                backgroundImage: this.currentSettings.texture ? 
+                    `url(${this.currentSettings.texture.src})` 
                     : 'transparent'
             };
         }

@@ -1,6 +1,9 @@
 import {Brush, Marker} from "../webgl";
 import {fill} from "../functions/pixel-functions";
 import {getRgba} from "../functions/color-functions";
+import Ctx from "../functions/ctx";
+import { resolve } from "core-js/fn/promise";
+
 
 export default {
     created() {
@@ -11,25 +14,16 @@ export default {
         };
     },
     mounted() {
-        this.tempCtx =  document.createElement("canvas").getContext("2d");
-        this.tempCtx2 = (new OffscreenCanvas(800, 600)).getContext("2d");
-    
-        this.mainCtx = this.$refs.mainCanvas.getContext("bitmaprenderer");
-        this.selCtx = this.$refs.selection.getContext("2d");  
-        
-        
-        this.blender = (new OffscreenCanvas(800, 600)).getContext("2d"); 
-
-        this.blender.imageSmoothingEnabled = false;
-        this.blender.save();
-        this.blender.translate(0.5, 0.5);
-        this.offscreenContexts = [
-            this.tempCtx, this.tempCtx2, this.blender
-        ];
-
 
         this.brush = new Brush();
         this.marker = new Marker();
+        this.mainCtx = this.$refs.mainCanvas.getContext("2d");
+        this.selCtx = this.$refs.selection.getContext("2d");  
+        this.contextsOnscreen = [ this.mainCtx, this.selCtx ];
+
+        this.tempCtx =  Ctx.create(800, 600, "2d");
+        this.tempCtx2 = Ctx.create(800, 600, "2d");
+        this.contextsOffscreen = [ this.tempCtx, this.tempCtx2 ];          
         
     },
     methods: {
@@ -135,27 +129,24 @@ export default {
                 this.tempCtx.restore();
         },    
         render(temp) {
-            const {width, height} = this.blender.canvas;
-            this.blender.clearRect(0,0, width, height);
+            const {width, height} = this.mainCtx.canvas;
+            this.mainCtx.clearRect(0,0, width, height);
             
             this.layers.forEach(l => {
                 if(l.visible) {
-                    this.blender.globalCompositeOperation = l.blend;
-                    this.blender.globalAlpha = l.opacity / 100;
+                    this.mainCtx.globalCompositeOperation = l.blend;
+                    this.mainCtx.globalAlpha = l.opacity / 100;
                     if(l == this.currentLayer) {
                         if(temp)
-                            this.blender.drawImage(this.tempCtx.canvas, 0, 0);
+                            this.mainCtx.drawImage(this.tempCtx.canvas, 0, 0);
                         else           
-                            this.blender.drawImage(l.ctx.canvas, 0, 0);
+                            this.mainCtx.drawImage(l.ctx.canvas, 0, 0);
     
                         if(this.selection) 
-                            this.blender.drawImage(this.selection.imgCtx.canvas, 0, 0);
-                    } else this.blender.drawImage(l.ctx.canvas, 0, 0);     
+                            this.mainCtx.drawImage(this.selection.imgCtx.canvas, 0, 0);
+                    } else this.mainCtx.drawImage(l.ctx.canvas, 0, 0);     
                 }            
             });    
-            this.mainCtx.transferFromImageBitmap(
-                this.blender.canvas.transferToImageBitmap()
-            );
         },
         setToolParams() {
             if(this.currentSettings.webglTool) {
@@ -167,32 +158,28 @@ export default {
                     gradient, texture, smoothing
                 };
                 if(values.radius) settings.values.radius *= this.sizes.px_ratio;
-                if(values.lineWidth) settings.values.lineWidth *= this.sizes.px_ratio;
+                if(values.lineWidth) settings.values.lineWidth *= this.sizes.px_ratio;                
     
                 this[webglTool].setParams(settings);
             }
 
             if(this.currentSettings.pattern) {
                 if(!this.canvasPattern || 
-                    this.currentSettings.pattern.src !== this.canvasPattern.img.src ||
+                    this.currentSettings.pattern.src !== this.canvasPattern.src ||
                     this.currentSettings.pattern.scale !== this.canvasPattern.scale) {
                     this.canvasPattern = {
                         scale: this.currentSettings.pattern.scale,
-                        img: new Image()
+                        src: this.currentSettings.pattern.src
                     };
-                    this.canvasPattern.img.onload = () => {
-                        let c = document.createElement("canvas");
-                        c.width = this.currentSettings.pattern.scale * this.canvasPattern.img.width;
-                        c.height = this.currentSettings.pattern.scale * this.canvasPattern.img.height;
-                        let ctx = c.getContext("2d");
-                        ctx.drawImage(this.canvasPattern.img, 
-                            0, 0, this.canvasPattern.img.width, this.canvasPattern.img.height, 
-                            0, 0, c.width, c.height );
-
-                        this.canvasPattern.pattern = 
-                        this.tempCtx.createPattern(c, "repeat");
-                    };
-                    this.canvasPattern.img.src = this.currentSettings.pattern.src;
+                    Ctx.loadImg(
+                        this.canvasPattern.src, 
+                        (width, height) => ({
+                            width:  this.canvasPattern.scale * width,
+                            height: this.canvasPattern.scale * height
+                        })
+                    ).then(ctx => {
+                        this.canvasPattern.pattern = this.tempCtx.createPattern(ctx.canvas, "repeat");
+                    });                    
                 }
             } else 
             this.canvasPattern = null;
@@ -209,9 +196,8 @@ export default {
                 (this.sizes_hr.height - old.height) / 2,
             ];
 
-            this.offscreenContexts.forEach(s => {
-                s.canvas.width = this.sizes_hr.width;
-                s.canvas.height = this.sizes_hr.height;
+            this.contextsOffscreen.forEach(ctx => {
+                Ctx.resize(ctx,  this.sizes_hr.width, this.sizes_hr.height);
             });
             this.tempCtx.save();
             this.tempCtx.translate(this.sizes_hr.width / 2, this.sizes_hr.height / 2);
@@ -222,8 +208,7 @@ export default {
                 this.tempCtx.clearRect(...origin, this.tempCtx.canvas.width, this.tempCtx.canvas.height);
                 this.tempCtx.drawImage(layer.ctx.canvas, ...origin);
                 layer.ctx.globalCompositeOperation = "copy";
-                layer.ctx.canvas.width = this.sizes_hr.width;
-                layer.ctx.canvas.height = this.sizes_hr.height;        
+                Ctx.resize(layer.ctx, this.sizes_hr.width, this.sizes_hr.height);    
                 layer.ctx.drawImage(this.tempCtx.canvas, 0, 0);    
             });
             this.tempCtx.translate(this.sizes_hr.width / 2, this.sizes_hr.height / 2);
@@ -289,7 +274,7 @@ export default {
             this.render();    
         },
         _createLayerCtx(paste, params = {}) {
-            const ctx = (new OffscreenCanvas(this.sizes_hr.width, this.sizes_hr.height)).getContext("2d");      
+            const ctx = Ctx.create(this.sizes_hr.width, this.sizes_hr.height, "2d");      
             if(params.background) {
                 ctx.fillStyle = this.colorBG;
                 ctx.fillRect(0, 0, this.sizes_hr.width, this.sizes_hr.height);
@@ -304,7 +289,7 @@ export default {
             under.ctx.drawImage(upper.ctx.canvas, 0, 0, this.sizes_hr.width, this.sizes_hr.height);
         },
         _pickColorAtCoord(coord) {
-            const data = Array.from(this.blender.getImageData(...coord, 1, 1).data);
+            const data = Array.from(this.mainCtx.getImageData(...coord, 1, 1).data);
             if(data.find(n => !!n))
                 return `rgb(${data.slice(0,3).join(",")})`;
             return 0;
@@ -327,12 +312,14 @@ export default {
                height: Math.round(height * px_ratio)
            };     
    
-           ['canvas', "mainCanvas", "selection"].forEach(s => {
-               this.$refs[s].width = this.sizes_hr.width;
-               this.$refs[s].height = this.sizes_hr.height;
-               this.$refs[s].style.width = this.canvasSizes.width + "px";
-               this.$refs[s].style.height = this.canvasSizes.height + "px";
+           this.contextsOnscreen.forEach(ctx => {
+               ctx.canvas.width = this.sizes_hr.width;
+               ctx.canvas.height = this.sizes_hr.height; 
+               ctx.canvas.style.width = this.canvasSizes.width + "px";
+               ctx.canvas.style.height = this.canvasSizes.height + "px";              
            });     
+           this.$refs.canvas.style.width = this.canvasSizes.width + "px";
+           this.$refs.canvas.style.height = this.canvasSizes.height + "px";
    
    
            this.brush.setSizes(this.sizes_hr);
@@ -344,17 +331,15 @@ export default {
         _updateCanvasesSize(newImageRect) {
             let oldImageRect = [0, 0, this.tempCtx.canvas.width, this.tempCtx.canvas.height];
 
-            this.offscreenContexts.forEach(s => {
-                s.canvas.width = this.sizes_hr.width;
-                s.canvas.height = this.sizes_hr.height;
+            this.contextsOffscreen.forEach(s => {
+                Ctx.resize(s, this.sizes_hr.width, this.sizes_hr.height);
             });
         
             this.layers.forEach(layer => {
                 this.tempCtx.clearRect(0, 0, this.tempCtx.canvas.width, this.tempCtx.canvas.height);
                 this.tempCtx.drawImage(layer.ctx.canvas, ...oldImageRect, ...newImageRect);
                 layer.ctx.globalCompositeOperation = "copy";      
-                layer.ctx.canvas.width = this.sizes_hr.width;
-                layer.ctx.canvas.height = this.sizes_hr.height;            
+                Ctx.resize(layer.ctx, this.sizes_hr.width, this.sizes_hr.height);           
                 layer.ctx.drawImage(this.tempCtx.canvas, 0, 0);    
             }); 
         },
@@ -380,6 +365,17 @@ export default {
         },
         _getCurrentLayerImage() {
             return this.currentLayer.ctx.canvas;
+        },
+        _canvasToBlob() {
+            let ctx = Ctx.create(this.sizes.width, this.sizes.height, "2d");
+            ctx.drawImage(this.mainCtx.canvas,
+                0, 0, this.sizes_hr.width, this.sizes_hr.height, 
+                0, 0, this.sizes.width, this.sizes.height, );
+            return new Promise(resolve => {
+                ctx.canvas.toBlob(blob => {
+                    resolve(blob);
+                });
+            });
         }
     }
 }

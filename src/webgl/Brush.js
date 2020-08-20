@@ -23,7 +23,7 @@ export default class Brush extends ToolWebGL {
         return  Object.entries(props)
         .map(p => `#define ${p[0].toUpperCase()} ${p[1]}`)
         .join("\n") +`
-            precision highp float;
+            precision mediump float;
     
             uniform float radius;
             uniform float width2;
@@ -142,7 +142,7 @@ export default class Brush extends ToolWebGL {
         #endif
         #define DIAG 1.41421
     
-        precision highp float;
+        precision mediump float;
         uniform float spacing;
     
         uniform vec3 color;

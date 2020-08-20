@@ -1,5 +1,3 @@
-const ctx = (new OffscreenCanvas(1,1));
-
 export function fill(pos, positions, pixels, color, color0, width, height, tolerance) {
   let pos1 = [];
   let pixels1 = new ImageData( width, height ).data;

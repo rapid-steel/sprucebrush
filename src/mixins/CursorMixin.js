@@ -25,7 +25,7 @@ export default {
                     this.$refs.cursor.style.height = values.radius * this.zoom  + "px";
                     this.$refs.cursor.style.transform = [ 
                         `translate3d(-50%,-50%,0)`,
-                        `rotate(${values.angle}deg)`,                    
+                        `rotate(${values.angle + this.rotationAngle}deg)`,                    
                         `scale(${Math.min(1, values.stretch)},${Math.min(1, 1 / values.stretch)})`,
                        
                     ].join("");
