@@ -79,10 +79,7 @@ export default {
     },
     props: ['colorToEdit'],
     computed: {
-        ...mapState(['currentColor', 'colorBG']),
-        palletes() { 
-            return this.$store.state.userPref.palletes; 
-        },
+        ...mapState(['currentColor', 'colorBG', 'palletes']),
         colorVal() {
             return toHex(
                 this.colorToEdit === "fg" ? 

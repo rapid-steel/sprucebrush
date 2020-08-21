@@ -57,6 +57,12 @@ export default {
                 });                
             }
         },
+        clearSelection() {
+            if(this.selection) {
+                this.dropSelection();
+                this.render();
+            }
+        },
         applySelection() {
             if(this.activeSelection) {
                 this.currentLayer.ctx.restore();

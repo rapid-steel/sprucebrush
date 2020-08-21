@@ -69,6 +69,10 @@ export default {
                     action: () => this.$emit('reset-selection'),
                     key: "Ctrl + Z",              
                 }, {
+                    k: 'tools.selection.clear', 
+                    action: () => this.$emit('clear-selection'),
+                    key: "Delete", 
+                }, {
                     k: "tools.selection.clipnewlayer",
                     action: () => this.$emit('clipnewlayer-selection'),
                 },{

@@ -46,6 +46,7 @@
                 @apply-selection="applySelection"
                 @reset-selection="resetSelection"
                 @crop-selection="cropSelection"
+                @clear-selection="clearSelection"
                 @clipnewlayer-selection="clipToNewLayer"
                 @close="() => contextMenu.show = false"
              />
@@ -180,7 +181,19 @@ import SelectionMixin from "./mixins/SelectionMixin.js";
 import CursorMixin from "./mixins/CursorMixin.js";
 
 
-import {angle, sum, vec, angle_signed, rotateX, rotateY, invert} from "./functions/vector-functions";
+import {angle, sum, vec, angle_signed, rotateX, rotateY, invert, length} from "./functions/vector-functions";
+
+ const BTN = Object.freeze({
+    NONE:   0x1,
+    LEFT:   0x2,
+    MIDDLE: 0x4,
+    RIGHT:  0x8,
+});
+
+const DBCLICK = Object.freeze({
+    MS_MAX: 300,
+    LENGTH_MAX: 3
+});
 
 
 export default {
@@ -255,66 +268,59 @@ watch: {
     }
 },
 created() {
+    this.pointerKeyMap = {
+        down: {
+            [BTN.MIDDLE]: e => this.setShortcutTool("hand", e),
+        }
+    };
     this.pointerActionsMap = {
         brush: {
+            btn: BTN.LEFT,
             down: () => this.draw(this.lastPoint, this.brush),
-            move: () => {
-                if(this.pressure > 0) 
-                this.draw(this.lastPoint, this.brush);
-            },
-            up: () => {
-                this.endDraw(this.lastPoint, this.brush);
-            },
-            out: () => {
-                this.endDraw(this.lastPoint, this.brush);
-            }
+            move: () => this.draw(this.lastPoint, this.brush),
+            up:   () => this.endDraw(this.lastPoint, this.brush),
+            out:  () => {}
         },
         eraser: {
+            btn: BTN.LEFT,
             down: () => this.erase(this.lastPoint),
-            move: () => {
-                if(this.pressure > 0) 
-                    this.erase(this.lastPoint);
-            },
-            up: () => {
-                this.endErase(this.lastPoint);
-            },
-            out: () => {
-                this.endErase(this.lastPoint);        
-            },
+            move: () => this.erase(this.lastPoint),
+            up:   () => this.endErase(this.lastPoint),
+            out:  () => {},
         },
         marker: {
+            btn: BTN.LEFT,
             down: () => this.draw(this.lastPoint, this.marker),
-            move: () => {
-                if(this.pressure > 0) {            
+            move: () => {     
                     this.draw(this.lastPoint, this.marker);
                     this.setCursorAngle(this.marker);
-                }
             },
             up: () => {
                 this.endDraw(this.lastPoint, this.marker);
                 this.setCursorAngle(this.marker);
             },
-            out: () => {
-                this.endDraw(this.lastPoint, this.marker);
-            },
+            out: () => {},
         },
 
         fill: {
-            down: () => this.fill(this.lastPoint.coords),
+            btn: BTN.LEFT | BTN.RIGHT,
+            down: () => this.fill(this.lastPoint.coords, {
+                [BTN.RIGHT]: this.colorBG, 
+                [BTN.LEFT]: this.currentColor
+            }[this.lastEvent.btn]),
             move: () => {},
-            up: () => {},
-            out: () => {}
+            up:   () => {},
+            out:  () => {}
         },
         picker: {
-            down: () => this.pickColor(this.lastPoint.coords),
-            move: () => {
-                if(this.pressure > .25) 
-                    this.pickColor(this.lastPoint.coords);
-            },
-            up: () => {},
-            out: () => {}
+            btn: BTN.LEFT | BTN.RIGHT,
+            down: () => this.pickColor(this.lastPoint.coords, this._getColor()),
+            move: () => this.pickColor(this.lastPoint.coords, this._getColor()),
+            up:   () => {},
+            out:  () => {}
         },
         selection_rect: {
+            btn: BTN.LEFT,
             down: () => {
                 if(!this.selection) {
                     this.newSelection();
@@ -322,14 +328,14 @@ created() {
                     this.selection.applyTransform(this.lastPoint.coords, true);              
                 }    
             },
-            move: () => {
-                if(this.pressure > 0) {
-                    if(this.selection.started) {         
-                        this.selection.applyTransform(this.lastPoint.coords, false, this.restrictedToAxis);
+            move: () => {                 
+                if( this.selection) {
+                    if(!this.selection.started) { 
+                        this.selection.setPoint(this.lastPoint.coords); 
                     } else {
-                        this.selection.setPoint(this.lastPoint.coords);            
-                    } 
-                }     
+                        this.selection.applyTransform(this.lastPoint.coords, false, this.restrictedToAxis);         
+                    }         
+                }
                 this.render();
             },
             up: () => {
@@ -341,6 +347,7 @@ created() {
             out: () => {}        
         },
         selection_polygon: {
+            btn: BTN.LEFT | BTN.NONE,
             down: () => {
                 if(!this.selection) {
                     this.newSelection();
@@ -354,19 +361,17 @@ created() {
                 this.render();
             },
             move: () => {
-                if(this.selection) { 
-                    if(!this.selection.started) 
-                        this.selection.setPoint(this.lastPoint.coords); 
-                    else if(this.pressure > 0)   
-                        this.selection.applyTransform(this.lastPoint.coords, false, this.restrictedToAxis);
-                    }
+                if(this.lastEvent.btn == BTN.LEFT && this.selection.started) {
+                    this.selection.applyTransform(this.lastPoint.coords, false, this.restrictedToAxis);
+                }
+                if(this.lastEvent.btn == BTN.NONE && this.selection && !this.selection.started) {
+                    this.selection.setPoint(this.lastPoint.coords);           
+                }
                 this.render();
             },
             up: () => {
-                if(!this.selection.ready) {
-                    if(Date.now() - this.prevClick.time < 300) {
-                        this.startTransformSelection();
-                    }
+                if(this.selection && !this.selection.started && this.lastEvent.dblClick) {
+                    this.startTransformSelection();
                 }
                 this.render();
                 
@@ -374,6 +379,7 @@ created() {
             out: () => {}
         },
         selection_lasso: {
+            btn: BTN.LEFT,
             down: () => {
                 if(!this.selection) {
                     this.newSelection();
@@ -392,7 +398,7 @@ created() {
                 this.render();
             },
             up: () => {
-                if(!this.selection.ready) {
+                if(this.selection && !this.selection.ready) {
                     this.startTransformSelection();
                 }  
                 this.render();
@@ -400,28 +406,18 @@ created() {
             out: () => {}              
         },
         hand: {
-            down: () => {
-                this.startTranslateCanvas();
-            },
-            move: () => {
-                this.translateCanvas();
-            },
-            up: () => {
-                this.endTranslateCanvas();
-            },
-            out: () => {}
+            btn: BTN.LEFT | BTN.MIDDLE,
+            down: () => this.startTranslateCanvas(),
+            move: () => this.translateCanvas(),
+            up:   () => this.endTranslateCanvas(),
+            out:  () => {}
         },
         rotation: {
-            down: () => {
-                this.startRotateCanvas();
-            },
-            move: () => {
-                this.rotateCanvas();
-            },
-            up: () => {
-                this.endRotateCanvas();
-            },
-            out: () => {}
+            btn: BTN.LEFT,
+            down: () => this.startRotateCanvas(),
+            move: () => this.rotateCanvas(),
+            up:   () => this.endRotateCanvas(),
+            out:  () => {}
         }
     };
 
@@ -507,6 +503,18 @@ created() {
         },
         ShiftRight: e => {
             this.restrictToAxis(e);
+        },
+        Delete: e => {
+            if(this.activeSelection) {
+                this.clearSelection();
+            } else if(this.selection) {
+                if(this.selection.type == "polygon") {
+                    if(this.selection.path.length > 2) {
+                        this.selection.removePoint();
+                        this.selection.setPoint(this.lastPoint.coords);
+                    } else this.dropSelection();
+                }
+            }
         },
         KeyB: e => this.$store.commit("selectTool", "brush"),
         KeyE: e => this.$store.commit("selectTool", "eraser"),
@@ -600,10 +608,10 @@ methods: {
         this.writeHistoryAction({...action, action: "transform"});
         if(action.rotate) {            
             let angle = (action.rotate * Math.PI / 180);            
-            this.rotateImage(angle);
+            this.rotateDrawing(angle);
         }
         if(action.flip) {
-            this.flipImage(action.flip);
+            this.flipDrawing(action.flip);
         }
         this.render();
     },
@@ -684,10 +692,7 @@ methods: {
              saveAs(blob, `${this.title}.${ext}`);
         });
     },
-    initControls() {
-        this.pressure = 0;
-
-
+    initControls() {       
         document.addEventListener("keydown", e => {     
             let action = (e.ctrlKey ? 
                 this.keyCodeMap.ctrlKey 
@@ -700,31 +705,35 @@ methods: {
             );
         });   
 
+       
         this.prevClick = {
-            time: 0, x: 0, y: 0
+            time: 0, coords: [0, 0]
         };
+        this.lastEvent = {
+            btn: BTN.NONE,
+            dblClick: false
+        };
+        this.pressure = 0;
 
-        
 
         this.$refs.container.addEventListener("pointerdown", event => {
             if(event.target == this.$refs.container) return;
             event.preventDefault();
             this.contextMenu.show = false;
             this.setLastPoint(event);
-            this.leftBtn = false;
-            
-            switch(event.which) {
-                case 1:
-                    if(!this.currentLayer.locked || !this.currentSettings.modifying)
-                        this.pointerActions.down();
-                    this.leftBtn = true;
-                    break;
-                case 2:
-                    this.setShortcutTool("hand", event);
-                    break;
-                case 3:
-                    //nothing i think
-                    break;
+
+            this.lastEvent.btn = 1 << event.which;
+            this.lastEvent.dblClick = false;
+
+
+
+            if( (this.lastEvent.btn & this.pointerActions.btn) &&
+                !(this.currentLayer.locked && this.currentSettings.modifying)
+            ) {
+                this.pointerActions.down(event);
+            } else {
+                let action = this.pointerKeyMap.down[this.lastEvent.btn];
+                if(action) action(event);
             }
             
         });
@@ -735,9 +744,11 @@ methods: {
             if(this.selection) {
                 this.setCursorSelAction();  
             }
-            if(this.leftBtn && 
-                !this.currentLayer.locked || !this.currentSettings.modifying)
-                this.pointerActions.move();                
+            if( (this.lastEvent.btn & this.pointerActions.btn) &&
+                !(this.currentLayer.locked && this.currentSettings.modifying)
+            ) {
+                this.pointerActions.move(event);     
+            }           
 
         });
 
@@ -745,13 +756,20 @@ methods: {
             if(this.pressure == 0) return;
             event.preventDefault();
             event.stopPropagation();
+            
             this.setLastPoint(event);
-            this.leftBtn = false;
+            
             let t = Date.now();
-            if(!this.currentLayer.locked || !this.currentSettings.modifying)
-                this.pointerActions.up();
+            this.lastEvent.dblClick = (t -this.prevClick.time) < DBCLICK.MS_MAX &&
+                length(vec(this.prevClick.coords, this.lastPoint.coords)) < DBCLICK.LENGTH_MAX; 
 
-            this.prevClick.time = t;     
+
+            if( (this.lastEvent.btn & this.pointerActions.btn) &&
+                !(this.currentLayer.locked && this.currentSettings.modifying)
+            ) {
+                this.pointerActions.up(event);
+            }
+               
             if(this.restrictedToAxis) {
                 let p0 = this.lastTouchedPoint;
                 let point = this.lastPoint
@@ -770,6 +788,9 @@ methods: {
             this.lastTouchedPoint.lastTouched = true;
             
             this.pressure = 0;
+            this.lastEvent.btn = BTN.NONE;
+            this.prevClick.time = t;  
+            this.prevClick.coords = this.lastPoint.coords.slice();
         });
     
         this.$refs.container.addEventListener("contextmenu", event => {
@@ -891,10 +912,19 @@ methods: {
             }
         });
     },
-    pickColor(coord) {
+    _getColor() {
+        if(this.lastEvent.btn == BTN.RIGHT) {
+            return {
+                bg: "fg",
+                fg: "bg"
+            }[this.colorToEdit];
+        } 
+        return this.colorToEdit;
+    },
+    pickColor(coord, colorType) {
         let color = this._pickColorAtCoord(coord);
         if(color) {
-            this.$store.commit("selectColor", [  this.colorToEdit, color]);
+            this.$store.commit("selectColor", [ colorType, color]);
             this.setCursorColor(color);
         }
     },
@@ -1420,9 +1450,6 @@ body {
             box-shadow: none;
             filter: url(#outline);
         }
-    }
-    &.marker {
-        
     }
     &.hand, 
     &.grab {

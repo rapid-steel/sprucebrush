@@ -3,6 +3,10 @@ import {fill} from "../functions/pixel-functions";
 import {getRgba} from "../functions/color-functions";
 import Ctx from "../functions/ctx";
 import { resolve } from "core-js/fn/promise";
+import { of } from "core-js/fn/array";
+
+// someday i'll isolate the all canvas (including selection) functionality from vue app
+// but this day is not today
 
 
 export default {
@@ -62,13 +66,8 @@ export default {
                 this.writeHistory();
                 this.updateFunc = () => {
                     this._draw(point, tool, this.currentLayer.compositeMode);  
-                    this.currentLayer.ctx.globalCompositeOperation = this.currentLayer.compositeMode;            
-                    if(this.selection) {
-                        this.selection.clip(this.currentLayer.ctx);
-                    } 
-                    tool.drawToCtx(this.currentLayer.ctx);
-                    if(this.selection) 
-                        this.currentLayer.ctx.restore();
+                    this.currentLayer.ctx.globalCompositeOperation = "copy";         
+                    this.currentLayer.ctx.drawImage(this.tempCtx.canvas, 0, 0);
                     tool.dropLine();       
                     this.render();  
                 };
@@ -118,13 +117,16 @@ export default {
             }
         },
         _draw(point, tool, compositeOperation = "source-over") {        
-            this.tempCtx.globalCompositeOperation = "copy";
+            this.tempCtx.globalCompositeOperation = "copy";           
             this.tempCtx.drawImage(this.currentLayer.ctx.canvas, 0, 0);
             if(this.selection) {
                 this.selection.clip(this.tempCtx);
-            }             
+            }  
+            if(!this.currentSettings.values.pixel)           
+                this.tempCtx.filter = `blur(${(1-this.currentSettings.values.hardness)*(this.currentSettings.values.radius||this.currentSettings.values.lineWidth)}px)`;
             this.tempCtx.globalCompositeOperation = compositeOperation;
             tool.drawToCtx(this.tempCtx);            
+            this.tempCtx.filter = "none";
             if(this.selection) 
                 this.tempCtx.restore();
         },    
@@ -229,6 +231,7 @@ export default {
                 origin[1] = -this.sizes_hr.height;
                 scale[1] = -1;
             }
+            this.tempCtx.save();
             this.tempCtx.scale(...scale);
             this.layers.forEach(layer => {
                 this.tempCtx.clearRect(...origin, this.tempCtx.canvas.width, this.tempCtx.canvas.height);
@@ -236,15 +239,17 @@ export default {
                 layer.ctx.globalCompositeOperation = "copy";      
                 layer.ctx.drawImage(this.tempCtx.canvas, 0, 0);    
             });
+            this.tempCtx.restore();
+            this.tempCtx.clearRect(0, 0, this.tempCtx.canvas.width, this.tempCtx.canvas.height);
         },
-        fill(coords) {
+        fill(coords, colorStr) {
             let accuracy = this.sizes.px_ratio;
             let sizes = [this.sizes_hr.width, this.sizes_hr.height].map(c => Math.round(c / accuracy));
             this.tempCtx.drawImage(this.currentLayer.ctx.canvas, 0, 0, ...sizes);
     
             let data = this.tempCtx.getImageData(0, 0, ...sizes).data;
             let positions = new Int8Array(sizes[0] * sizes[1] );
-            let color = getRgba(this.currentColor);
+            let color = getRgba(colorStr);
             let color0 = Array.from(this.currentLayer.ctx.getImageData(...coords, 1, 1).data);         
     
     

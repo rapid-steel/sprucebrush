@@ -24,6 +24,7 @@ export default class Selection {
 
         this.calculateControls();
         this.drawSelection();
+        this.type = "rect";
     }
     _zoomRatioChanged() {
         this.imgCtx.lineWidth = this.ratio;
@@ -422,7 +423,6 @@ export default class Selection {
 
         this.selCtx.restore();
 
-        this.setClipPath();
     
     }
     clear() {

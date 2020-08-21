@@ -8,135 +8,24 @@ function n2(n) {
     return k >>>= 1;
 }
 
+// all the shaders are .glsl files, so i needn't search them somewhere in this  
+// class and can look at the code without squinting.
+// there is a real abuse of preprocessor in them but the glueing 
+// those small code pieces together via js looked much more horrible to me and
+// was inextensible at all.
+// placeholders for common chunks are commented line in format: //${chunk_key}
+
+
+
+const commonChunks = {
+    common_colors: require("./shaders/common_colors.glsl").default,
+    common_dynamics: require("./shaders/common_dynamics.glsl").default
+};
+
 export default class ToolWebGL {
     constructor() { 
         this.gl =  Ctx.create(100, 100, "webgl");
         this.canvas = this.gl.canvas;
-
-        this.commonCodeBlocks = {
-            dynamics: `
-            #define PI2 6.2832
-
-            float rand(vec2 co){
-                return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
-            }
-            float rand(vec2 co, float index) {
-                return rand(vec2(rand(co), index));
-            }
-            float rand(vec2 co, float index, float s) {
-                return rand(vec2(rand(co), index), s);
-            }
-
-            float dynamics_random(float base, float dynr, vec2 coords, float index, float s) {
-                return (1.0 - dynr * rand(coords, index, s)) * base;
-            }
-
-            float dynamics_down(float base, float index, float length) {
-                if(index > length) return 0.0;
-                return base * (length - index) / length;
-            }
-
-            float dynamics_periodic(float base, float dynr, float index, float length) {
-                float l2 = length / 2.0;
-                float f = mod(index, length) / l2;
-                if(f > 1.0) f = 2.0 - f;
-                return base * (1.0 - f * dynr);
-            }
-
-            float dynamics_amplitude(float dynr, float index, float length) {
-                float l4 = length / 4.0;
-                float f = mod(index, length) / l4;
-                if(f > 2.0) {
-                    if(f > 3.0) f = 4.0 - f;
-                    else f = f - 2.0;
-                    if(f == 0.0 || dynr == 0.0) return 0.0;
-                    return 1.0 / (1.0 - dynr * f); 
-                }
-                if(f > 1.0) 
-                    f = 2.0 - f;
-                return 1.0 * (1.0 - dynr * f); 
-            }
-
-            float dynamics_angle_periodic(float base, float dynr, float index, float length) {
-                float l2 = length / 2.0;
-                float f = mod(index, length) / l2;
-                if(f > 1.0) f = 2.0 - f;
-                return base + PI2 * (1.0 - f * dynr);
-            }
-
-            float dynamics_angle_circular(float index, float length) {
-                float f = mod(index, length) / length;
-                return f * PI2;
-            }
-
-            float dynamics_pressure(float base, float dynr, float pressure) {
-                return base * (1.0 - (1.0 - pressure) * dynr);
-            }            
-            `,
-            color_func: `
-            vec3 rgb2hsl(vec3 rgb) {
-                float minc = min(rgb.r, min(rgb.b, rgb.g));
-                float maxc = max(rgb.r, max(rgb.b, rgb.g));
-                float hue = 0.0;
-                if(maxc != minc) {
-                    float angle = 0.0;
-                    float dc;
-                    if(rgb.r == maxc) {
-                        dc = rgb.g - rgb.b;
-                        if(dc < 0.0) {
-                            angle = 1.0;
-                        } 
-                    } else {
-                        if(rgb.g == maxc) {
-                            dc = rgb.b - rgb.r;
-                            angle = 0.333333;
-                        } else {
-                            dc = rgb.r - rgb.g;
-                            angle = 0.666667;
-                        }
-                    }
-                    hue = fract((dc / (maxc - minc) + angle));
-                } 
-                float saturation = (maxc - minc) / (1.0 - abs(1.0 - (maxc + minc)));               
-                float lightness = (minc + maxc) / 2.0;
-                return vec3(hue, saturation, lightness);
-            }
-            float cp(float t, float p, float q) {
-                float c = p;
-                if(t < 0.166667) {
-                    c += (p - q) * 6.0 * t;
-                } else if(t < 0.5) {
-                    c = q;
-                } else if(t < 0.666667) {
-                    c += (p - q) * (0.666667 - t) * 6.0;
-                } 
-                return c;
-            }
-            vec3 hsl2rgb(vec3 hsl) {
-                float q;
-                float h = hsl.x;
-                float s = hsl.y;
-                float l = hsl.z;
-                if(l < 0.5) {
-                    q = l * (1.0 + s);
-                } else {
-                    q = l + s - l * s;
-                }
-                float p = 2.0 * l - q;
-                vec3 t = vec3(
-                    fract(h + 0.333333),
-                    fract(h),
-                    fract(h - 0.333333)
-                );
-                return vec3(
-                    cp(t.r, p, q),
-                    cp(t.g, p, q),
-                    cp(t.b, p, q)
-                );
-            }
-            `
-        };
-
     }
     _init() {      
         this.gl.getExtension("OES_standard_derivatives");
@@ -173,6 +62,44 @@ export default class ToolWebGL {
         };
         this.autoUpdate = false;
         this.update = false;
+        this.commonChunks = commonChunks;
+
+        this._loadShadersCode();
+    }
+    createVertShader(props) {
+        if(props.huedynamics + props.saturationdynamics + props.lightnessdynamics > 0) props.colordynamics = 1.0;
+        return  Object.entries(props)
+        .map(p => `#define ${p[0].toUpperCase()} ${p[1]}`)
+        .join("\n") + "\n" +
+        this.vertexShaderCode
+        .map(c => c.ref ? this.commonChunks[c.ref] : c)
+        .join("\n");
+    }
+    createFragShader(props) {
+        if(props.huedynamics + props.saturationdynamics + props.lightnessdynamics > 0) props.colordynamics = 1.0;
+        return Object.entries(props)
+        .map(p => `#define ${p[0].toUpperCase()} ${p[1]}`)
+        .join("\n") + "\n" +
+        this.fragmentShaderCode
+        .map(c => c.ref ? this.commonChunks[c.ref] : c)
+        .join("\n");
+    }
+    _loadShadersCode() {
+        ['vertex', 'fragment'].forEach(shaderType => {
+            const code = require(`./shaders/${this.programName}_${shaderType}.glsl`).default;
+            this[shaderType + "ShaderCode"] = code.split("//${")
+            .reduce((chunks, ch, i) => {
+                if(i) {
+                    let delim = ch.indexOf("}");
+                    chunks.push({
+                        ref: ch.slice(0, delim)
+                    });
+                    ch = ch.slice(delim+1);
+                }   
+                chunks.push(ch);            
+                return chunks;
+            }, []);
+        });
     }
     _getGlColor(color) {
         if(color.indexOf("rgb") == 0) {
@@ -190,6 +117,7 @@ export default class ToolWebGL {
         }
     }
     _createProgram(programType) {
+        let errorInfo;
         this.programType = programType;
         this.programProps = Object.fromEntries(
             programType.split("-")
@@ -209,23 +137,26 @@ export default class ToolWebGL {
             const vertShader = this.gl.createShader(this.gl.VERTEX_SHADER);
             this.gl.shaderSource(vertShader, this.createVertShader(this.programProps));
             this.gl.compileShader(vertShader);
-            if(DEBUG) 
-                console.log(this.gl.getShaderInfoLog(vertShader));
+
+            // eslint-disable-next-line
+            if(DEBUG && (errorInfo = this.gl.getShaderInfoLog(vertShader))) 
+                console.log(errorInfo);
     
             const fragShader = this.gl.createShader(this.gl.FRAGMENT_SHADER);
     
             this.gl.shaderSource(fragShader, this.createFragShader(this.programProps));
             this.gl.compileShader(fragShader);
-            if(DEBUG) 
-                console.log(this.gl.getShaderInfoLog(fragShader));
+            // eslint-disable-next-line
+            if(DEBUG && (errorInfo = this.gl.getShaderInfoLog(fragShader))) 
+                console.log(errorInfo);
     
             const program = this.gl.createProgram();
             this.gl.attachShader(program, vertShader); 
             this.gl.attachShader(program, fragShader);
             this.gl.linkProgram(program);
-
-            if(DEBUG) 
-                console.log(this.gl.getProgramInfoLog(program));
+            // eslint-disable-next-line
+            if(DEBUG && (errorInfo = this.gl.getProgramInfoLog(program)))
+                console.log(errorInfo);
 
             this.programsLoaded[programType] = program;
 

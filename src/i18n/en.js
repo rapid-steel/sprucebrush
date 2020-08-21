@@ -1,7 +1,7 @@
 export default {
     error: {
     },
-    title: "Vasya's cheap photoshop",
+    title: "SpruceBrush",
     newDrawingTitle: "Untitled mastepiece",
     common: {
         ok: "Ok",
@@ -124,7 +124,8 @@ export default {
             lineWidth: "Width",
             curveSmoothing: "Smooth curve",
             angleSmoothing: "Smooth angle",
-            opacity: "Opacity",                
+            opacity: "Opacity",            
+            hardness: "hardness",    
             spacing: "Spacing",
             tolerance: "Tolerance", 
             hue: "Hue",
@@ -165,6 +166,7 @@ export default {
         selection: {
             apply: "Apply",
             reset: "Reset",
+            clear: "Clear",
             crop: "Crop image",
             clipnewlayer: "Clip to new layer",
             all: "Select all"

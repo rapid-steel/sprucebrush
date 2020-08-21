@@ -19,8 +19,8 @@ export default {
             spacing: .05,  
             angle: 0,
             stretch: 1,
-            shape: "round",
             hardness: 1,
+            shape: "round",
             overlay: false,
             pixel: false,     
         },
@@ -52,9 +52,9 @@ export default {
             radius: 50,
             opacity: 1,
             spacing: .05,  
+            hardness: 1,
             angle: 0,
             stretch: 1,
-            hardness: 1,
             shape: "round",
             overlay: false,
             pixel: false,      
@@ -84,6 +84,7 @@ export default {
             lineWidth: 20,
             blurRadius: 5,
             opacity: 1,
+            hardness: 1,
         },
         smoothing: {
             curve: 10,
@@ -99,6 +100,9 @@ export default {
         dynamics: {
             lineWidth: {type: 0, length: 100, range: 1},
             opacity:   {type: 0, length: 100, range: 1},
+            hue:        {type: 0, length: 100, range: 1},
+            saturation: {type: 0, length: 100, range: 1},
+            lightness:  {type: 0, length: 100, range: 1},
         },             
         textype: "marker",
         gradientTypes: ['by_len', 'by_wid']   

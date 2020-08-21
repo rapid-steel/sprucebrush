@@ -1,6 +1,7 @@
 import { History } from "../classes";
 
 const history = new History();
+
 export default {
     data() {
         return {

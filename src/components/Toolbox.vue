@@ -36,7 +36,7 @@
             <ActualSettings 
                 :tool="currentTool"
                 :type="'values'"
-                :keys="['radius', 'opacity', 'spacing']" />
+                :keys="['radius', 'opacity', 'hardness']" />
 
             <div class="side-list-header">
                 <div class="caption">{{$t('tools.settings.shape')}}</div>                
@@ -45,7 +45,7 @@
                         <ActualSettings 
                             :tool="currentTool"
                             :type="'values'"
-                            :keys="['angle', 'stretch']" />
+                            :keys="['spacing', 'angle', 'stretch']" />
                         <Shapes />
                         <BrushTransformation />
                     </div>
@@ -303,9 +303,7 @@ export default {
                     {name: "selection_polygon", icon: require("@/assets/img/selection-polygon.png")},
                     {name: "selection_lasso", icon: require("@/assets/img/selection-lasso.png")},
                 ]
-            }
-                
-            ]
+            }]
         }
     },
     computed: {

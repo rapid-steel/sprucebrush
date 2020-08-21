@@ -1,8 +1,37 @@
-# magicpen
+# SpruceBrush
 
 This is a web application for drawing. It is developing in two main directions:
-- wide range of instrument settings, so you can use experiment with them and use imagination.
-- the most common and useful functions of advanced graphic editors, like filters, layers and so, but all this is available in the browser.
+- wide range of instrument settings, so you can use experiment with them and use 
+imagination.
+- the most common and useful functions of advanced graphic editors, like filters, 
+layers and so, but all this is available in the browser.
+
+## Launching
+
+The simpliest way is to refer the link:
+Beware the load speed is not well. So if you'd like to give it a chance, you can 
+download dist folder and open index page on localhost.
+
+
+## Features
+
+### Tools
+Currently there are available the following tools:
+- Brush - draws points
+- Eraser - acts equal to brush and the options are same, except for color settings.
+- Roller - draws lines
+- Filling tool, with the option to use a pattern.
+- Selection tool
+- Helpers tools: color picker, tool to drag and rotate the canvas.
+This is not the most impressive list yet, but be sure there are a few more 
+interesting things to be added ahead.
+
+### Other
+- Layers
+- Blending modes
+- Transformations of canvas (rotating, flipping);
+- Import of images via menu or drag-n-drop to canvas;
+- Image filters
 
 ## Useful shortcuts
 
@@ -20,6 +49,7 @@ This is a web application for drawing. It is developing in two main directions:
 - Ctrl + C - copy selection to clipboard
 - Ctrl + X - cut selection to clipboard
 - Ctrl + T - crop image to selected area
+- Delete - clear selection
 
 ### Keys to select a centain tool:
 -  B - Brush
@@ -76,3 +106,5 @@ Vue components used:
  Having suffered multiple setbacks in trying to get them to do this, I decided 
  that other tasks were of higher priority in the development of this application. 
  However, I promise that I will be back to this problem.
+
+ 

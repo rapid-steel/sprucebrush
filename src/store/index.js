@@ -2,10 +2,8 @@ import Vue from 'vue'
 import Vuex from 'vuex'
 import assets from "./assets.js";
 import predefinedLists from "./predefined-lists";
-import toolSettings from "./tool-settings.js"
-import settingRanges from "./setting-ranges.js"
-
-console.log(assets)
+import toolSettings from "./tool-settings.js";
+import settingRanges from "./setting-ranges.js";
 
 Vue.use(Vuex);
 
@@ -16,7 +14,7 @@ export default new Vuex.Store({
         zoomLevels: [.25, .5, .75, 1, 1.25, 1.5, 2],
         activeSelection: false,
         currentTool: "brush",
-        currentColor: "rgb(0,0,0)",
+        currentColor: "rgb(255,0,0)",
         colorBG: "rgb(255,255,255)",
         currentLayer: 0,
         viewMode: 'normal',
@@ -32,11 +30,9 @@ export default new Vuex.Store({
             {k: "round"}, {k: "rect"}
         ],
         gradients: predefinedLists.gradients,
+        palletes: predefinedLists.palletes,
         currentToolSettings: toolSettings,
-        userPref: {
-            historySize: 10,
-            palletes: predefinedLists.palletes
-        }
+        historySize: 10,
     },
     getters: {
         currentSettings(state) {
@@ -92,35 +88,35 @@ export default new Vuex.Store({
             state.gradients.splice(i, 1);
         },
         addPallete(state, name) {
-            let e = state.userPref.palletes.filter(p => 
+            let e = state.palletes.filter(p => 
                 p.name.replace(/[0-9]/ig, "").trim().toLowerCase() == name.toLowerCase()
             ).length;
             if(e > 0) name += " " + (e + 1);
 
-            state.userPref.palletes.push({
+            state.palletes.push({
                 name, id: Date.now(),
                 colors: []
             });
         },
         renamePallete(state, [id, name]) {
-            state.userPref.palletes.find(p => p.id == id).name = name;
-            state.userPref.palletes = state.userPref.palletes.slice();
+            state.palletes.find(p => p.id == id).name = name;
+            state.palletes = state.palletes.slice();
         },
         deletePallete(state, id) {
-            state.userPref.palletes.splice(
-                state.userPref.palletes.findIndex(p => p.id == id), 1);
+            state.palletes.splice(
+                state.palletes.findIndex(p => p.id == id), 1);
         },
         addColorToPallete(state, [id, color]) {
-            let pallete = state.userPref.palletes.find(p => p.id == id);
+            let pallete = state.palletes.find(p => p.id == id);
             if(pallete.colors.indexOf(color) == -1) {
                 pallete.colors.push(color);
-                state.userPref.palletes = state.userPref.palletes.slice();
+                state.palletes = state.palletes.slice();
             }
         },
         deleteColorFromPallete(state, [id, color]) {
-            let pallete = state.userPref.palletes.find(p => p.id == id);
+            let pallete = state.palletes.find(p => p.id == id);
             pallete.colors.splice(pallete.colors.indexOf(color), 1);
-            state.userPref.palletes = state.userPref.palletes.slice();
+            state.palletes = state.palletes.slice();
         },
         addAsset(state, [{type, textype = 0}, obj]) {
             let arr = state[type + "s"];

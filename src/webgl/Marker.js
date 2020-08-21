@@ -21,137 +21,11 @@ export default class Marker extends ToolWebGL {
 
         this.hAngle = 0;
 
+        this.programName = "roller";
+        this.lStart = 0;
+
         this._init();    
     }
-    createVertShader(props) {
-        return  Object.entries(props)
-        .map(p => `#define ${p[0].toUpperCase()} ${p[1]}`)
-        .join("\n") +   `
-    precision mediump float;
-
-    uniform float lineWidth;
-    uniform float width2;
-    uniform float height2;
-    uniform float textureRatio;
-    uniform float gradientRatio;
-    
-    attribute vec2 coordinates;
-    attribute vec2 miter;
-    attribute float lineStart;
-    attribute float lineLength;
-    attribute float index;
-    attribute float pressure;
-
-    uniform float opacity;
-    uniform float opacity_dynr;
-    uniform float opacity_dynlen;
-    uniform float lineWidth_dynr;
-    uniform float lineWidth_dynlen;
-    
-    
-    varying vec2 texPos;
-    varying vec2 gradTexPos;
-    varying float vOpacity;
-
-    ${this.commonCodeBlocks.dynamics}
-    
-    void main(void) { 
-        float linePos = lineStart; 
-    
-        if(index == 0.0) {
-            texPos = vec2(1.0, 0.0);
-        } else if(index == 5.0) {
-            texPos = vec2(0.0, 1.0); 
-            linePos += lineLength;
-        } else if(index == 1.0 || index == 4.0) {
-            texPos = vec2(0.0, 0.0);
-        } else {        
-            texPos = vec2(1.0, 1.0); 
-            linePos += lineLength;
-        }    
-        gradTexPos = vec2(texPos);
-    
-        texPos.y *= lineLength * textureRatio;
-        texPos.y += mod(lineStart, 1.0 / textureRatio) * textureRatio;
-    
-        gradTexPos.y *= lineLength * gradientRatio;
-        gradTexPos.y += mod(lineStart, 1.0 / gradientRatio) * gradientRatio;
-
-
-        #if LINEWIDTHDYNAMICS == 1
-            float lineDynamics = dynamics_down(1.0, linePos, lineWidth_dynlen); 
-            vec2 pos = coordinates + vec2(miter * lineWidth * lineDynamics / 2.0);
-        #elif LINEWIDTHDYNAMICS == 2
-            float lineDynamics = dynamics_periodic(1.0, lineWidth_dynr, linePos, lineWidth_dynlen); 
-            vec2 pos = coordinates + vec2(miter * lineWidth * lineDynamics / 2.0);
-        #elif LINEWIDTHDYNAMICS == 3
-            float lineDynamics = dynamics_pressure(1.0, lineWidth_dynr, pressure); 
-            vec2 pos = coordinates + vec2(miter * lineWidth * lineDynamics / 2.0);
-        #else
-            vec2 pos = coordinates + vec2(miter * lineWidth / 2.0);
-        #endif
-
-
-        
-        #if OPACITYDYNAMICS == 1
-            vOpacity = dynamics_down(opacity, linePos, opacity_dynlen); 
-        #elif OPACITYDYNAMICS == 2
-            vOpacity = dynamics_periodic(opacity, opacity_dynr, linePos, opacity_dynlen); 
-        #elif OPACITYDYNAMICS == 3
-            vOpacity = dynamics_pressure(opacity, opacity_dynr, pressure); 
-        #else
-            vOpacity = opacity; 
-        #endif
-
-        
-    
-        
-        gl_Position = vec4(
-            (pos.x - width2) / width2, 
-            (height2 - pos.y) / height2, 
-            0.0, 1.0);   
-        
-    }`;
-    }
-    createFragShader(props) {    
-
-        return  Object.entries(props)
-        .map(p => `#define ${p[0].toUpperCase()} ${p[1]}`)
-        .join("\n") + `
-        #if (defined GRADIENT || defined TEXTURE)
-        # define COLORFUNC
-        #endif
-    
-        precision mediump float;
-        uniform vec3 color;        
-        uniform float lineWidth;
-        uniform sampler2D texture;
-        uniform sampler2D gradientTexture;
-                
-    
-        uniform float width2;
-        uniform float height2;
-    
-        varying vec2 texPos;
-        varying vec2 gradTexPos;
-        varying float vOpacity;
-    
-        void main(void) {
-            gl_FragColor = vec4(color, 1.0);
-    
-            #ifdef TEXTURE
-            gl_FragColor.a = texture2D(texture, texPos).a;
-            #endif           
-    
-            #ifdef GRADIENT
-            gl_FragColor.rgb = texture2D(gradientTexture, gradTexPos).rgb;                         
-            #endif      
-
-            gl_FragColor.a *= vOpacity;
-        }
-        ` 
-    }
-
     setProgram(programType) {
         this._createProgram(programType);          
         this.programParams = {
@@ -175,7 +49,7 @@ export default class Marker extends ToolWebGL {
             miter2: norm,
             length: len,
             line_vec,
-            start: 0          
+            start: this.lStart          
         });
 
 
@@ -321,6 +195,8 @@ export default class Marker extends ToolWebGL {
         return this.hAngle;
     }
     dropLine() {
+        if(this.lines.length)
+            this.lStart = this.lines[this.lines.length-1].start + this.lines[this.lines.length-1].length;
         this.lines = [];      
         this.hAngle = 0;  
         super.dropLine();

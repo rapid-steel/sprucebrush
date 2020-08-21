@@ -5,7 +5,7 @@
             @click.stop="addColor">
             <div class="gradient-big" 
                 :style="value | gradientBG"></div>
-            <div class="colors">
+            <div class="gradient-colors">
                     <div class="color-container" 
                     v-for="(color, i) in value" 
                     :key="maxI + color + i"
@@ -128,7 +128,7 @@ export default {
     }
     
 
-    .colors {
+    .gradient-colors {
         flex: 1 0 50px;
         position: relative;
         margin-top: 10px;
