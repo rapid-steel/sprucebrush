@@ -63,11 +63,19 @@ export default class Brush extends ToolWebGL {
             let length = Math.sqrt(
                 Math.pow(lx, 2) + Math.pow(ly, 2)
             );            
+            let dlx = lx / length;
+            let dly = ly / length;
             let lp = pressure - pressure0;
             for(let i = this.pointStep; i < length; i += this.pointStep) {
                 let delta = i / length;
-                this.vertices.push(delta * lx + coords0[0]);
-                this.vertices.push(delta * ly + coords0[1]);
+                if(this.scatterLength) {
+                    this.vertices.push(delta * lx + coords0[0] + dly * this.scatterLength * Math.random());
+                    this.vertices.push(delta * ly + coords0[1] + dlx * this.scatterLength * Math.random());
+                } else {
+                    this.vertices.push(delta * lx + coords0[0]);
+                    this.vertices.push(delta * ly + coords0[1]);
+                }
+                
                 this.pressures.push(delta * lp + pressure0);
                 this.indexes.push(++this.index);
             }   
@@ -86,5 +94,6 @@ export default class Brush extends ToolWebGL {
     setParams(params) {
         super.setParams(params);        
         this.pointStep = this.params.radius * this.params.spacing;
+        this.scatterLength = this.params.scatter * this.params.radius;
     }
 }

@@ -106,7 +106,7 @@ export default class Selection {
         this.imgCtx.save();
         this.imgCtx.clearRect(0, 0, this.imgCtx.canvas.width, this.imgCtx.canvas.height);
         this.fill(this.imgCtx, true);     
-        this.imgCtx.globalCompositeOperation = "destination-in";
+        this.imgCtx.globalCompositeOperation = "source-in";
         this.imgCtx.drawImage(source.canvas, 0, 0, source.canvas.width, source.canvas.height);   
         this.imgCtx.globalCompositeOperation = "source-over"; 
         this.imgCtx.restore();

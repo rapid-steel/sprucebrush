@@ -535,10 +535,7 @@ mounted() {
     document.getElementsByTagName("title")[0].innerText = this.$t("title");    
   
     this.setToolParams();
-    this.setSize({
-        width: 800,
-        height: 600
-    }, true);   
+    this.setSize(this.sizes, true);   
 
     this.newDrawing();
     this.initControls();
@@ -1044,10 +1041,10 @@ methods: {
         if(this.selection) {
             this.dropSelection();
         }
-        this.clearHistory();
         this.$store.commit('setTitle', title);
         this.makeBGLayer();
         this.appendLayer(this.$t("layers.newLayer") + " 1");
+        this.clearHistory();
     },
     copyCurrentLayer() {
         let nameBase = this.currentLayer.name.replace(/\s*copy\s*(\d*)\s*$/i, "");

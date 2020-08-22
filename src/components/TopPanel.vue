@@ -245,7 +245,7 @@ export default {
                     }, {
                         k: "saturation", type: "range", min: 0, step: 1, max: 200
                     },  {
-                        k: "lunimance", type: "range", min: -1, step: .01, max: 1
+                        k: "luminance", type: "range", min: -1, step: .01, max: 1
                     }]
                 },{
                     k: "duotone",  

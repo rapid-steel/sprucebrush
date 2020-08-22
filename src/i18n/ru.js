@@ -1,5 +1,5 @@
 export default  {
-    title: "Китайский васин фотошоп",
+    title: "Ёлочкина кисточка",
     newDrawingTitle: "Безымянный шедевр",
     common: {
         ok: "Ок",

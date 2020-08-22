@@ -1,6 +1,6 @@
 const baseFolder = './src/assets/img/';
 const fs = require('fs');
-const path = require('path')
+const path = require('path');
 const allowedExts = ['.png'];
 
 

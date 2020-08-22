@@ -5,6 +5,7 @@ export default Object.freeze({
         opacity:   {min: .01,  max: 1,    step: .01, icon: require("../assets/img/opacity.png")},
         hardness: {min: .01, max: 1, step: .01, icon: require("../assets/img/hardness.png")},
         spacing:   {min: .01,  max: 10,   step: .01, icon: require("../assets/img/spacing.png")},  
+        scatter:   {min: 0,  max: 1,   step: .01, icon: require("../assets/img/spacing.png")},  
         tolerance: {min: 1,    max: 255,  step: 1 },
         angle:     {min: 0,    max: 359,  step: 1,   icon: require("../assets/img/angle.png")},   
         stretch:   {min: .001, max: 100,  step: .001,icon: require("../assets/img/stretch.png")},   

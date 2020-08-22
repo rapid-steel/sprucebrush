@@ -45,9 +45,9 @@
                         <ActualSettings 
                             :tool="currentTool"
                             :type="'values'"
-                            :keys="['spacing', 'angle', 'stretch']" />
-                        <Shapes />
+                            :keys="['spacing', 'scatter', 'angle', 'stretch']" />
                         <BrushTransformation />
+                        <Shapes />                        
                     </div>
                 </SideList>
             </div>           
@@ -573,7 +573,7 @@ img.icon {
     display: flex;
     flex-wrap: wrap;
     flex-direction: column;
-    max-height: 150px;
+    max-height: 180px;
     width: 100%;
     overflow: hidden;
     .brush-transformation {

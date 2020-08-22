@@ -128,6 +128,7 @@ export default {
             hardness: "hardness",    
             spacing: "Spacing",
             tolerance: "Tolerance", 
+            scatter: "Scatter",
             hue: "Hue",
             saturation: "Saturation",
             lightness: "Lightness",

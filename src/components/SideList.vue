@@ -1,7 +1,13 @@
 <template>
-    <div class="side-list" :class="{open}">
-        <div class="arrow" @click="toggle"></div>
-        <div class="expanded-list" @click.stop>
+    <div class="side-list" 
+        ref="parent"
+        :class="{open}">
+        <div class="arrow" 
+            @click="toggle"></div>
+        <div class="expanded-list" 
+            ref="list"
+            :style="position"
+            @click.stop>
             <div class="content">
                 <slot />
             </div>
@@ -23,14 +29,23 @@ export default {
     },
     data() {
         return {
-            open: false
+            open: false,
+            position: {
+                top: 0
+            }
         }
     },
     methods: {
         toggle(e) {
             this.open = !this.open;
-            if(this.open) {
+            if(this.open) {                
                 requestAnimationFrame(() => {
+                    const y = this.$refs.parent.getBoundingClientRect().top;
+                    const max_h = window.innerHeight - y;
+                    const height = this.$refs.list.getBoundingClientRect().height;
+                    const offset = 5;
+                    this.position.top = Math.min(0, max_h - height - 5) + "px";
+
                     this.h = this.toggle.bind(this);
                     document.addEventListener("click", this.h);
                 });
@@ -60,7 +75,6 @@ export default {
         position: absolute;
         display: none;
         left: 100%;
-        top: 0;
         min-width: 240px;
         z-index: $z-index_side-list;
         border: 1px solid black;

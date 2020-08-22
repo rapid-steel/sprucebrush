@@ -30,14 +30,20 @@ export default {
         },
          angleStretchStyles() {
             if(this.currentSettings.webglTool !== 'brush') return {};
-            let {angle, stretch} = this.currentSettings.values;
+            const {angle, stretch} = this.currentSettings.values;
+            const width = 100 * Math.min(1, stretch)  + "%";
+            const height = 100 / Math.max(1, stretch) + "%";
             return {
-                width:  100 * Math.min(1, stretch) + "%",
-                height: 100 / Math.max(1, stretch) + "%",
+                width,
+                height,
+                minWidth: width,   // ты мне это тут не это давай
+                minHeight: height,
+                maxWidth: width,
+                maxHeight: height,
                 transform: `translate(-50%,-50%)rotate(${angle}deg)`,
                 backgroundImage: this.currentSettings.texture ? 
                     `url(${this.currentSettings.texture.src})` 
-                    : 'transparent'
+                    : 'none'
             };
         }
     },

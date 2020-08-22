@@ -16,7 +16,8 @@ export default {
         values: {
             radius: 50,
             opacity: 1,
-            spacing: .05,  
+            spacing: .05,
+            scatter: 0,  
             angle: 0,
             stretch: 1,
             hardness: 1,
@@ -52,6 +53,7 @@ export default {
             radius: 50,
             opacity: 1,
             spacing: .05,  
+            scatter: 0,  
             hardness: 1,
             angle: 0,
             stretch: 1,

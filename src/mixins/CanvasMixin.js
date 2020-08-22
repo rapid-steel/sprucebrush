@@ -25,8 +25,8 @@ export default {
         this.selCtx = this.$refs.selection.getContext("2d");  
         this.contextsOnscreen = [ this.mainCtx, this.selCtx ];
 
-        this.tempCtx =  Ctx.create(800, 600, "2d");
-        this.tempCtx2 = Ctx.create(800, 600, "2d");
+        this.tempCtx =  Ctx.create(this.sizes.width, this.sizes.height, "2d");
+        this.tempCtx2 = Ctx.create(this.sizes.width, this.sizes.height,"2d");
         this.contextsOffscreen = [ this.tempCtx, this.tempCtx2 ];          
         
     },
@@ -243,31 +243,24 @@ export default {
             this.tempCtx.clearRect(0, 0, this.tempCtx.canvas.width, this.tempCtx.canvas.height);
         },
         fill(coords, colorStr) {
-            let accuracy = this.sizes.px_ratio;
-            let sizes = [this.sizes_hr.width, this.sizes_hr.height].map(c => Math.round(c / accuracy));
-            this.tempCtx.drawImage(this.currentLayer.ctx.canvas, 0, 0, ...sizes);
-    
-            let data = this.tempCtx.getImageData(0, 0, ...sizes).data;
-            let positions = new Int8Array(sizes[0] * sizes[1] );
-            let color = getRgba(colorStr);
-            let color0 = Array.from(this.currentLayer.ctx.getImageData(...coords, 1, 1).data);         
-    
-    
-            let data1 = fill([coords.map(c => Math.round(c / accuracy))], positions, data, color, color0, ...sizes, this.currentSettings.values.tolerance);
-            let imgData = new ImageData(data1, sizes[0]);
-            this.tempCtx.clearRect(0,0, ...sizes);
-            this.tempCtx2.clearRect(0, 0,  this.sizes_hr.width, this.sizes_hr.height);
-            this.tempCtx2.putImageData(imgData, 0, 0); 
+            let rect = [0, 0, this.sizes_hr.width, this.sizes_hr.height];
+            let data = this.currentLayer.ctx.getImageData(...rect);
+            let color = getRgba(colorStr);         
+            let data1 = fill(coords, data, color, this.currentSettings.values.tolerance);
+
+            this.tempCtx.clearRect(...rect);
+            this.tempCtx2.clearRect(...rect);
+            this.tempCtx2.putImageData(data1, 0, 0); 
             
     
             if(this.selection) {                  
                 this._fillIfPattern(this.tempCtx2);
-                this.tempCtx.clearRect(0,0, this.sizes_hr.width, this.sizes_hr.height);
+                this.tempCtx.clearRect(...rect);
                 this.selection.clip(this.tempCtx);
-                this.tempCtx.drawImage(this.tempCtx2.canvas, 0, 0, ...sizes, 0, 0, this.sizes_hr.width, this.sizes_hr.height);
+                this.tempCtx.drawImage(this.tempCtx2.canvas, 0, 0);
                 this.tempCtx.restore();
             } else {
-                this.tempCtx.drawImage(this.tempCtx2.canvas, 0, 0, ...sizes, 0, 0, this.sizes_hr.width, this.sizes_hr.height);
+                this.tempCtx.drawImage(this.tempCtx2.canvas, 0, 0);
             }
     
             this._fillIfPattern(this.tempCtx);       
@@ -275,7 +268,7 @@ export default {
             this.writeHistory();
             this.currentLayer.ctx.globalCompositeOperation = this.currentLayer.compositeMode;
             this.currentLayer.ctx.drawImage(this.tempCtx.canvas, 0, 0);
-            this.tempCtx.clearRect(0,0, this.sizes_hr.width, this.sizes_hr.height);
+            this.tempCtx.clearRect(...rect);
             this.render();    
         },
         _createLayerCtx(paste, params = {}) {

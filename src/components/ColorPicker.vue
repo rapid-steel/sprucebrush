@@ -2,8 +2,8 @@
     <div class="color-picker">
         <color-picker 
             :value="colorVal" 
-            :width="180" 
-            :height="180"
+            :width="wheelSize" 
+            :height="wheelSize"
             @color-change="select"></color-picker>      
         <div class="select-pallete">
             <button class="icon-btn small add" 
@@ -74,7 +74,8 @@ export default {
       return {
             colorSelected: false,
             pallete: null,
-            namePallete: false
+            namePallete: false,
+            wheelSize: 150
         };
     },
     props: ['colorToEdit'],
@@ -149,7 +150,7 @@ export default {
 
 .color-picker {
     z-index: $z-index-color-picker;
-    height: 400px;
+    height: 360px;
         button {
             &.swap {
                 position: absolute;
@@ -169,24 +170,37 @@ export default {
 .colors {
     display: flex;
     justify-content: space-between;
-    max-height: 170px;
-    min-height: 120px;
-    overflow: hidden;
-    position: relative;
-    &:after {
-        position: absolute;
-        z-index: 1;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        box-shadow: 0 0 5px 3px $color-bg;
-        content: '';
-        display: block;
+    max-height: 230px;
+    
+    
+}
+
+.color-picker {
+    .colors {
+        min-height: 120px;
     }
-    &:hover {
-        overflow: visible;
+}
+
+@media screen and (max-height: 800px) {
+    .colors {
+        max-height: 120px;
+        overflow: hidden;
+        position: relative;
         &:after {
-            display: none;
+            position: absolute;
+            z-index: 1;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            box-shadow: 0 0 5px 3px $color-bg;
+            content: '';
+            display: block;
+        }
+        &:hover {
+            overflow: visible;
+            &:after {
+                display: none;
+            }
         }
     }
 }
