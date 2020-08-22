@@ -4,7 +4,8 @@ export default  {
     common: {
         ok: "Ок",
         save: "Сохранить",
-        close: "Закрыть"
+        close: "Закрыть",
+        reset: "Сбросить"
     },           
     topPanel: {
         newDrawing: {
@@ -13,8 +14,8 @@ export default  {
         importMenu: {
             title: "Импорт изображения",
             leave: "Сохранить исходные размеры",
-            'resize-img': "Масштабировать до размера холста",
-            "resize-canvas": "Подстроить размер холста под изображение"
+            resize_img: "Масштабировать до размера холста",
+            resize_canvas: "Подстроить размер холста под изображение"
         },
         sizesForm: {
             title: "Изменить размеры",
@@ -24,6 +25,14 @@ export default  {
             transform: "Как изменить содержимое",
             resize: "Масштабировать",
             move: "Переместить"
+        },
+        transformMenu: {
+            title: "Траннсформация",
+            rotate90_CW: "Повернуть на 90° по ЧС",
+            rotate90_CCW: "Повернуть на 90° против ЧС",
+            rotate180: "Повернуть на 180°",
+            flipX: "Отразить по горизонтали",
+            flipY: "Отразить по вертикали",
         },
         filtersList: {
             title: "Фильтры",
@@ -67,6 +76,9 @@ export default  {
                 title: "Рябь", 
                 scale: "Величина", 
                 frequency: "Частота"
+            }, 
+            stereo: { 
+                title: "Стерео-эффект"
             }
         },
         saveImage: {
@@ -75,9 +87,11 @@ export default  {
     },
     layers: {
         layers: "Слои",
-        newLayer: "Слой"
+        newLayer: "Слой",
+        background: "Фон"
     },
     gradientCreator: {
+        addColor: "Нажмите чтобы добавить цвет",
         moveLeft: "Переместить влево",
         remove: "Удалить",
         moveRight: "Переместить вправо"
@@ -93,35 +107,64 @@ export default  {
             picker: "Пипетка",
             marker: "Валик",
             pen: "Перо",
+            airbrush: "Аэрограф",
             gradient: "Градиент",
+            hand: "Перемещение",
+            rotation: "Угол поворота",
             selection_rect: "Прямоуг-е выделение",
             selection_polygon: "Полигон-е выделение",
             selection_lasso: "Свободное выделение",
         },
         settings: {
             radius: "Диаметр", 
+            angle: "Угол",
+            stretch: "Сжатие",
             opacity: "Непрозр-ть",                
             spacing: "Промежуток",
+            scatter: "Разброс",
+            hardness: "Жесткость",
             tolerance: "Допуск", 
+            hue: "Цвет",
+            saturation: "Насыщенность",
+            lightness: "Яркость",
             lineWidth: "Ширина",
             curveSmoothing: "Сглаживание кривой",
             angleSmoothing: "Сглаживание угла",
             shape: "Форма",
             texture: "Текстура",
+            rAngle: "Угол",
             importTexture: "Импорт текстуры",
             pattern: "Шаблон",
             importPattern: "Импорт шаблона",
             pixel: "Пиксельный край",
-            linearGradient: "Линейный градиент",
             length: "Длина",
-            radialGradient: "Рад. градиент",
+            gradientType: {
+                linear: "Линейный",
+                radial: "Радиальный",
+                x: "Поперек",
+                y: "Вдоль"
+            },
+            dynamics: "Динамика",
+            dynamicsLength: "Длина",
+            dynamicsRange: "Диапазон",
+            dynamicTypes: {
+                disabled: "Нет",
+                fade: "Угасание",
+                periodic_max: "Период",
+                periodic_ampl: "Период",
+                pressure: "Нажатие",
+                circular: "По кругу",
+                random: "Случайно"
+            },
             createGradient: "Создать градиент",
             none: "Нет"
         },
         selection: {
-            apply: "Применить выделение",
-            reset: "Сбросить выделение",
-            crop: "Обрезать холст по выделению",
+            apply: "Применить",
+            reset: "Сбросить",
+            clear: "Очистить",
+            crop: "Обрезать холст",
+            clipnewlayer: "Вырезать на новый слой",
             all: "Выделить всё"
         },
     }            
