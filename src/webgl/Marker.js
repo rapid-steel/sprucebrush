@@ -50,7 +50,7 @@ export default class Marker extends ToolWebGL {
             vec,
             norm,
             miter1: clone(norm),
-            miter2: clone([0,0]),
+            miter2: [Math.sin(this.headAngle), -Math.cos(this.headAngle)],
             start: this.lStart,     
             length: length(vec)           
         });
@@ -75,7 +75,7 @@ export default class Marker extends ToolWebGL {
             }
             line0.miter2 = line.miter1;    
             if(index == 1) line0.miter1 = line0.miter2       
-        } else console.log(line)
+        } 
         return line;
 
     }
@@ -86,39 +86,35 @@ export default class Marker extends ToolWebGL {
 
 
         let avgPoints = Math.min(this.lines.length, this.smoothing.curve+1);
-        let delLines = Math.max(avgLines+1, avgPoints+2);
+        let delLines = Math.min(this.lines.length, Math.max(avgLines+1, avgPoints+2));
 
         if(p1) {
             //average points
+       
+
             for(let i = avgPoints; i > 0; --i) {
                 let l = this.lines[this.lines.length-i];
                 let l1 = this.lines[this.lines.length-i+1];
                 
+                /*
                 if(l1) {
                   l1.p1 = (l.p2 = l.p1.map((c,j) => (c + l1.p2[j]) / 2));
 
                 } else {
                     l.p2 = l.p1.map((c,j) => (c + p2[j]) / 2);    
                 } 
-/*
+                */
+
                 if(l1) {
                     let v = mean([0, 0], l.vec, l1.vec);
-                    let v1 = mean([0, 0], l.vec, v);
-                    let d = add([0.0], l.p1, negate([0,0],v1));
+                    let d = add([0.0], l.p1, negate([0,0],v));
                     l.p2 = (l1.p1 = d);
-                } else {
-                    l.p2 = l.p1.map((c,j) => (c + p2[j]) / 2);    
-                } 
-                    */
+                }                     
                 this.lines[this.lines.length-i] = this.calcLine(l, this.lines.length-i);            
             }
-
-
             p1 = p1.coords;   
             let line = { p1, p2 }; 
             line = this.calcLine(line, this.lines.length); 
-            
-            
             
             for(let j = 0; j < avgLines-1; j++) {
                 let l = this.lines[this.lines.length-1-j];
@@ -127,15 +123,19 @@ export default class Marker extends ToolWebGL {
                 if(length(v))
                     l0.miter2 = (l.miter1 = v); 
             }   
+           
 
 
             this.lines.push(line);
+            
+             
+           
+
             this.headAngle = (this.headAngle * avgLines + vec_angle(sub([0, 0],line.p1, line.p2))) / (avgLines + 1);
 
         }
         this.points.push(point);
 
-       
         let dv = delLines * 6;
 
         
