@@ -52,7 +52,7 @@ export default class Brush extends ToolWebGL {
         if(this.vertices.length === 0) {
             this.vertices.push(coords[0]);
             this.vertices.push(coords[1]);
-            this.pressures.push(pressure);
+            this.pressures.push(this.getPressure(pressure, pressure, 0));
             this.indexes.push(++this.index);
         } else  {
             let coords0 = this.vertices.slice(-2);
@@ -65,21 +65,28 @@ export default class Brush extends ToolWebGL {
             );            
             let dlx = lx / length;
             let dly = ly / length;
-            let lp = pressure - pressure0;
-            for(let i = this.pointStep; i < length; i += this.pointStep) {
+            
+            let press_prev = pressure0;
+            let press_next = this.getPressure(pressure0, pressure, 0);
+
+            for(let i = this.pointStep * (press_prev + press_next) / 2; i <= length;) {
                 let delta = i / length;
+               
                 if(this.scatterLength) {
-                    this.vertices.push(delta * lx + coords0[0] + dly * this.scatterLength * Math.random());
-                    this.vertices.push(delta * ly + coords0[1] + dlx * this.scatterLength * Math.random());
+                    let rand = (Math.random() - 0.5) * this.scatterLength;
+                    this.vertices.push(delta * lx + coords0[0] + dly * rand);
+                    this.vertices.push(delta * ly + coords0[1] + dlx * rand);
                 } else {
                     this.vertices.push(delta * lx + coords0[0]);
                     this.vertices.push(delta * ly + coords0[1]);
-                }
+                }               
                 
-                this.pressures.push(delta * lp + pressure0);
+                this.pressures.push(press_next);
                 this.indexes.push(++this.index);
-            }   
-            
+                press_prev = press_next; 
+                press_next = this.getPressure(pressure0, pressure, delta);    
+                i += this.pointStep * ((press_prev + press_next) / 2 || 1);                           
+            }               
                     
         }
     }
@@ -94,6 +101,20 @@ export default class Brush extends ToolWebGL {
     setParams(params) {
         super.setParams(params);        
         this.pointStep = this.params.radius * this.params.spacing;
-        this.scatterLength = this.params.scatter * this.params.radius;
+        this.scatterLength = this.params.scatter * this.params.radius * 2;
+        this.getPressure = {
+            0: () => 1,
+            1: () => Math.max(1 - this.index * this.params.spacing / this.dynamics.radius.length, 0),
+            2: () => 1 - this.dynamics.radius.range * 
+                        Math.sin(
+                            Math.PI * (
+                                (this.index * this.params.spacing / this.dynamics.radius.length) % 1
+                            )
+                        ),
+            3: (p0, p, d) => p0 + (p - p0) * d,
+            6: () => (1.00001 - Math.random() * this.dynamics.radius.range) 
+        }[this.dynamics.radius.type];
+        
+        if(this.dynamics.radius.type == 1) this.index = 0;
     }
 }

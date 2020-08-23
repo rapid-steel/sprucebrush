@@ -26,6 +26,12 @@ Currently there are available the following tools:
 This is not the most impressive list yet, but be sure there are a few more 
 interesting things to be added ahead.
 
+#### Tools options
+
+Some options has a parameter "length": it is set in units equal to diameter or
+line width.
+
+
 ### Other
 - Layers
 - Blending modes

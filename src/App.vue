@@ -180,10 +180,10 @@ import CanvasMixin from "./mixins/CanvasMixin.js";
 import SelectionMixin from "./mixins/SelectionMixin.js";
 import CursorMixin from "./mixins/CursorMixin.js";
 
+import {angle, sub, add, length} from "gl-matrix/vec2";
+import {angle_signed} from "./functions/vector-functions";
 
-import {angle, sum, vec, angle_signed, rotateX, rotateY, invert, length} from "./functions/vector-functions";
-
- const BTN = Object.freeze({
+const BTN = Object.freeze({
     NONE:   0x1,
     LEFT:   0x2,
     MIDDLE: 0x4,
@@ -228,9 +228,6 @@ export default {
     computed: {
         ...mapState(['currentTool', 'currentColor', 'zoomLevels', 'activeSelection', 'colorBG', 'viewMode', 'zoom', 'title']),
         ...mapGetters(['currentSettings']),
-        historySize() {
-            return this.$store.state.userPrefs.historySize;
-        },
         rotationAngle() {
             return this.$store.state.currentToolSettings.rotation.values.rAngle;
         }
@@ -614,7 +611,6 @@ methods: {
     },
     switchViewMode() {
         this.$store.commit('setViewMode', this.viewMode == "normal" ? "full" : "normal");
-        this._setSizeFactor();
     },
     changeZoom(dir) {
         if(
@@ -644,18 +640,9 @@ methods: {
             if(this.selection) 
                 this.selection.setZoom(this.zoom);
             this.setCursor();
-            this._setSizeFactor();
-
             this._setContainerSize();
             
         }
-    },
-    _setSizeFactor() {
-        const rect = this.$refs.wrapper.getBoundingClientRect();
-        this.sizeFactor = [
-            Math.max(1, (this.sizes.width * this.zoom - rect.width) / rect.width),
-            Math.max(1, (this.sizes.height * this.zoom - rect.height) / rect.height)
-        ];
     },
     saveToProfile() {
         let data = [];
@@ -758,7 +745,7 @@ methods: {
             
             let t = Date.now();
             this.lastEvent.dblClick = (t -this.prevClick.time) < DBCLICK.MS_MAX &&
-                length(vec(this.prevClick.coords, this.lastPoint.coords)) < DBCLICK.LENGTH_MAX; 
+                length(sub([0, 0], this.prevClick.coords, this.lastPoint.coords)) < DBCLICK.LENGTH_MAX; 
 
 
             if( (this.lastEvent.btn & this.pointerActions.btn) &&
@@ -813,14 +800,21 @@ methods: {
             }        */   
         });
     },
-    startTranslateCanvas() {
-        this.translation = true;       
+    startTranslateCanvas() { 
+        const rect = this.$refs.wrapper.getBoundingClientRect();
+        this.sizeFactor = [
+            Math.max(1, (this.sizes.width * this.zoom - rect.width) / rect.width),
+            Math.max(1, (this.sizes.height * this.zoom - rect.height) / rect.height)
+        ];
+        this.translation = true;      
         this.setCursor();
     },
     translateCanvas() {        
-        if(this.pressure > 0.25) {
-            const delta = this.lastPoint.delta
-            .map((c,i) => -c * this.sizeFactor[i] * 1.5);
+        if(this.translation) {
+            const delta = [
+                - this.lastPoint.delta[0] * this.sizeFactor[0] * 1.5,
+                - this.lastPoint.delta[1] * this.sizeFactor[1] * 1.5,
+            ];
             this.$refs.wrapper.scrollBy(...delta);
         }
     },
@@ -833,11 +827,11 @@ methods: {
         this.setCursor();
     },
     rotateCanvas() {        
-        if(this.pressure > 0.25) {
+        if(this.rotation) {
             let container = this.$refs.container.getBoundingClientRect();
             let center = [container.width / 2, container.height / 2];
-            let v = vec(center, this.lastPoint.containerCoords);
-            let da = angle_signed(v, sum(v, this.lastPoint.delta));
+            let v = sub([0, 0], center, this.lastPoint.containerCoords);
+            let da = angle_signed(v, sub([0, 0], v, this.lastPoint.delta));
             let rAngle = (this.currentSettings.values.rAngle + da * 180 / Math.PI) % 360;
             if(rAngle < 0) rAngle = 360 + rAngle;
 

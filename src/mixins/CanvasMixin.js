@@ -62,7 +62,7 @@ export default {
         },
         endDraw(point, tool) {
             if(tool.notEmpty()) {
-                this._addPoint(point, tool);  
+               // this._addPoint(point, tool);  
                 this.writeHistory();
                 this.updateFunc = () => {
                     this._draw(point, tool, this.currentLayer.compositeMode);  
@@ -323,8 +323,7 @@ export default {
            this.brush.setSizes(this.sizes_hr);
            this.marker.setSizes(this.sizes_hr);
           
-           this._setContainerSize();       
-           this._setSizeFactor();
+           this._setContainerSize();   
        },
         _updateCanvasesSize(newImageRect) {
             let oldImageRect = [0, 0, this.tempCtx.canvas.width, this.tempCtx.canvas.height];

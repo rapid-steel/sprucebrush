@@ -10,11 +10,8 @@ function n2(n) {
 
 // all the shaders are .glsl files, so i needn't search them somewhere in this  
 // class and can look at the code without squinting.
-// there is a real abuse of preprocessor in them but the glueing 
-// those small code pieces together via js looked much more horrible to me and
-// was inextensible at all.
 // placeholders for common chunks are commented line in format: //${chunk_key}
-
+// so they should be added via js
 
 
 const commonChunks = {
@@ -67,7 +64,7 @@ export default class ToolWebGL {
         this._loadShadersCode();
     }
     createVertShader(props) {
-        if(props.huedynamics + props.saturationdynamics + props.lightnessdynamics > 0) props.colordynamics = 1.0;
+        
         return  Object.entries(props)
         .map(p => `#define ${p[0].toUpperCase()} ${p[1]}`)
         .join("\n") + "\n" +
@@ -76,7 +73,6 @@ export default class ToolWebGL {
         .join("\n");
     }
     createFragShader(props) {
-        if(props.huedynamics + props.saturationdynamics + props.lightnessdynamics > 0) props.colordynamics = 1.0;
         return Object.entries(props)
         .map(p => `#define ${p[0].toUpperCase()} ${p[1]}`)
         .join("\n") + "\n" +
@@ -122,7 +118,14 @@ export default class ToolWebGL {
         this.programProps = Object.fromEntries(
             programType.split("-")
             .map(p => p.split(":"))
-            .map(e => [e[0], +(e[1]||1)]));
+            .map(e => [e[0], +(e[1]||1)])
+        );
+        
+        if(this.programProps.huedynamics || 
+           this.programProps.saturationdynamics || 
+           this.programProps.lightnessdynamics
+        ) 
+            this.programProps.colordynamics = 1.0;
 
 
         if(!this.programsLoaded[programType]) {
@@ -272,6 +275,7 @@ export default class ToolWebGL {
     }
     addPoint(p) {
         this._addPoint(p);
+
         if(this.autoUpdate && !this.update) {
             this.update = true;
             this.animate();

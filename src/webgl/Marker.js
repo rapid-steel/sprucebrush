@@ -1,5 +1,9 @@
 import ToolWebGL from "./ToolWebGL";
-import {vec, normal, length, invert, equal, angle, rotateY, average, vec_angle, sum, normalized} from "../functions/vector-functions";
+
+import {sub, add, equals, scale, angle, length, negate, clone} from "gl-matrix/vec2";
+import {normal, rotateY, mean, vec_angle} from "../functions/vector-functions";
+
+
 
 
 const DEBUG = process.env.NODE_ENV !== 'production';
@@ -19,7 +23,7 @@ export default class Marker extends ToolWebGL {
         };
         this.PRIMITIVE_TYPE = this.gl.TRIANGLES;
 
-        this.hAngle = 0;
+        this.headAngle = 0;
 
         this.programName = "roller";
         this.lStart = 0;
@@ -39,40 +43,39 @@ export default class Marker extends ToolWebGL {
 
     }
     calcLine(line, index) {
-        let line_vec = vec(line.p1, line.p2);
-        let len = length(line_vec);
-        let norm = normal(line_vec);
+        let vec = sub([0, 0], line.p1, line.p2);
+        let norm = normal([0, 0], vec);
 
         line = Object.assign(line, {
+            vec,
             norm,
-            miter1: norm,
-            miter2: norm,
-            length: len,
-            line_vec,
-            start: this.lStart          
+            miter1: clone(norm),
+            miter2: clone([0,0]),
+            start: this.lStart,     
+            length: length(vec)           
         });
 
 
         if(this.lines[index-1]) {
             let line0 = this.lines[index-1];
-            let line_vec0 = line0.line_vec
-            let line_vec0_inv = invert(line_vec0);
-            let norm0 = normal(line_vec0);
-            for(let i = 0; i < index; i++) line.start += this.lines[i].length
+            let vec0n = negate([0, 0], line0.vec);
+            let norm0 = line0.norm;
+            line.start = line0.start + line0.length;          
 
-            if(!equal(norm, norm0)) {
-                let norm1 = normal( vec(norm0, norm) );
+            if(!equals(norm, norm0)) {
+                let norm1 = normal([0, 0], sub([0, 0], norm0, norm));
+
                 let sign = rotateY(norm0, norm) < 0 ? -1 : 1;
-                let a = angle( line_vec0_inv , line_vec) / 2;
-                let miter = Math.min(1 / Math.sin(a), 3);
-               
-                norm1 = norm1.map(n => n * sign * miter);
-                line.miter1 = norm1;
+                let a = angle(vec0n , vec) / 2;
+                let miter = Math.min(
+                    1 / Math.sin(a), 
+                    2                 // no sharp corners, please
+                );              
+                line.miter1 = scale(line.miter1, norm1, sign * miter);
             }
-            line0.miter2 = line.miter1;
-           
-        }
-
+            line0.miter2 = line.miter1;    
+            if(index == 1) line0.miter1 = line0.miter2       
+        } else console.log(line)
         return line;
 
     }
@@ -83,9 +86,7 @@ export default class Marker extends ToolWebGL {
 
 
         let avgPoints = Math.min(this.lines.length, this.smoothing.curve+1);
-
-
-        let delLines = Math.max(avgLines+1, avgPoints+2)
+        let delLines = Math.max(avgLines+1, avgPoints+2);
 
         if(p1) {
             //average points
@@ -98,8 +99,17 @@ export default class Marker extends ToolWebGL {
 
                 } else {
                     l.p2 = l.p1.map((c,j) => (c + p2[j]) / 2);    
-                }
-                    
+                } 
+/*
+                if(l1) {
+                    let v = mean([0, 0], l.vec, l1.vec);
+                    let v1 = mean([0, 0], l.vec, v);
+                    let d = add([0.0], l.p1, negate([0,0],v1));
+                    l.p2 = (l1.p1 = d);
+                } else {
+                    l.p2 = l.p1.map((c,j) => (c + p2[j]) / 2);    
+                } 
+                    */
                 this.lines[this.lines.length-i] = this.calcLine(l, this.lines.length-i);            
             }
 
@@ -113,13 +123,14 @@ export default class Marker extends ToolWebGL {
             for(let j = 0; j < avgLines-1; j++) {
                 let l = this.lines[this.lines.length-1-j];
                 let l0 =  this.lines[this.lines.length-2-j];
-                let v = average(l0.miter1, l.miter2);
+                let v = mean([0, 0], l0.miter1, l.miter2);
                 if(length(v))
                     l0.miter2 = (l.miter1 = v); 
             }   
-            this.lines.push(line);
-            this.hAngle = (this.hAngle * avgLines + vec_angle(vec(line.p1, line.p2))) / (avgLines + 1);
 
+
+            this.lines.push(line);
+            this.headAngle = (this.headAngle * avgLines + vec_angle(sub([0, 0],line.p1, line.p2))) / (avgLines + 1);
 
         }
         this.points.push(point);
@@ -137,9 +148,9 @@ export default class Marker extends ToolWebGL {
 
         this.lines.slice(this.lines.length-(delLines+1)).forEach(l => {
             let ps = [
-                {p: l.p1, n: invert(l.miter1), pressure: p1.pressure},
+                {p: l.p1, n: negate([0, 0], l.miter1), pressure: p1.pressure},
                 {p: l.p1, n: l.miter1, pressure: p1.pressure},
-                {p: l.p2, n: invert(l.miter2), pressure: p2.pressure},
+                {p: l.p2, n: negate([0,0], l.miter2), pressure: p2.pressure},
                 {p: l.p2, n: l.miter2, pressure: p2.pressure}
             ];
 
@@ -185,14 +196,9 @@ export default class Marker extends ToolWebGL {
             this.indexes.push(0, 1, 2, 3, 4, 5);   
 
         });       
-
-        if(!this.update) {
-            this.update = true;
-            this.animate();
-        }
     }   
     cursorAngle() {        
-        return this.hAngle;
+        return this.headAngle;
     }
     dropLine() {
         if(this.lines.length)
@@ -207,5 +213,11 @@ export default class Marker extends ToolWebGL {
             this.gradient && this.gradient.enabled ? "gradient" : "color",
             ...Object.entries(this.dynamics).map(d => `${d[0]}dynamics:${d[1] ? d[1].type : 0}`)
         ].join("-");
+    }
+    setParams(params) {
+        super.setParams(params);   
+        this.maxLength = (this.dynamics.lineWidth.type == 1 || this.dynamics.lineWidth.type == 2) ?
+            this.dynamics.lineWidth.range * this.params.lineWidth 
+            : Infinity;
     }
 }

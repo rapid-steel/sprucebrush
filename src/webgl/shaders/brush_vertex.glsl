@@ -50,17 +50,8 @@ void main(void) {
 
     float linePos = index * spacing;
     
-    #if RADIUSDYNAMICS == 1
-        gl_PointSize = dynamics_down(radius, linePos, radius_dynlen); 
-    #elif RADIUSDYNAMICS == 2
-        gl_PointSize = dynamics_periodic(radius, radius_dynr, linePos, radius_dynlen); 
-    #elif RADIUSDYNAMICS == 3
-        gl_PointSize = dynamics_pressure(radius, radius_dynr, pressure); 
-    #elif RADIUSDYNAMICS == 6
-        gl_PointSize = dynamics_random(radius, radius_dynr, gl_Position.xy, index, 1.5); 
-    #else
-        gl_PointSize = radius;
-    #endif
+    // pressure already includes radius dynamics
+    gl_PointSize = radius * pressure;
 
     #if STRETCHDYNAMICS == 1
         float s = dynamics_down(stretch, linePos, stretch_dynlen);

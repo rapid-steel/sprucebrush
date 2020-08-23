@@ -1,3 +1,4 @@
+#define PI 3.1216
 #define PI2 6.2832
 
 float rand(vec2 co){
@@ -20,10 +21,8 @@ float dynamics_down(float base, float index, float length) {
 }
 
 float dynamics_periodic(float base, float dynr, float index, float length) {
-    float l2 = length / 2.0;
-    float f = mod(index, length) / l2;
-    if(f > 1.0) f = 2.0 - f;
-    return base * (1.0 - f * dynr);
+    float f = fract(index / length) * PI;
+    return base * (1.0 - dynr * sin(f));
 }
 
 float dynamics_amplitude(float dynr, float index, float length) {
