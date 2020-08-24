@@ -79,19 +79,10 @@
                             :options="Object.values(settings.dynamics.types)
                                 .filter(opt => opt.props == 'all' || opt.props.indexOf(k) > -1)"
                             :reduce="opt => opt.n"
+                            :label="option => $t('tools.settings.dynamicTypes.' + option.k)"
                             v-model="dynamics.type"
-                            :label="'k'"
-                            :clearable="false"
-                            :appendToBody="true"
-                            :searchable="false"   
-                            @input="v => setDynamics(k, {type: v})"                        >
-                            <template v-slot:selected-option="option">
-                                <span>{{$t('tools.settings.dynamicTypes.' + option.k)}}</span>
-                            </template>
-                            <template v-slot:option="option">
-                                <span>{{$t('tools.settings.dynamicTypes.' + option.k)}}</span>
-                            </template>
-                        </v-select>
+                            @input="v => setDynamics(k, {type: v})"                        
+                        />
 
                         <RangeInput v-for="d in Object.entries(settings.dynamics.props)" 
                             :key="d[0]"
@@ -334,7 +325,6 @@ export default {
     },
     methods: {
         setDynamics(prop, updates) {
-            console.log(prop, updates)
             Object.assign(this.currentSettings.dynamics[prop], updates);
                this.$store.commit("changeSettings", {
                 tool: this.currentTool,

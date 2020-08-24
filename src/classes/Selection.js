@@ -105,7 +105,7 @@ export default class Selection {
         this.scaleOrigin = this.bbox[0];
         this.imgCtx.save();
         this.imgCtx.clearRect(0, 0, this.imgCtx.canvas.width, this.imgCtx.canvas.height);
-        this.fill(this.imgCtx, true);     
+        this.fill(this.imgCtx);     
         this.imgCtx.globalCompositeOperation = "source-in";
         this.imgCtx.drawImage(source.canvas, 0, 0, source.canvas.width, source.canvas.height);   
         this.imgCtx.globalCompositeOperation = "source-over"; 
@@ -117,7 +117,7 @@ export default class Selection {
         source.save();  
         source.imageSmoothingEnabled = false;
         source.globalCompositeOperation = "destination-out";
-        this.fill(source);
+        this.fill(source, true);
         source.globalCompositeOperation = "source-over";
         source.restore();
 

@@ -16,7 +16,29 @@ export default class Brush extends ToolWebGL {
         this.pointStep = 1;
         this.index = 0;
 
-        this.programName = "brush";
+        // since step between points depends on radius,
+        // radius dynamics must be applied on js part 
+        // pressureFunc gets pressures at point1 and point2 and position between them        
+        this.getPressureFunc = {
+            [this.DYNTYPE.DISABLED]:() => 1,
+            [this.DYNTYPE.FADE]: () => 
+                Math.max(
+                    1 - this.index * this.params.spacing / 
+                             this.dynamics.radius.length, 
+                    0),
+            [this.DYNTYPE.PERIOD_MAX]: () => 
+                1 - this.dynamics.radius.range * 
+                    Math.sin(
+                        Math.PI * 
+                        ((this.index * this.params.spacing / 
+                               this.dynamics.radius.length) % 1)
+                    ),
+            [this.DYNTYPE.PRESSURE]: (p0, p, d) => p0 + (p - p0) * d,
+            [this.DYNTYPE.RANDOM]: 
+                () => (1.00001 - Math.random() * this.dynamics.radius.range) 
+        };
+
+        this.PROGRAM_NAME = "brush";
 
         this._init();
        
@@ -52,7 +74,7 @@ export default class Brush extends ToolWebGL {
         if(this.vertices.length === 0) {
             this.vertices.push(coords[0]);
             this.vertices.push(coords[1]);
-            this.pressures.push(this.getPressure(pressure, pressure, 0));
+            this.pressures.push(this.pressureFunc(pressure, pressure, 0));
             this.indexes.push(++this.index);
         } else  {
             let coords0 = this.vertices.slice(-2);
@@ -67,7 +89,7 @@ export default class Brush extends ToolWebGL {
             let dly = ly / length;
             
             let press_prev = pressure0;
-            let press_next = this.getPressure(pressure0, pressure, 0);
+            let press_next = this.pressureFunc(pressure0, pressure, 0);
 
             for(let i = this.pointStep * (press_prev + press_next) / 2; i <= length;) {
                 let delta = i / length;
@@ -84,7 +106,7 @@ export default class Brush extends ToolWebGL {
                 this.pressures.push(press_next);
                 this.indexes.push(++this.index);
                 press_prev = press_next; 
-                press_next = this.getPressure(pressure0, pressure, delta);    
+                press_next = this.pressureFunc(pressure0, pressure, delta);    
                 i += this.pointStep * ((press_prev + press_next) / 2 || 1);                           
             }               
                     
@@ -102,18 +124,7 @@ export default class Brush extends ToolWebGL {
         super.setParams(params);        
         this.pointStep = this.params.radius * this.params.spacing;
         this.scatterLength = this.params.scatter * this.params.radius * 2;
-        this.getPressure = {
-            0: () => 1,
-            1: () => Math.max(1 - this.index * this.params.spacing / this.dynamics.radius.length, 0),
-            2: () => 1 - this.dynamics.radius.range * 
-                        Math.sin(
-                            Math.PI * (
-                                (this.index * this.params.spacing / this.dynamics.radius.length) % 1
-                            )
-                        ),
-            3: (p0, p, d) => p0 + (p - p0) * d,
-            6: () => (1.00001 - Math.random() * this.dynamics.radius.range) 
-        }[this.dynamics.radius.type];
+        this.pressureFunc = this.getPressureFunc[this.dynamics.radius.type];
         
         if(this.dynamics.radius.type == 1) this.index = 0;
     }

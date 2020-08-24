@@ -6,12 +6,14 @@ export default {
     },
     methods: {
         updateSelectionSource() {
+            /*
+            this.currentLayer.ctx.globalCompositeOperation = "source-over"
             this.currentLayer.ctx.drawImage(
                 this.selection.imgCtx.canvas, 
                 0, 0, 
                 this.currentLayer.ctx.canvas.width, 
                 this.currentLayer.ctx.canvas.height
-            );
+            ); */
         },
         newSelection() {
             const SelType = {

@@ -15,28 +15,51 @@
             @change="e => $emit('input', Math.max(min, Math.min(max, +e.target.value)))"
             >
         <div class="range"
+            :class="type"
             :style="rangePosition">
             <input type="range"             
-                :min="min" 
-                :max="max" 
-                :step="step"
-                :value="value" 
+                :min="range.min" 
+                :max="range.max" 
+                :step="range.step"
+                :value="toRangeScale(value)" 
                 :disabled="disabled"
                 @wheel.prevent
-                @input="e => $emit('input', +e.target.value)" />            
+                @input="e => $emit('input', fromRangeScale(e.target.value))" />            
         </div>
     </div>
 </template>
 
 <script>
+const TYPES = ["linear", "log10", "sqrt"];
 export default {
     props: {
-        value: { type: Number },
-        min: { default: 1 },
-        max: { default: 100 },
-        step: { default: 1 },
-        horizontal: { type: Boolean, default: false },
-        disabled: {default: false }
+        value: { 
+            type: Number 
+        },
+        min: {
+            type: Number, 
+            default: 1 
+        },
+        max: { 
+            type: Number,
+            default: 100 
+        },
+        step: { 
+            type: Number,
+            default: 1 
+        },
+        horizontal: { 
+            type: Boolean, 
+            default: false 
+        },
+        disabled: { 
+            default: false 
+        },
+        scaleType: {
+            required: false,
+            type: String,
+            validator: n => !n || TYPES.indexOf(n) > -1
+        }
     },
     data() {
         return {
@@ -46,10 +69,48 @@ export default {
             }
         }
     },
+    computed: {
+        type() {
+            if(this.scaleType) return this.scaleType;
+            if(this.min > 0 && (this.max - this.min) / this.step > 1000) return 'log10';
+            if((this.max - this.min) / this.step > 500) return 'sqrt';
+            return 'linear';            
+        },
+        range() {
+            if(this.type !== 'linear') {
+                const func = Math[this.type];
+                let min = func(this.min);
+                let max = func(this.max);
+                let step = (max - min) / (this.max - this.min) * this.step;
+                return {
+                    min, max, step
+                };
+            } 
+            return {
+                    min: this.min,
+                    max: this.max,
+                    step: this.step
+            };            
+        },
+        fromRangeScale(n) {
+            return {
+                sqrt: n => Math.round(n * n / this.step) * this.step,
+                log10: n => Math.round(Math.pow(10, n) / this.step) * this.step,
+                linear: n => parseFloat(n)
+            }[this.type];
+        },
+        toRangeScale(n) {
+            return {
+                sqrt: Math.sqrt,
+                log10: Math.log10,
+                linear: n => n
+            }[this.type];
+        },        
+    },
     mounted() {
 
     },
-    methods: {
+    methods: {        
         setRangePosition(e) {
             let rect = this.$refs.container.getBoundingClientRect();
             this.rangePosition = {

@@ -2,9 +2,10 @@ import Vue from 'vue';
 import App from './App.vue';
 import store from './store/index';
 import i18n from "./i18n";
-import vSelect from 'vue-select';
+
 import ColorPicker from 'vue-color-picker-wheel';
 import RangeInput from "./components/RangeInput";
+import vSelect from "./components/VSelect";
 
 Vue.config.productionTip = false;
 

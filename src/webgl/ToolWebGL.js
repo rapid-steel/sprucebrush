@@ -23,6 +23,16 @@ export default class ToolWebGL {
     constructor() { 
         this.gl =  Ctx.create(100, 100, "webgl");
         this.canvas = this.gl.canvas;
+
+        this.DYNTYPE = {
+            DISABLED:    0,
+            FADE:        1,
+            PERIOD_MAX:  2,
+            PRESSURE:    3,
+            PERIOD_AMPL: 4,
+            CIRCULAR:    5,
+            RANDOM:      6  
+        }
     }
     _init() {      
         this.gl.getExtension("OES_standard_derivatives");
@@ -82,7 +92,7 @@ export default class ToolWebGL {
     }
     _loadShadersCode() {
         ['vertex', 'fragment'].forEach(shaderType => {
-            const code = require(`./shaders/${this.programName}_${shaderType}.glsl`).default;
+            const code = require(`./shaders/${this.PROGRAM_NAME}_${shaderType}.glsl`).default;
             this[shaderType + "ShaderCode"] = code.split("//${")
             .reduce((chunks, ch, i) => {
                 if(i) {

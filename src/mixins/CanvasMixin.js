@@ -66,8 +66,17 @@ export default {
                 this.writeHistory();
                 this.updateFunc = () => {
                     this._draw(point, tool, this.currentLayer.compositeMode);  
-                    this.currentLayer.ctx.globalCompositeOperation = "copy";         
-                    this.currentLayer.ctx.drawImage(this.tempCtx.canvas, 0, 0);
+                    if(!this.selection) {
+                        this.currentLayer.ctx.globalCompositeOperation = "copy";         
+                        this.currentLayer.ctx.drawImage(this.tempCtx.canvas, 0, 0);
+                    } else {
+                        //this.selection.imgCtx.globalCompositeOperation = "copy";         
+                        //this.selection.imgCtx.drawImage(this.tempCtx.canvas, 0, 0);
+                        this.selection.setSource(this.tempCtx);
+                        this.selection.drawImage();
+                        this.selection.imgCtx.globalCompositeOperation = "source-over";
+                    }
+                    
                     tool.dropLine();       
                     this.render();  
                 };
@@ -82,8 +91,17 @@ export default {
                 this.writeHistory();
                  this.updateFunc = () => {
                     this._draw(point, this.brush, "destination-out");      
-                    this.currentLayer.ctx.globalCompositeOperation = "copy";
-                    this.currentLayer.ctx.drawImage(this.tempCtx.canvas, 0, 0);
+
+                    if(!this.selection) {
+                        this.currentLayer.ctx.globalCompositeOperation = "copy";         
+                        this.currentLayer.ctx.drawImage(this.tempCtx.canvas, 0, 0);
+                    } else {
+                        //this.selection.imgCtx.globalCompositeOperation = "copy";         
+                        //this.selection.imgCtx.drawImage(this.tempCtx.canvas, 0, 0);
+                        this.selection.setSource(this.tempCtx);
+                        this.selection.drawImage();
+                        this.selection.imgCtx.globalCompositeOperation = "source-over";
+                    }
                     this.brush.dropLine();   
                     this.render();    
                 };
@@ -118,10 +136,19 @@ export default {
         },
         _draw(point, tool, compositeOperation = "source-over") {        
             this.tempCtx.globalCompositeOperation = "copy";           
-            this.tempCtx.drawImage(this.currentLayer.ctx.canvas, 0, 0);
-            if(this.selection) {
+            
+            if(this.selection) {             
+                this.selection.drawImage();   
+                this.tempCtx.drawImage(this.selection.imgCtx.canvas, 0, 0);
+                
                 this.selection.clip(this.tempCtx);
-            }  
+                
+            }  else {
+                this.tempCtx.drawImage(this.currentLayer.ctx.canvas, 0, 0);
+            }
+            // leave blur settings here now
+            // it'd be nice to move it to webgl in the end
+
             if(!this.currentSettings.values.pixel)           
                 this.tempCtx.filter = `blur(${(1-this.currentSettings.values.hardness)*(this.currentSettings.values.radius||this.currentSettings.values.lineWidth)}px)`;
             this.tempCtx.globalCompositeOperation = compositeOperation;
@@ -141,10 +168,10 @@ export default {
                     if(l == this.currentLayer) {
                         if(temp)
                             this.mainCtx.drawImage(this.tempCtx.canvas, 0, 0);
-                        else           
+                        if(!temp || this.selection) 
                             this.mainCtx.drawImage(l.ctx.canvas, 0, 0);
     
-                        if(this.selection) 
+                        if(this.selection && !temp) 
                             this.mainCtx.drawImage(this.selection.imgCtx.canvas, 0, 0);
                     } else this.mainCtx.drawImage(l.ctx.canvas, 0, 0);     
                 }            
@@ -244,7 +271,12 @@ export default {
         },
         fill(coords, colorStr) {
             let rect = [0, 0, this.sizes_hr.width, this.sizes_hr.height];
-            let data = this.currentLayer.ctx.getImageData(...rect);
+            let data;
+            if(this.selection) {
+                data = this.selection.imgCtx.getImageData(...rect);
+            } else {
+                data = this.currentLayer.ctx.getImageData(...rect);
+            }
             let color = getRgba(colorStr);         
             let data1 = fill(coords, data, color, this.currentSettings.values.tolerance);
 
@@ -256,6 +288,7 @@ export default {
             if(this.selection) {                  
                 this._fillIfPattern(this.tempCtx2);
                 this.tempCtx.clearRect(...rect);
+                
                 this.selection.clip(this.tempCtx);
                 this.tempCtx.drawImage(this.tempCtx2.canvas, 0, 0);
                 this.tempCtx.restore();
@@ -266,8 +299,20 @@ export default {
             this._fillIfPattern(this.tempCtx);       
     
             this.writeHistory();
-            this.currentLayer.ctx.globalCompositeOperation = this.currentLayer.compositeMode;
-            this.currentLayer.ctx.drawImage(this.tempCtx.canvas, 0, 0);
+            if(this.selection) {
+                
+                this.selection.drawImage();
+                this.tempCtx.globalCompositeOperation = "destination-over";
+                this.tempCtx.drawImage(this.selection.imgCtx.canvas, 0, 0);
+                this.tempCtx.globalCompositeOperation = "source-over";
+                this.selection.setSource(this.tempCtx);
+                this.selection.drawImage();
+                this.selection.imgCtx.globalCompositeOperation = "source-over";
+            } else {
+                this.currentLayer.ctx.globalCompositeOperation = this.currentLayer.compositeMode;
+                this.currentLayer.ctx.drawImage(this.tempCtx.canvas, 0, 0);
+            }
+            
             this.tempCtx.clearRect(...rect);
             this.render();    
         },

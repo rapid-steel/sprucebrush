@@ -249,18 +249,20 @@ watch: {
             this.setToolParams();
         }
     },
-    currentTool() {
+    currentTool(cur, prev) {
         if(!this.shortcutTool)
             this.pointerActions = this.pointerActionsMap[this.currentTool];
 
         this.setToolParams();
         this.setCursor();    
     
-        if(this.selection) {            
+        if(this.selection) {         
+            /*   
             if(this.currentTool.indexOf("selection") == 0)
                 this.startTransformSelection();
-            else 
+            else if(prev.indexOf("selection") == 0)
                 this.updateSelectionSource();
+                */
         }        
     }
 },
@@ -1198,7 +1200,7 @@ methods: {
 </script>
 
 <style lang="scss">
-@import '~vue-select/dist/vue-select.css';
+
 @import "./assets/styles/colors.scss";
 
 input[type=file] {

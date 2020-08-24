@@ -15,8 +15,6 @@ function fill(coords, imageData, color, tolerance) {
     let i0 = (coords[1] * width + coords[0]) * 4;
     const color0 = [ pixels[i0], pixels[i0+1], pixels[i0+2], pixels[i0+3]];
     const positions = new Uint8Array(width * height);
-    
-    let t = performance.now();
     let data1 = new ImageData( width, height );
     let pixels1 = data1.data;
     do {
@@ -52,8 +50,6 @@ function fill(coords, imageData, color, tolerance) {
     }
     while(pos1.length);
 
-    console.log(performance.now() - t)
-    
     return data1;
 }
 
