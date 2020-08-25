@@ -19,7 +19,7 @@
     
 
     <template v-else-if="currentTool.indexOf('selection') !== -1 && activeSelection">
-        <div class="menu">
+        <div class="menu" @click="() => $emit('close')">
             <div class="menu-item" 
                 v-for="action in menuActions.selection"
                 :key="action.k" 
@@ -33,7 +33,7 @@
     </template>
 
     <template v-else-if="menuActions[currentTool]">
-        <div class="menu">
+        <div class="menu" @click="() => $emit('close')">
             <div class="menu-item" 
                 v-for="action in menuActions[currentTool]"
                 :key="action.k" 
@@ -56,7 +56,7 @@ import ActualSettings from "./ActualSettings";
 import Shapes from "./Shapes";
 
 export default {
-    props: ['position'],
+    props: ['position', 'show'],
     data() {
         return {
             menuActions: {
@@ -97,7 +97,8 @@ export default {
         menuPosition() {
             return { 
                 left: this.position[0] + 'px',
-                top: this.position[1] + 'px'
+                top: this.position[1] + 'px',
+                display: this.show ? "block" : "none"
             };
         },
         ...mapState(['currentTool', 'activeSelection', 'settings']),

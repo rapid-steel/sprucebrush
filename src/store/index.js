@@ -8,6 +8,9 @@ import settingRanges from "./setting-ranges.js";
 Vue.use(Vuex);
 
 
+
+
+
 export default new Vuex.Store({
     state: {
         settings: settingRanges,
@@ -22,17 +25,18 @@ export default new Vuex.Store({
         historyCounter: {undo: 0, redo: 0},
         title: "Васина мазня",
         textures: {
-            brush: assets.textures_brush,
-            marker: assets.textures_roller
+            brush: [],
+            marker: []
         },
-        patterns: assets.patterns,
+        patterns: [],
         shapes: [
             {k: "round"}, {k: "rect"}
         ],
-        gradients: predefinedLists.gradients,
-        palletes: predefinedLists.palletes,
+        gradients: [],
+        palletes: [],
         currentToolSettings: toolSettings,
         historySize: 10,
+        sizes: {width: 800, height: 600, px_ratio: 1}
     },
     getters: {
         currentSettings(state) {
@@ -40,6 +44,9 @@ export default new Vuex.Store({
         }
     },
     mutations: {
+        setSize(state, sizes) {
+            state.sizes = Object.assign(state.sizes, sizes);
+        },
         setZoom(state, zoom) {
             state.zoom = zoom;
         },
@@ -77,17 +84,20 @@ export default new Vuex.Store({
             
         },
 
-        createGradient(state, gradient) {
+        gradient_add(state, gradient) {
             state.gradients.push(gradient);
         },
-        editGradient(state, {index, gradient}) {
+        gradient_edit(state, {index, gradient}) {
             state.gradients[index] = gradient;
             state.gradients = state.gradients.slice();
         },
-        deleteGradient(state, i) {
+        gradient_delete(state, i) {
             state.gradients.splice(i, 1);
         },
-        addPallete(state, name) {
+        load(state, data) {
+            Object.assign(state, data);
+        },
+        pallete_add(state, name) {
             let e = state.palletes.filter(p => 
                 p.name.replace(/[0-9]/ig, "").trim().toLowerCase() == name.toLowerCase()
             ).length;
@@ -98,35 +108,36 @@ export default new Vuex.Store({
                 colors: []
             });
         },
-        renamePallete(state, [id, name]) {
+        pallete_rename(state, [id, name]) {
             state.palletes.find(p => p.id == id).name = name;
             state.palletes = state.palletes.slice();
         },
-        deletePallete(state, id) {
+        pallete_delete(state, id) {
             state.palletes.splice(
                 state.palletes.findIndex(p => p.id == id), 1);
         },
-        addColorToPallete(state, [id, color]) {
+        pallete_addColor(state, [id, color]) {
             let pallete = state.palletes.find(p => p.id == id);
             if(pallete.colors.indexOf(color) == -1) {
                 pallete.colors.push(color);
                 state.palletes = state.palletes.slice();
             }
         },
-        deleteColorFromPallete(state, [id, color]) {
+        pallete_deleteColor(state, [id, color]) {
             let pallete = state.palletes.find(p => p.id == id);
             pallete.colors.splice(pallete.colors.indexOf(color), 1);
             state.palletes = state.palletes.slice();
         },
-        addAsset(state, [{type, textype = 0}, obj]) {
+        asset_add(state, [{type, textype = 0}, obj]) {
             let arr = state[type + "s"];
             if(arr) {
                 if(textype) 
-                arr = arr[textype];
+                    arr = arr[textype];
+                obj.k = "u_" + (1 + arr.filter(a => a.k.indexOf("u") == 0).length);
                 arr.push(obj);
             }
         },
-        deleteAsset(state, [{type, textype = 0}, k]) {
+        asset_delete(state, [{type, textype = 0}, k]) {
             let arr = state[type + "s"];
             if(arr) {
                 if(textype) 
@@ -136,6 +147,53 @@ export default new Vuex.Store({
         },
     },
     actions: {
-
+        load({ commit, state }) {
+            let data = getLocalStorageData();
+           // data = null;
+            if(data) {
+                commit("load", data);
+            } else {
+                commit("load", {
+                    ...predefinedLists,
+                    textures: {
+                        brush: assets.textures_brush,
+                        marker: assets.textures_roller
+                    },
+                    patterns: assets.patterns,
+                    sizes: {width: 800, height: 600, px_ratio: 1}
+                });
+                setLocalStorageData(state);
+            }
+        },
+        changePallete({ commit, state }, {action, data}) {
+            commit("pallete_" + action, data);
+            setLocalStorageData(state);
+        },
+        changeGradient({commit, state}, {action, data}) {
+            commit("gradient_" + action, data);
+            setLocalStorageData(state);
+        },
+        asset({ commit, state }, {action, data}) {
+            commit("asset_" + action, data);
+            setLocalStorageData(state);
+        },
+        setSize({commit, state}, sizes) {
+            commit("setSize", sizes);
+            setLocalStorageData(state);
+        }
+        
     }
 });
+
+function getLocalStorageData() {
+    let data = localStorage.getItem("spruceBrushData");
+    if(!data) return null;
+    data = JSON.parse(data);
+    return data;
+}
+
+function setLocalStorageData({palletes, gradients, textures, patterns, sizes}) {
+    localStorage.setItem("spruceBrushData", JSON.stringify({
+        palletes, gradients, textures, patterns, sizes
+    }));
+}

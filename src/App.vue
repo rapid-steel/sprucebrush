@@ -41,7 +41,7 @@
                 :class="[shortcutTool||currentTool, ...cursorClasses]"></div>
             </div>
             <ContextMenu 
-                v-if="contextMenu.show"
+                :show="contextMenu.show"
                 :position="contextMenu.position"
                 @apply-selection="applySelection"
                 @reset-selection="resetSelection"
@@ -202,11 +202,6 @@ export default {
         return {
             layers: [],
             canvasSizes: {},
-            sizes: {
-                width: 800,
-                height: 600,
-                px_ratio: 1
-            },
             lastPoint: null,
             currentLayer: null,
             currentLayerIndex: 0,
@@ -226,7 +221,7 @@ export default {
     },
     mixins: [FilterMixin, HistoryMixin, CanvasMixin, SelectionMixin, CursorMixin],
     computed: {
-        ...mapState(['currentTool', 'currentColor', 'zoomLevels', 'activeSelection', 'colorBG', 'viewMode', 'zoom', 'title']),
+        ...mapState(['sizes', 'currentTool', 'currentColor', 'zoomLevels', 'activeSelection', 'colorBG', 'viewMode', 'zoom', 'title']),
         ...mapGetters(['currentSettings']),
         rotationAngle() {
             return this.$store.state.currentToolSettings.rotation.values.rAngle;
@@ -254,16 +249,7 @@ watch: {
             this.pointerActions = this.pointerActionsMap[this.currentTool];
 
         this.setToolParams();
-        this.setCursor();    
-    
-        if(this.selection) {         
-            /*   
-            if(this.currentTool.indexOf("selection") == 0)
-                this.startTransformSelection();
-            else if(prev.indexOf("selection") == 0)
-                this.updateSelectionSource();
-                */
-        }        
+        this.setCursor();       
     }
 },
 created() {
@@ -532,8 +518,11 @@ created() {
 },
 mounted() {
     document.getElementsByTagName("title")[0].innerText = this.$t("title");    
-  
+
+    this.$store.dispatch("load");
+    this.sizes = this.$store.state.sizes;
     this.setToolParams();
+   
     this.setSize(this.sizes, true);   
 
     this.newDrawing();
@@ -542,20 +531,34 @@ mounted() {
 },
 methods: {
     restrictToAxis(e) {
-        this.restrictedToAxis = true;
-        this.restrictedToStraight = true;
+        if(this.lastEvent.btn == BTN.NONE) {
+            this.restrictedToAxis = true;
+            this.restrictedToStraight = true;
+            
+            this._onceKeyup(e.code, () => {
+                this.restrictedToStraight = false;
+                this.restrictedToAxis = false;
+            });
+        } else {
+            this._oncePointerup = () => this.restrictToAxis(e);   
+            this._onceKeyup(e.code, () => {
+                this._oncePointerup = null;
+            });      
+        }
         
-        this._onceKeyup(e.code, () => {
-            this.restrictedToStraight = false;
-            this.restrictedToAxis = false;
-        });
     },
     restrictToStraight(e) {
-        this.restrictedToStraight = true;
-        this._onceKeyup(e.code, () => {
-            this.restrictedToStraight = false;
-
-        });
+        if(this.lastEvent.btn == BTN.NONE) {
+            this.restrictedToStraight = true;
+            this._onceKeyup(e.code, () => {
+                this.restrictedToStraight = false;
+            });
+        } else {
+            this._oncePointerup = () => this.restrictToAxis(e);   
+            this._onceKeyup(e.code, () => {
+                this._oncePointerup = null;
+            });      
+        }
     },
     _onceKeyup(code, f) {
         const reset = event => {
@@ -686,7 +689,6 @@ methods: {
             if(action) 
                 action(e);
             else console.log(
-                "There is one more key to bound something useful", 
                 `Key: ${e.key}\nCode: ${e.code}\nCtrl: ${e.ctrlKey}\nAlt: ${e.altKey}\nShift: ${e.shiftKey}`
             );
         });   
@@ -710,8 +712,6 @@ methods: {
 
             this.lastEvent.btn = 1 << event.which;
             this.lastEvent.dblClick = false;
-
-
 
             if( (this.lastEvent.btn & this.pointerActions.btn) &&
                 !(this.currentLayer.locked && this.currentSettings.modifying)
@@ -777,6 +777,10 @@ methods: {
             this.lastEvent.btn = BTN.NONE;
             this.prevClick.time = t;  
             this.prevClick.coords = this.lastPoint.coords.slice();
+            if(this._oncePointerup) {
+                this._oncePointerup();
+                this._oncePointerup = null;
+            }
         });
     
         this.$refs.container.addEventListener("contextmenu", event => {
@@ -979,6 +983,7 @@ methods: {
                 prev: Object.assign({}, this.sizes),
             });
         }
+        this.$store.dispatch("setSize", {width, height, px_ratio});
         if(this.selection) 
             this.applySelection();
 
@@ -1129,7 +1134,7 @@ methods: {
         this.writeHistoryAction({action: "appendLayer", layer, prev });
         this.render();    
     },
-    selectLayer(id) {
+    selectLayer(id, notStartSel) {
         let index = this.layers.findIndex(l => l.id == id);
         if(index >= 0 && index !== this.currentLayerIndex) {
             this.currentLayerIndex = index;
@@ -1137,7 +1142,7 @@ methods: {
                 this.updateSelectionSource();
             }
             this.currentLayer = this.layers[this.currentLayerIndex];
-            if(this.activeSelection) {
+            if(this.activeSelection && !notStartSel) {
                 this.startTransformSelection();
             }
             this.render();
@@ -1191,9 +1196,7 @@ methods: {
     toggleLayerProp([l, prop]) {
         l[prop] = !l[prop];
         if(l == this.currentLayer && prop == 'locked') this.setCursor();
-        if(prop == "masked") {
-            l.compositeMode = l.masked ? "source-atop" : "source-over";
-        }
+        this._updateLayerProps(l);
     }
 }
 }
@@ -1423,9 +1426,9 @@ body {
     transform-origin: 50% 50%;
 
 
-    &.brush, &.eraser, &.picker, &.marker {
+    &.brush, &.eraser, &.picker, &.marker, &.fill {
         border: .5px solid rgba(255,255,255,.75);
-        box-shadow: 0 0 0 .5px rgba(0,0,0,.5);
+        box-shadow: 0 0 .5px .5px rgba(0,0,0,.5);
     }
     
     &.brush, &.eraser {
@@ -1462,6 +1465,7 @@ body {
     &.fill {
         width: 2px!important;
         height: 2px!important;
+        border-radius: 50%;
         &::after {
             background-image: url("./assets/img/fill_opaq.png");
         }

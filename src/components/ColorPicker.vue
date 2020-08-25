@@ -90,18 +90,21 @@ export default {
         }
     },
     watch: {
-      colorVal() {
+        palletes() {
+            if(this.palletes.length && !this.pallete) this.pallete = this.palletes[0];
+        },
+        colorVal() {
             this.colorSelected = this.pallete.colors.find(c => 
                 toHex(c) == toHex(this.colorVal)
             );
       }
     },
-    created() {
-        this.pallete = this.palletes[0];
-    },
     methods: {
         addColor(color) {
-            this.$store.commit("addColorToPallete", [this.pallete.id, color]);
+            this.$store.dispatch("changePallete", {
+                action: "addColor", 
+                data: [this.pallete.id, color]
+            });
         },
         swapColors() {
             const c = this.currentColor;
@@ -121,24 +124,34 @@ export default {
             this.pallete = e;
         },
         deleteSelected() {
-            this.$store.commit("deleteColorFromPallete",
-                [this.pallete.id, this.colorSelected]
-            );
+            this.$store.dispatch("changePallete", {
+                action: "deleteColor", 
+                data: [this.pallete.id, this.colorSelected]
+            });
             this.colorSelected = false;
         },
         addPallete() {
-            this.$store.commit("addPallete", this.$t("colorPicker.newPallete"));
+            this.$store.dispatch("changePallete", {
+                action: "add", 
+                data: this.$t("colorPicker.newPallete")
+            });
             this.pallete = this.palletes[this.palletes.length-1];
             this.colorSelected = false;
         },
         deletePallete() {
             let i = this.palletes.indexOf(this.pallete);
-            this.$store.commit("deletePallete", this.pallete.id);
+            this.$store.dispatch("changePallete", {
+                action: "delete", 
+                data: this.pallete.id
+            });
             i = i > 0 ? i-1 : i;
             this.pallete = this.palletes[i];
         },
         renamePallete(e) {
-            this.$store.commit("renamePallete", [this.pallete.id, e.target.value]);
+            this.$store.dispatch("changePallete", {
+                action: "rename", 
+                data:  [this.pallete.id, e.target.value]
+            });
             this.namePallete = false;
         }
   }
@@ -314,7 +327,5 @@ export default {
         z-index: 10;
     }
 }
-.vs__dropdown-option--highlight {
-    background: $color-accent!important;
-}
+
 </style>

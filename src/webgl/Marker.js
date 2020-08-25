@@ -41,16 +41,15 @@ export default class Marker extends ToolWebGL {
     calcLine(line, index) {
         let vec = sub([0, 0], line.p2, line.p1);
         let norm = normal([0, 0], vec);
-
         let start = 0;
         if(this.lines.length)
-        for(let i = 0; i < index; i++) start += this.lines[i].length;
+            for(let i = 0; i < index; i++) start += this.lines[i].length;
 
         line = Object.assign(line, {
             vec,
             norm,
             miter1: clone(norm),
-            miter2: [Math.sin(this.headAngle), -Math.cos(this.headAngle)],
+            miter2: clone(norm),
             start: start,     
             length: length(vec)           
         });
@@ -93,6 +92,7 @@ export default class Marker extends ToolWebGL {
         
 
         this.newLines = 0;
+
         if(p1) {
             // average points
 
@@ -135,7 +135,7 @@ export default class Marker extends ToolWebGL {
                 line = this.calcLine(line, this.lines.length); 
             }
             
-            this.lines.push( line); 
+           
     
             //average mitters
             
@@ -146,6 +146,8 @@ export default class Marker extends ToolWebGL {
                 if(length(v))
                     l0.miter2 = (l.miter1 = v); 
             } 
+
+            this.lines.push( line); 
 
             this.newLines++;
 

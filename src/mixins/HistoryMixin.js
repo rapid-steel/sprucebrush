@@ -17,30 +17,20 @@ export default {
             this.$store.commit("setHistoryCounter", {undo: 0, redo: 0});
         },
         writeHistory() {
-            this.backCounter = 0;
-            if(this.storedCounter < history.size) 
-                this.storedCounter++;
-            history.forward();
-            history.put({
+            this.writeHistoryAction({
                 tool: this.currentTool,
                 layer: this.currentLayer,
-                state:  this.currentLayer.ctx.getImageData(0, 0, this.sizes_hr.width, this.sizes_hr.height)
-            });          
-            this.$store.commit("setHistoryCounter", {
-                undo: this.storedCounter, 
-                redo: this.backCounter
-            });
+            });     
         },
-        writeHistoryAction(params) {
+        writeHistoryAction(sshot) {
             this.backCounter = 0;
-            if(params.action == "mergeLayers" || params.action == "splitLayers") {
-                params.state = params.layers[0].ctx.getImageData(0, 0, this.sizes_hr.width, this.sizes_hr.height);
-            }
-            if(params.action == "setSize") {
-                params.state = this.layers.map(l => l.ctx.getImageData(0, 0, this.sizes_hr.width, this.sizes_hr.height));
-            }
+            this.storedCounter++;
+            sshot = {
+                ...sshot,
+                ...this._getState(sshot)
+            };
             history.forward();
-            history.put(params);
+            history.put(sshot);
             this.$store.commit("setHistoryCounter", {
                 undo: this.storedCounter, 
                 redo: this.backCounter
@@ -82,48 +72,38 @@ export default {
                 if(sshot.action == "appendLayer") {
                     this.selectLayer(sshot.prev.id);
                     this.removeLayer(sshot.layer.id);
+                    this._restoreState(sshot);
                 }
                 if(sshot.action == "removeLayer") {
                     this.restoreLayer(sshot.layer, sshot.index);
+                    this._restoreState(sshot);
                 }
-                if(sshot.action == "mergeLayers") {
-                    sshot.layers[0].ctx.clearRect(0, 0,  this.sizes_hr.width, this.sizes_hr.height);
-                    sshot.layers[0].ctx.putImageData(sshot.state, 0, 0);
+                if(sshot.action == "mergeLayers") {                    
                     this.splitLayers(sshot.layers);
+                    this._restoreState(sshot);
                 }
                 if(sshot.action == "splitLayers") {
-                    sshot.layers[0].ctx.clearRect(0, 0,  this.sizes_hr.width, this.sizes_hr.height);
-                    sshot.layers[0].ctx.putImageData(sshot.state, 0, 0);
                     this.mergeLayers(sshot.layers.map(l => l.id));
+                    this._restoreState(sshot);
                 }
                 if(sshot.action == "clipToNewLayer") {
                     this.writeHistoryAction({
                         ...sshot,
                         action: "undoClipToNewLayer",
-                    });
-                    sshot.layer.ctx.clearRect(0, 0,  this.sizes_hr.width, this.sizes_hr.height);
-                    sshot.layer.ctx.putImageData(sshot.state, 0, 0);
-                    sshot.layer.ctx.drawImage(sshot.selection.sourceCopy.canvas, 0, 0);
+                    });                    
                     this.layers.splice(sshot.index, 1);
-                    this.selectLayer(sshot.layer.id);       
+                    this.selectLayer(sshot.layer.id); 
+                    this._restoreState(sshot);                   
                     this.render();
                 }
-                if(sshot.action == "undoClipToNewLayer") {
-                    sshot.layer.ctx.clearRect(0, 0,  this.sizes_hr.width, this.sizes_hr.height);
-                    sshot.layer.ctx.putImageData(sshot.state, 0, 0);              
-                    this.appendClipped(this.createLayer("", {
-                        img: sshot.selection.imgCtx.canvas,
-                        x: 0, y: 0,
-                        ...this.sizes_hr
-                    }), sshot.selection);
+                if(sshot.action == "undoClipToNewLayer") {                            
+                    this.clipToNewLayer();
+                   // this._restoreState(sshot);
                     this.render();
                 }
                 if(sshot.action == "setSize") {
-                    this.setSize(sshot.prev);
-                    sshot.state.forEach((s, i) => {
-                        this.layers[i].ctx.clearRect(0, 0,  this.sizes_hr.width, this.sizes_hr.height);
-                        this.layers[i].ctx.putImageData(s, 0, 0);  
-                    });
+                    this.setSize(sshot.prev);           
+                    this._restoreState(sshot);         
                     this.render();
                 }
                 if(sshot.action == "reorderLayer") {
@@ -139,13 +119,8 @@ export default {
 
             } else {
                 this.writeHistory();
+                this._restoreState(sshot);
                 if(sshot.layer) {
-                    if(sshot.tool.indexOf("selection") == 0 && this.selection) {
-                        this.resetSelection();
-                    } else {
-                        sshot.layer.ctx.clearRect(0, 0,  this.sizes_hr.width, this.sizes_hr.height);
-                        sshot.layer.ctx.putImageData(sshot.state, 0, 0);
-                    }
                     if(sshot.layer !== this.currentLayer) 
                         this.selectLayer(sshot.layer.id);
                     else this.render();

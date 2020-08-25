@@ -203,7 +203,7 @@
                         <button class="icon-btn small edit" 
                         @click.stop="() => editGradient(i)"></button>
                         <button class="icon-btn small delete" 
-                        @click.stop="() => $store.commit('deleteGradient', i)"></button>
+                        @click.stop="() => deleteGradient(i)"></button>
                     </div>
                     <template slot=footer>
                         <button class="create-gradient" 
@@ -358,13 +358,21 @@ export default {
             const textype = this.currentSettings.textype;
             Array.from(e.target.files).forEach(file => {
                 if(type == "pattern") {
-                    const img = new Image();
-                    img.onload = () => 
-                        this.$store.commit("addAsset", [{type}, {
-                            k: Date.now(),
-                            src: img.src
-                        }]);
-                    img.src = URL.createObjectURL(file);   
+                     Ctx.loadImg(
+                        URL.createObjectURL(file)
+                    ).then(ctx => {
+                        const img = new Image();
+                        img.onload = () => 
+                            this.$store.dispatch("asset", {
+                                action: "add",
+                                data: [
+                                    {type}, {
+                                    src: img.src
+                                }]
+                            });
+                        img.src = ctx.canvas.toDataURL();  
+                    });
+                    
                 } else {
                     Ctx.loadImg(
                         URL.createObjectURL(file), 
@@ -372,22 +380,29 @@ export default {
                     ).then(ctx => {
                         const img = new Image();
                         img.onload = () => {
-                            this.$store.commit("addAsset", [
-                                {type, textype}, {
-                                k: Date.now(),
-                                src: img.src,
-                                ratio: img.width / img.height
-                            }]);
+                            this.$store.dispatch("asset", {
+                                action: "add",
+                                data: [
+                                    {type, textype}, {
+                                    src: img.src,
+                                    ratio: img.width / img.height
+                                }]
+                            });
                         };
-                        ctx.canvas.toBlob(blob => img.src = URL.createObjectURL(blob));  
+                        img.src = ctx.canvas.toDataURL();  
                     });
                 }
             });
 
         },
         deleteAsset(type, k) {
-             this.$store.commit("deleteAsset", [
-                {type, textype: type == 'texture' ? this.currentSettings.textype : 0}, k]);
+             this.$store.dispatch("asset", {
+                    action: "delete",
+                    data: [{
+                        type, 
+                        textype: type == 'texture' ? this.currentSettings.textype : 0
+                    }, k]
+                });
         },
         createGradient() {
             this.gradientToEdit = {
@@ -400,15 +415,26 @@ export default {
                 gradient: this.gradients[i],
                 index: i
             };
-
         },
         saveGradient() {
             if(this.gradientToEdit.index == null) {
-                this.$store.commit("createGradient", this.gradientToEdit.gradient);
+                this.$store.dispatch("changeGradient", {
+                    action: "add",
+                    data: this.gradientToEdit.gradient
+                });
             } else {
-                this.$store.commit("editGradient", this.gradientToEdit);
+                this.$store.dispatch("changeGradient", {
+                    action: "edit",
+                    data: this.gradientToEdit
+                });
             }
             this.gradientToEdit = false;
+        },
+        deleteGradient(i) {
+            this.$store.dispatch("changeGradient", {
+                action: "delete",
+                data: i
+            });
         },
         select(tool) {
             this.$store.commit("selectTool", tool.name);

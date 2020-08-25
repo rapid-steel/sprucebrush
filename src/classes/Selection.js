@@ -1,7 +1,7 @@
 import Ctx from "../functions/ctx";
 
 export default class Selection {
-    constructor(p1, selCtx, ratio, zoom) {
+    constructor(p1, selCtx, ratio, zoom, state = false) {
         this.selCtx = selCtx;
         this.imgCtx = Ctx.create(selCtx.canvas.width, selCtx.canvas.height, "2d");
         this.sourceCopy = Ctx.create(selCtx.canvas.width, selCtx.canvas.height, "2d");
@@ -18,6 +18,8 @@ export default class Selection {
         this.angle = 0;
         this.movePoint = [0, 0];
 
+        if(state) this.restoreState(state);
+
         this.zoom = zoom;
         this.ratio = ratio;
         this._zoomRatioChanged();
@@ -25,6 +27,32 @@ export default class Selection {
         this.calculateControls();
         this.drawSelection();
         this.type = "rect";
+    }
+    getState() {
+        this.drawImage();
+        return {
+            type: this.type,
+            bbox: this.bbox,
+            path: this.path,
+            origin: this.origin,
+            angle: this.angle,
+            scale: this.scale,
+            data: this.sourceCopy.getImageData(0, 0, this.imgCtx.canvas.width, this.imgCtx.canvas.height)
+        };
+    }
+    restoreState(state) {
+        this.path = state.path;
+        this.bbox = state.bbox;
+        this.origin = state.origin;
+        this.angle = state.angle;
+        this.scale = state.scale;
+        this.sourceCopy.putImageData(state.data, 0, 0);
+        this.calculateControls();
+        this.ready = true;
+        this.started = true;
+        
+        this.drawImage();
+        this.drawSelection();
     }
     _zoomRatioChanged() {
         this.imgCtx.lineWidth = this.ratio;
@@ -84,6 +112,14 @@ export default class Selection {
         ctx.fill();
         this.rotate(ctx, -1);
     }
+    clearSelectionArea(ctx) {
+        ctx.save();  
+        ctx.imageSmoothingEnabled = false;
+        ctx.globalCompositeOperation = "destination-out";
+        this.fill(ctx, true);
+        ctx.globalCompositeOperation = "source-over";
+        ctx.restore();
+    }
     addSource(source) {
         this.sourceCopy.save();
         this.sourceCopy.clearRect(0,0, this.sourceCopy.canvas.width, this.sourceCopy.canvas.height)
@@ -113,13 +149,10 @@ export default class Selection {
         
         this.addSource(this.imgCtx);    
 
+        if(source !== this.sourceCopy) {
+            this.clearSelectionArea(source);            
+        }        
         
-        source.save();  
-        source.imageSmoothingEnabled = false;
-        source.globalCompositeOperation = "destination-out";
-        this.fill(source, true);
-        source.globalCompositeOperation = "source-over";
-        source.restore();
 
     }
     startTransform(source) {

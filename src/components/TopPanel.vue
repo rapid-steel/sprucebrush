@@ -39,9 +39,8 @@
                     <div>{{$t('topPanel.sizesForm.px_ratio')}}:</div>
                     <v-select 
                         v-model="sizesModel.px_ratio"
+                        :label="'label'"  
                         :options="resolutionOptions"
-                        :clearable="false"
-                        :searchable="false"
                      />
                 </div>     
                 <div>{{$t('topPanel.sizesForm.transform')}}:</div>

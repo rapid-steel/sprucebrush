@@ -1,6 +1,6 @@
 // addons to glMatrix.vec2, for convenience
 
-import {length} from "gl-matrix/vec2";
+import {length, rotate, normalize} from "gl-matrix/vec2";
 
 
 // get the component of rotating vec1 to angle between vec2 and X axis
@@ -16,10 +16,8 @@ export function rotateY(vec1, vec2) {
 // get normal to the vector
 export function normal(out, a) {
     let len = length(a);
-    if(!len) return[0,1]
-    out[1] = a[0] / len;
-    out[0] = a[1] / len;
-    return out;
+  //  if(!len) return[0,1]
+    return normalize(out, rotate([0,0], a, [0,0], Math.PI / 2 ));
 }
 
 // get angle of the given vector to X axis

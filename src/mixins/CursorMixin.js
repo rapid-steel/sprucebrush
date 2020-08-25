@@ -55,18 +55,20 @@ export default {
         },
         setCursorSelAction() {
             this.$refs.cursor.style.transform = "translate3d(-50%,-50%,0)";
-            if(this.activeSelection) {
-                let c = this.selection.getCursor(this.lastPoint.coords);
-                this.cursorClasses = [];
-                if(c.resize) {
-                    this.cursorClasses.push("resize");
-                    this.setCursorAngle(this.selection);                 
-                } 
-                if(c.rotate) {
-                    this.cursorClasses.push("rotate");
-                }    
-            } else {
-                this.cursorClasses = [];
+            if(this.currentSettings.selection) {
+                if(this.activeSelection) {
+                    let c = this.selection.getCursor(this.lastPoint.coords);
+                    this.cursorClasses = [];
+                    if(c.resize) {
+                        this.cursorClasses.push("resize");
+                        this.setCursorAngle(this.selection);                 
+                    } 
+                    if(c.rotate) {
+                        this.cursorClasses.push("rotate");
+                    }    
+                } else {
+                    this.cursorClasses = [];
+                }
             }
         },
     }

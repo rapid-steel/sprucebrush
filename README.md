@@ -89,6 +89,12 @@ Vue components used:
 
 **[Vue.Draggable](https://github.com/SortableJS/Vue.Draggable)**
 
+## Credits
+
+Palletes
+
+**[Cranyon](http://www.colourlovers.com/web/blog/2008/04/22/all-120-crayon-names-color-codes-and-fun-facts)**
+
 
 ## Known issues
 

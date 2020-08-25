@@ -1,5 +1,11 @@
 import {Selection, SelectionPath} from "../classes";
 
+const SELTYPE = {
+    rect: Selection,
+    polygon: SelectionPath,
+    lasso: SelectionPath
+};  
+
 export default {
     created() {
         this.selection = null;
@@ -16,15 +22,18 @@ export default {
             ); */
         },
         newSelection() {
-            const SelType = {
-                rect: Selection,
-                polygon: SelectionPath,
-                lasso: SelectionPath
-            }[this.currentSettings.type];
+            const SelType = SELTYPE[this.currentSettings.type];
 
             this.selection = new SelType (
                 this.lastPoint.coords, 
                 this.selCtx, this.sizes.px_ratio, this.zoom);
+        },
+        restoreSelection(state) {
+            const SelType = SELTYPE[state.type];
+
+            this.selection = new SelType (
+                [0,0], this.selCtx, this.sizes.px_ratio, this.zoom, state);
+            this.$store.commit("setActiveSelection");
         },
         dropSelection() {
             this.$store.commit("dropSelection");
@@ -101,28 +110,22 @@ export default {
         },
         clipToNewLayer() {
             if(this.activeSelection) {
-                let layer = this._createLayer("", {
-                    img: this.selection.imgCtx.canvas,
-                    x: 0, y: 0,
-                    ...this.sizes_hr
-                });
-                this.appendClipped(
-                    layer, 
-                    this.selection);
-               this.dropSelection();
+                this.selection.drawImage();
+                let layer = this._createLayer();
+                this.appendClipped(layer);
+                this.applySelection();
             }
         },
-        appendClipped(layer, selection) {
+        appendClipped(layer) {
             this.writeHistoryAction({
                 action: "clipToNewLayer", 
-                layer: this.currentLayer, 
-                selection, index: this.currentLayerIndex+1,
-                state: this.currentLayer.ctx.getImageData(0,0, this.sizes_hr.width, this.sizes_hr.height)
+                index: this.currentLayerIndex+1,
+                layer: this.currentLayer
             });
             this.layers = this.layers.slice(0, this.currentLayerIndex+1)
             .concat([layer])
             .concat(this.layers.slice(this.currentLayerIndex+1));
-            this.selectLayer(layer.id);
+            this.selectLayer(layer.id, true);
         },
         selectArea([p1, p2]) {
             const {width, height} = this.currentLayer.ctx.canvas;
