@@ -6,7 +6,7 @@
 
     <template v-if="currentSettings.webglTool"> 
         <div class="tool-settings">
-            <ActualSettings 
+            <NumericSettings 
                 :tool="currentTool"
                 :type="'values'"
                 :keys="Object.keys(currentSettings.values).filter(k => settings.values[k] !== undefined)" />
@@ -52,7 +52,7 @@
 <script>
 import {mapState, mapGetters} from 'vuex';
 import BrushTransformation from "./BrushTransformation";
-import ActualSettings from "./ActualSettings";
+import NumericSettings from "./NumericSettings";
 import Shapes from "./Shapes";
 
 export default {
@@ -91,7 +91,7 @@ export default {
         };
     },
     components: {
-        BrushTransformation, ActualSettings, Shapes
+        BrushTransformation, NumericSettings, Shapes
     },
     computed: {
         menuPosition() {

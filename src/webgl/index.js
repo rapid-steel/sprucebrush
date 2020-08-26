@@ -1,3 +1,3 @@
 import Brush from "./Brush"
-import Marker from "./Marker"
-export { Brush, Marker }
+import Roller from "./Roller"
+export { Brush, Roller }

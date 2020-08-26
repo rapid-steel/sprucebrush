@@ -35,6 +35,9 @@ $window-border: 2px black solid;
 $input-border: 1px $color-accent solid;
 $layer-border: 1px lightgrey solid;
 
+
+$max-height_sm: 800px;
+
 $tool-panel-width: 80px;
 $tool-size: $tool-panel-width / 2;
 $tool-selected-size: 60px;
@@ -46,14 +49,21 @@ $btn-top-size: 60px;
 $texture-size: 64px;
 $gradient-list-size: 100px;
 $gradient-radial-size: 60px;
-$color-selected-size: 40px;
+
+$color-pallete-height: 360px;
+$color-pallete-height_sm: 310px;
+$color-picker-height: 160px;
+$color-selected-size: 35px;
+$right-panel-margin-bottom: 20px;
+$layers-height: calc(100vh - #{$color-pallete-height + $right-panel-margin-bottom * 2});
+$layers-height_sm: calc(100vh - #{$color-pallete-height_sm + $right-panel-margin-bottom * 2});
 
 $panel_left_width: $tool-panel-width + 5px;
 $panel_right_width: 230px;
 $panel_top_height: 60px;
 $panel_bottom_height: 30px;
 $panel_padding: 5px;
-$panels_width: ($panel_left_width + $panel_right_width + $panel_padding * 4);
+$panels_width: ($panel_left_width + $panel_right_width + $panel_padding * 2);
 $panels_height: ($panel_top_height + $panel_bottom_height + $panel_padding * 3);
 $canvas_width: calc(100vw - #{$panels_width});
 $canvas_height: calc(100vh - #{$panels_height});
@@ -73,3 +83,4 @@ $z-index_side-list:     1000000;
 $z-index_menu:          1000000;
 $z-index_canvas-cursor: 10000000;
 $z-index_context-menu:  100000000;
+$z-index_dropdown-list: 10000000000;

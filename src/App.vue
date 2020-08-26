@@ -62,7 +62,7 @@
         </div>
     </div>
     <div class="panel right">
-        <Color-Picker 
+        <ColorPallete
             :colorToEdit.sync="colorToEdit" 
         />
         <Layers 
@@ -168,7 +168,7 @@ import JSZip from 'jszip';
 
 
 import Toolbox from "./components/Toolbox";
-import ColorPicker from "./components/ColorPicker";
+import ColorPallete from "./components/ColorPallete";
 import Layers from "./components/Layers";
 import TopPanel from "./components/TopPanel";
 import StatusBar from "./components/StatusBar";
@@ -202,6 +202,7 @@ export default {
         return {
             layers: [],
             canvasSizes: {},
+            sizes: {width: 800, height: 600, px_ratio: 1},
             lastPoint: null,
             currentLayer: null,
             currentLayerIndex: 0,
@@ -217,11 +218,11 @@ export default {
         }
     },
     components: {
-        Toolbox, ColorPicker, Layers, TopPanel, StatusBar, ContextMenu
+        Toolbox, ColorPallete, Layers, TopPanel, StatusBar, ContextMenu
     },
     mixins: [FilterMixin, HistoryMixin, CanvasMixin, SelectionMixin, CursorMixin],
     computed: {
-        ...mapState(['sizes', 'currentTool', 'currentColor', 'zoomLevels', 'activeSelection', 'colorBG', 'viewMode', 'zoom', 'title']),
+        ...mapState(['currentTool', 'currentColor', 'zoomLevels', 'activeSelection', 'colorBG', 'viewMode', 'zoom', 'title']),
         ...mapGetters(['currentSettings']),
         rotationAngle() {
             return this.$store.state.currentToolSettings.rotation.values.rAngle;
@@ -273,16 +274,16 @@ created() {
             up:   () => this.endErase(this.lastPoint),
             out:  () => {},
         },
-        marker: {
+        roller: {
             btn: BTN.LEFT,
-            down: () => this.draw(this.lastPoint, this.marker),
+            down: () => this.draw(this.lastPoint, this.roller),
             move: () => {     
-                    this.draw(this.lastPoint, this.marker);
-                    this.setCursorAngle(this.marker);
+                    this.draw(this.lastPoint, this.roller);
+                    this.setCursorAngle(this.roller);
             },
             up: () => {
-                this.endDraw(this.lastPoint, this.marker);
-                this.setCursorAngle(this.marker);
+                this.endDraw(this.lastPoint, this.roller);
+                this.setCursorAngle(this.roller);
             },
             out: () => {},
         },
@@ -503,7 +504,7 @@ created() {
         },
         KeyB: e => this.$store.commit("selectTool", "brush"),
         KeyE: e => this.$store.commit("selectTool", "eraser"),
-        KeyR: e => this.$store.commit("selectTool", "marker"),
+        KeyR: e => this.$store.commit("selectTool", "roller"),
         KeyF: e => this.$store.commit("selectTool", "fill"),
         KeyC: e => this.$store.commit("selectTool", "picker"),
         KeyS: e => this.$store.commit("selectTool", "selection_rect"),
@@ -1224,7 +1225,7 @@ input[type=number] {
 }
 
 ul[role=listbox] {
-    z-index: 10000000000000000;
+    z-index: $z-index_dropdown-list;
 }
 
 
@@ -1333,6 +1334,10 @@ body {
         &.right {
             flex: 1 1 $panel_right_width;
             max-width: $panel_right_width;
+            justify-content: stretch;
+            & > * {
+                margin-bottom: $right-panel-margin-bottom;
+            }
         }
     }
 }
@@ -1394,8 +1399,8 @@ body {
         left: 0;
         z-index: -1;
         cursor: none;
-        &#mainCanvas { z-index: 100; }
-        &#selection  { z-index: 101; }
+        &#mainCanvas { z-index: $z-index_canvas; }
+        &#selection  { z-index: $z-index_canvas + 1; }
     }
 }
 
@@ -1426,7 +1431,7 @@ body {
     transform-origin: 50% 50%;
 
 
-    &.brush, &.eraser, &.picker, &.marker, &.fill {
+    &.brush, &.eraser, &.picker, &.roller, &.fill {
         border: .5px solid rgba(255,255,255,.75);
         box-shadow: 0 0 .5px .5px rgba(0,0,0,.5);
     }

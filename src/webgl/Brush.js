@@ -16,26 +16,26 @@ export default class Brush extends ToolWebGL {
         this.pointStep = 1;
         this.index = 0;
 
-        // since step between points depends on radius,
-        // radius dynamics must be applied on js part 
+        // since step between points depends on diameter,
+        // diameter dynamics must be applied on js part 
         // pressureFunc gets pressures at point1 and point2 and position between them        
         this.getPressureFunc = {
             [this.DYNTYPE.DISABLED]:() => 1,
             [this.DYNTYPE.FADE]: () => 
                 Math.max(
                     1 - this.index * this.params.spacing / 
-                             this.dynamics.radius.length, 
+                             this.dynamics.diameter.length, 
                     0),
             [this.DYNTYPE.PERIOD_MAX]: () => 
-                1 - this.dynamics.radius.range * 
+                1 - this.dynamics.diameter.range * 
                     Math.sin(
                         Math.PI * 
                         ((this.index * this.params.spacing / 
-                               this.dynamics.radius.length) % 1)
+                               this.dynamics.diameter.length) % 1)
                     ),
             [this.DYNTYPE.PRESSURE]: (p0, p, d) => p0 + (p - p0) * d,
             [this.DYNTYPE.RANDOM]: 
-                () => (1.00001 - Math.random() * this.dynamics.radius.range) 
+                () => (1.00001 - Math.random() * this.dynamics.diameter.range) 
         };
 
         this.PROGRAM_NAME = "brush";
@@ -47,7 +47,7 @@ export default class Brush extends ToolWebGL {
         this._createProgram(programType);
 
         this.programParams = {
-            radius: "1f",
+            diameter: "1f",
             width2: "1f",
             height2: "1f",
             opacity: "1f",
@@ -122,10 +122,11 @@ export default class Brush extends ToolWebGL {
     }
     setParams(params) {
         super.setParams(params);        
-        this.pointStep = this.params.radius * this.params.spacing;
-        this.scatterLength = this.params.scatter * this.params.radius * 2;
-        this.pressureFunc = this.getPressureFunc[this.dynamics.radius.type];
+        this.pointStep = this.params.diameter * this.params.spacing;
+        this.scatterLength = this.params.scatter * this.params.diameter * 2;
+        this.pressureFunc = this.getPressureFunc[this.dynamics.diameter.type];
         
-        if(this.dynamics.radius.type == 1) this.index = 0;
+        // clear the index, if dynamics type = fade
+        if(this.dynamics.diameter.type == 1) this.index = 0;
     }
 }

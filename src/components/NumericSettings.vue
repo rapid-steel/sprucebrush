@@ -31,6 +31,7 @@
 <script>
 import { mapState, mapGetters } from 'vuex';
 export default {
+    name: "NumericSettings",
     props: {
         tool: {
             type: String

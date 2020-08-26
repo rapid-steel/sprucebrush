@@ -4,7 +4,7 @@ import {sub, add, equals, scale, angle, length, negate, clone, scaleAndAdd} from
 import {normal, rotateY, mean, vec_angle} from "../functions/vector-functions";
 
 const DEBUG = process.env.NODE_ENV !== 'production';
-export default class Marker extends ToolWebGL {
+export default class Roller extends ToolWebGL {
     constructor() {
         super();
         this.points = [];

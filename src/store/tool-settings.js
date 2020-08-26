@@ -14,7 +14,7 @@ export default {
         modifying: true,
         drawing: true,
         values: {
-            radius: 50,
+            diameter: 50,
             opacity: 1,
             spacing: .05,
             scatter: 0,  
@@ -34,7 +34,7 @@ export default {
         },
         webglTool: "brush",
         dynamics: {
-            radius:  {type: 0, length: 100, range: 1},
+            diameter:  {type: 0, length: 100, range: 1},
             opacity: {type: 0, length: 100, range: 1},
             stretch: {type: 0, length: 100, range: 1},
             angle:   {type: 0, length: 100, range: 1},
@@ -50,7 +50,7 @@ export default {
         drawing: true,
         smoothing: {},
         values: {
-            radius: 50,
+            diameter: 50,
             opacity: 1,
             spacing: .05,  
             scatter: 0,  
@@ -63,7 +63,7 @@ export default {
         },
         webglTool: "brush",
         dynamics: {
-            radius: {type: 0, length: 100, range: 1},
+            diameter: {type: 0, length: 100, range: 1},
             opacity: {type: 0, length: 100, range: 1},
             stretch:  {type: 0, length: 100, range: 1},
             angle: {type: 0, length: 100, range: 1},
@@ -79,7 +79,7 @@ export default {
         },
         pattern: {enabled: false, scale: 1}
     },
-    marker: {
+    roller: {
         modifying: true,
         drawing: true,
         values: {
@@ -98,7 +98,7 @@ export default {
             type: "by_len", 
             length: 100
         },
-        webglTool: "marker",
+        webglTool: "roller",
         dynamics: {
             lineWidth: {type: 0, length: 100, range: 1},
             opacity:   {type: 0, length: 100, range: 1},
@@ -106,7 +106,7 @@ export default {
             saturation: {type: 0, length: 100, range: 1},
             lightness:  {type: 0, length: 100, range: 1},
         },             
-        textype: "marker",
+        textype: "roller",
         gradientTypes: ['by_len', 'by_wid']   
     },
     pen: {

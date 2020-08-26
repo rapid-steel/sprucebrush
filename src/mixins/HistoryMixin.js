@@ -67,6 +67,10 @@ export default {
                 redo: this.backCounter
             });
         },
+        // the idea is that every action is opposed to another action 
+        // or to itself, with opposite parameters
+        // so it's possible to move through history in any direction
+        
         processShot(sshot) {        
             if(sshot.action) {
                 if(sshot.action == "appendLayer") {

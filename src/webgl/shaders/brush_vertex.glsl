@@ -1,6 +1,6 @@
 precision mediump float;
     
-uniform float radius;
+uniform float diameter;
 uniform float width2;
 uniform float height2;
 uniform float opacity;  
@@ -8,7 +8,7 @@ uniform float angle;
 uniform float stretch;
 uniform float spacing;
 
-uniform float radius_dynr;
+uniform float diameter_dynr;
 uniform float opacity_dynr;
 uniform float angle_dynr;
 uniform float stretch_dynr;
@@ -16,7 +16,7 @@ uniform float hue_dynr;
 uniform float saturation_dynr;
 uniform float lightness_dynr;
 
-uniform float radius_dynlen;
+uniform float diameter_dynlen;
 uniform float opacity_dynlen;
 uniform float angle_dynlen;
 uniform float stretch_dynlen;
@@ -32,7 +32,7 @@ attribute float pressure;
 
 varying float vOpacity;
 varying float vIndex;
-varying float vRadius;
+varying float vDiameter;
 varying float vStretch;
 varying mat2 angleMat;
 
@@ -50,8 +50,8 @@ void main(void) {
 
     float linePos = index * spacing;
     
-    // pressure already includes radius dynamics
-    gl_PointSize = radius * pressure;
+    // pressure already includes diameter dynamics
+    gl_PointSize = diameter * pressure;
 
     #if STRETCHDYNAMICS == 1
         float s = dynamics_down(stretch, linePos, stretch_dynlen);
@@ -118,10 +118,10 @@ void main(void) {
         vOpacity = dynamics_random(vOpacity, opacity_dynr, gl_Position.xy, index, 3.0);
     #endif
 
-    vRadius = gl_PointSize;
+    vDiameter = gl_PointSize;
     
     #if defined RECT || defined TEXTURE
-        gl_PointSize = vRadius * DIAG;
+        gl_PointSize = vDiameter * DIAG;
     #endif
 
     hsldelta = vec3(0.0, 0.0, 0.0);       

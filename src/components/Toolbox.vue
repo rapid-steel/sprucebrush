@@ -3,10 +3,10 @@
     <div class="btn-container">
         <div v-for="group in tools" :key="group.group" class="group">
             <div v-for="t in group.items" 
-            :key="t.name" 
-            class="btn" 
-            :class="{selected: $store.state.currentTool == t.name}"
-            @click="() => select(t)">
+                :key="t.name" 
+                class="btn" 
+                :class="{selected: $store.state.currentTool == t.name}"
+                @click="() => select(t)">
                 <img :src="t.icon">
             </div>
         </div>       
@@ -24,25 +24,20 @@
         <button class="icon-btn reset"
             :title="$t('common.reset')"
             @click="() => $emit('reset-selection')"></button>
-      
     </div>
-
-
-
-
 
     <div class="settings">
         <div v-if="currentSettings.webglTool == 'brush'">
-            <ActualSettings 
+            <NumericSettings 
                 :tool="currentTool"
                 :type="'values'"
-                :keys="['radius', 'opacity', 'hardness']" />
+                :keys="['diameter', 'opacity', 'hardness']" />
 
             <div class="side-list-header">
                 <div class="caption">{{$t('tools.settings.shape')}}</div>                
                 <SideList>
                     <div class="shape-settings">
-                        <ActualSettings 
+                        <NumericSettings 
                             :tool="currentTool"
                             :type="'values'"
                             :keys="['spacing', 'scatter', 'angle', 'stretch']" />
@@ -54,7 +49,7 @@
         </div>
 
         <div v-else>
-            <ActualSettings 
+            <NumericSettings 
                 :tool="currentTool"
                 :type="'values'"
                 :keys="Object.keys(currentSettings.values).filter(k => settings.values[k] !== undefined)" />
@@ -96,11 +91,8 @@
                         />
                     </div>
                 </SideList>
-              </div>
-            
-        </div>
-
-        
+              </div>            
+        </div>        
 
         <div class="textures" v-if="currentSettings.texture !== undefined">
             <div class="side-list-header">
@@ -137,7 +129,6 @@
                     <img :src="currentSettings.texture.src"> 
                 </div>
             </div>
-
         </div>
 
         <div class="textures" v-if="currentSettings.pattern !== undefined">
@@ -175,19 +166,15 @@
                     <img :src="currentSettings.pattern.src"> 
                 </div>
 
-                <ActualSettings 
+                <NumericSettings 
                     :tool="currentTool"
                     :type="'pattern'"
                     :keys="['scale']" />
-            </div>
-
-           
+            </div>          
         </div>
 
-
         <div class="gradients"
-            v-if="currentSettings.gradient"
-        >
+            v-if="currentSettings.gradient">
             <div class="side-list-header">
                 <div class="caption">{{$t('tools.settings.gradient')}}</div>
                 <SideList>
@@ -232,15 +219,14 @@
                     </div>
                 </div>
 
-                <ActualSettings 
+                <NumericSettings 
                     :tool="currentTool"
                     :type="'gradient'"
                     :keys="['length']" />
-            </template>
-
-         
+            </template>         
         </div>
     </div>
+
     <GradientCreator 
         v-if="gradientToEdit" 
         v-model="gradientToEdit.gradient"
@@ -258,7 +244,7 @@ import {mapState} from "vuex";
 import SideList from "./SideList";
 import GradientCreator from "./GradientCreator";
 import BrushTransformation from "./BrushTransformation";
-import ActualSettings from "./ActualSettings";
+import NumericSettings from "./NumericSettings";
 import Shapes from "./Shapes";
 import {round2n} from "../functions/math-functions";
 import Ctx from "../functions/ctx";
@@ -267,7 +253,7 @@ import Ctx from "../functions/ctx";
 export default {
     name: 'Tools',
     components: {
-        SideList, GradientCreator, BrushTransformation, ActualSettings, Shapes
+        SideList, GradientCreator, BrushTransformation, NumericSettings, Shapes
     },
     data() {
         return {
@@ -277,7 +263,7 @@ export default {
                 items: [
                     {name: "brush", icon: require("@/assets/img/brush.png")},
                     {name: "eraser", icon: require("@/assets/img/eraser.png")},               
-                    {name: "marker", icon: require("@/assets/img/roller.png")},
+                    {name: "roller", icon: require("@/assets/img/roller.png")},
                     {name: "fill", icon: require("@/assets/img/fill.png")},
                 ]
             }, {
@@ -757,7 +743,7 @@ img.icon {
     display: flex;
 }
 
-@media screen and (max-height: 800px) {
+@media screen and (max-height: $max-height_sm) {
     .current-tool {
         img {
             max-width: $tool-selected-size_sm;

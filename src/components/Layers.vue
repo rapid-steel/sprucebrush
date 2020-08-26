@@ -121,6 +121,8 @@ export default {
 @import "../assets/styles/colors";
 
 #layers {
+    flex: 1 1 50%;
+    max-height: $layers-height;
     z-index: $z-index-layers;
     display: flex;
     flex-direction: column;
@@ -146,11 +148,16 @@ export default {
         }
     }
     & > div:nth-child(2) {
-        max-height: 300px;
+        max-height: 100%;
         overflow-x: hidden;
         overflow-y: auto;
     }
+}
+@media screen and (max-height: $max-height_sm) {
+    #layers {
+        max-height: $layers-height_sm;
     }
+}
 
 .layer {
     padding: 5px;

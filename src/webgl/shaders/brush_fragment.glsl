@@ -11,7 +11,7 @@ uniform vec3 color;
 varying mat2 angleMat;
 varying float vOpacity;
 varying float vIndex;
-varying float vRadius;     
+varying float vDiameter;     
 varying float vStretch;
 
 varying vec3 hsldelta;
@@ -33,7 +33,7 @@ varying vec3 hsldelta;
 //${common_colors}
 
 void main(void) {
-    if(vRadius == 0.0 || vStretch == 0.0 || vOpacity == 0.0) discard;
+    if(vDiameter == 0.0 || vStretch == 0.0 || vOpacity == 0.0) discard;
 
     vec3 color1 = vec3(color);
 

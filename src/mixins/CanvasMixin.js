@@ -1,4 +1,4 @@
-import {Brush, Marker} from "../webgl";
+import {Brush, Roller} from "../webgl";
 import {fill} from "../functions/pixel-functions";
 import {getRgba} from "../functions/color-functions";
 import Ctx from "../functions/ctx";
@@ -20,7 +20,7 @@ export default {
     mounted() {
 
         this.brush = new Brush();
-        this.marker = new Marker();
+        this.roller = new Roller();
         this.selection = null;
         this.mainCtx = this.$refs.mainCanvas.getContext("2d");
         this.selCtx = this.$refs.selection.getContext("2d");  
@@ -177,13 +177,13 @@ export default {
                     color: this.currentColor,
                     gradient, texture, smoothing
                 };
-                if(values.radius) settings.values.radius *= this.sizes.px_ratio;
+                if(values.diameter) settings.values.diameter *= this.sizes.px_ratio;
                 if(values.lineWidth) settings.values.lineWidth *= this.sizes.px_ratio;                
     
                 this[webglTool].setParams(settings);
 
                 this.blurRadius = (1 - settings.values.hardness) * 
-                                  (settings.values.radius||settings.values.lineWidth) / 2;
+                                  (settings.values.diameter||settings.values.lineWidth) / 2;
             }
 
             if(this.currentSettings.pattern) {
@@ -366,7 +366,7 @@ export default {
    
    
            this.brush.setSizes(this.sizes_hr);
-           this.marker.setSizes(this.sizes_hr);
+           this.roller.setSizes(this.sizes_hr);
           
            this._setContainerSize();   
        },

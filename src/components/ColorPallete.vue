@@ -1,34 +1,6 @@
 <template>
-    <div class="color-picker">
-        <color-picker 
-            :value="colorVal" 
-            :width="wheelSize" 
-            :height="wheelSize"
-            @color-change="select"></color-picker>      
-        <div class="select-pallete">
-            <button class="icon-btn small add" 
-                @click.stop="addPallete"></button>
-            <button class="icon-btn small edit" 
-                @click.stop="() => namePallete = !namePallete"></button>
-             <button class="icon-btn small delete"
-                        :disabled="palletes.length==1" 
-                        @click.stop="deletePallete" />
-            <v-select 
-                :options="palletes"
-                :label="'name'"
-                v-model="pallete"
-                :disabled="namePallete"
-                :clearable="false"
-                :searchable="false"  />
-            <input type="text" 
-                id="rename-pallete"
-                v-show="namePallete" 
-                :value="pallete.name"
-                @blur="() => namePallete = false"
-                @keyup.enter="renamePallete"
-                @change="renamePallete">
-        </div> 
-        <div class="colors">
+    <div id="color-pallete">
+        <div class="color-picker">            
             <div class="colors-selected">
                 <div class="color-selected background" 
                     :class="{editing: colorToEdit === 'bg'}"
@@ -41,6 +13,39 @@
                 <button class="icon-btn swap" 
                 @click.stop="swapColors"></button>                
             </div>
+            <color-picker 
+                :value="colorVal" 
+                :width="wheelSize" 
+                :height="wheelSize"
+                @color-change="select"></color-picker>   
+        </div>
+   
+        <div class="select-pallete">
+            <button class="icon-btn small add" 
+                @click.stop="addPallete"></button>
+            <button class="icon-btn small edit" 
+                @click.stop="() => editPalleteName = !editPalleteName"></button>
+             <button class="icon-btn small delete"
+                        :disabled="palletes.length==1" 
+                        @click.stop="deletePallete" />
+            <v-select 
+                :options="palletes"
+                :label="'name'"
+                v-model="pallete"
+                :disabled="editPalleteName"
+                :clearable="false"
+                :searchable="false"  />
+            <input type="text" 
+                id="rename-pallete"
+                v-if="pallete"
+                v-show="editPalleteName" 
+                :value="pallete.name"
+                @blur="() => editPalleteName = false"
+                @keyup.enter="renamePallete"
+                @change="renamePallete">
+        </div> 
+        <div class="colors">
+            
             <div class="pallete">
                 <div class="add-color">
                     <button class="icon-btn add"
@@ -50,7 +55,7 @@
                         :disabled="!colorSelected" 
                         @click.stop="deleteSelected" />
                 </div>
-                <div>
+                <div v-if="pallete">
                     <div v-for="c in pallete.colors" 
                         :key="c" class="color" 
                         :class="{active: colorSelected == c}"
@@ -69,13 +74,13 @@ import {toHex} from "../functions/color-functions";
 import {mapState} from "vuex";
 
 export default {
-    name: 'Tools',
+    name: 'ColorPallete',
     data() {
       return {
-            colorSelected: false,
+            colorSelected: false,  // a color from the pallete matching to currentColor
             pallete: null,
-            namePallete: false,
-            wheelSize: 150
+            editPalleteName: false,
+            wheelSize: 160
         };
     },
     props: ['colorToEdit'],
@@ -152,7 +157,7 @@ export default {
                 action: "rename", 
                 data:  [this.pallete.id, e.target.value]
             });
-            this.namePallete = false;
+            this.editPalleteName = false;
         }
   }
 }
@@ -161,30 +166,52 @@ export default {
 <style lang="scss">
 @import "../assets/styles/colors";
 
-.color-picker {
+
+
+#color-pallete {
     z-index: $z-index-color-picker;
-    height: 360px;
-        button {
-            &.swap {
-                position: absolute;
-                top: 40px;
-                left: -5px;                
-            }
-            &:disabled {
-                opacity: 0;
-            }
+    flex: 1 0 $color-pallete-height;
+    max-height: $color-pallete-height;
+    overflow: hidden;
+    position: relative;
+     &:after {
+        position: absolute;
+        z-index: 1;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        box-shadow: 0 0 5px 3px $color-bg;
+        content: '';
+        display: block;
+    }
+    &:hover {
+        overflow: visible;
+        &:after {
+            display: none;
         }
+    }
+    button {
+        &:disabled {
+            opacity: 0;
+        }
+    }
+}
+
+.color-picker {
+    height: $color-picker-height;
+    display: flex;
+    align-items: flex-end;
 }
 
 #color-wheel {
-    margin: 0 auto;
+    float: right;
 }
 
 .colors {
     display: flex;
     justify-content: space-between;
-    max-height: 230px;
-    
+    align-items: stretch;
+    position: relative;
     
 }
 
@@ -194,33 +221,17 @@ export default {
     }
 }
 
-@media screen and (max-height: 800px) {
-    .colors {
-        max-height: 120px;
-        overflow: hidden;
-        position: relative;
-        &:after {
-            position: absolute;
-            z-index: 1;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            box-shadow: 0 0 5px 3px $color-bg;
-            content: '';
-            display: block;
-        }
-        &:hover {
-            overflow: visible;
-            &:after {
-                display: none;
-            }
-        }
+@media screen and (max-height: $max-height_sm) {
+    #color-pallete {
+        flex: 1 0 $color-pallete-height_sm;
+        max-height: $color-pallete-height_sm;
     }
 }
 
 .pallete {
     flex: 1 1 100%;
     height: 100%;
+    max-height: 100%;
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -229,10 +240,10 @@ export default {
     & > div:nth-child(2) {
         flex: 1 1 100%;
         display: flex;
-        padding: 5px 3px;
+        padding-bottom: 10px;
         border-radius: 3px;
         flex-wrap: wrap;
-        background-color: $color-bg;
+        background-color: transparentize($color-bg, .15);
         .color {
             flex: 0 0 20px;
             border-radius: 2px;
@@ -246,8 +257,8 @@ export default {
     }
     .add-color {
         cursor: pointer;
-        flex: 0 0 30px;
-        height: 30px;
+        flex: 0 0 $icon-btn-size;
+        height: $icon-btn-size;
     }
 }
 
@@ -256,9 +267,10 @@ export default {
 .colors-selected {
     position: relative;
     flex: 0 0 $color-selected-size * 1.5;
-    width: $color-selected-size * .1.5;
+    width: $color-selected-size * 1.5;
+    height: $color-selected-size * 1.5;
     margin-right: 5px;
-    margin-top: 20px;
+    margin-bottom: 5px;
     &::after {
         content: "";
         display: block;
@@ -272,6 +284,11 @@ export default {
         z-index: -2; 
         box-shadow: 0 0 0 2px $color-accent3;
     }
+    .swap {
+        position: absolute;
+        top: $color-selected-size;
+        left: $color-selected-size / 2 - $icon-btn-size-small - 5px;                
+    }
 }
 
 .color-selected {
@@ -281,8 +298,7 @@ export default {
     width: $color-selected-size;
     height: $color-selected-size;
 
-    &.background {
-        
+    &.background {        
         top:  $color-selected-size * .5;
         left:  $color-selected-size * .5;
         z-index: 0; 

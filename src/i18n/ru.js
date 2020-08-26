@@ -105,7 +105,7 @@ export default  {
             eraser: "Ластик",
             fill: "Заливка",
             picker: "Пипетка",
-            marker: "Валик",
+            roller: "Валик",
             pen: "Перо",
             airbrush: "Аэрограф",
             gradient: "Градиент",
@@ -116,7 +116,7 @@ export default  {
             selection_lasso: "Свободное выделение",
         },
         settings: {
-            radius: "Диаметр", 
+            diameter: "Диаметр", 
             angle: "Угол",
             stretch: "Сжатие",
             opacity: "Непрозр-ть",                

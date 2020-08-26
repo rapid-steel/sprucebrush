@@ -17,12 +17,12 @@ export default {
                 this.cursorClasses = ["grab"];
             
             if(!this.shortcutTool && this.currentSettings.webglTool) {                
-                if(this.currentTool == "marker") {
+                if(this.currentTool == "roller") {
                     this.$refs.cursor.style.height = values.lineWidth  + "px";
                     this.$refs.cursor.style.width = "15px";
                 } else {               
-                    this.$refs.cursor.style.width = values.radius * this.zoom  + "px";
-                    this.$refs.cursor.style.height = values.radius * this.zoom  + "px";
+                    this.$refs.cursor.style.width = values.diameter * this.zoom  + "px";
+                    this.$refs.cursor.style.height = values.diameter * this.zoom  + "px";
                     this.$refs.cursor.style.transform = [ 
                         `translate3d(-50%,-50%,0)`,
                         `rotate(${values.angle + this.rotationAngle}deg)`,                    

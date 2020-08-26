@@ -1,6 +1,6 @@
 export default Object.freeze({
     values: {
-        radius:    {min: 1,    max: 1000, step: 1,   icon: require("../assets/img/diameter.png")},
+        diameter:    {min: 1,    max: 1000, step: 1,   icon: require("../assets/img/diameter.png")},
         lineWidth: {min: 1,    max: 1000, step: 1,   icon: require("../assets/img/linewidth.png")},    
         opacity:   {min: .01,  max: 1,    step: .01, icon: require("../assets/img/opacity.png")},
         hardness: {min: .01, max: 1, step: .01, icon: require("../assets/img/hardness.png")},
@@ -36,9 +36,9 @@ export default Object.freeze({
         },
         types: {
             0: {n: 0, props: "all", k: "disabled"},
-            1: {n: 1, props: ["radius", "opacity", "stretch", "angle"], k: "fade", length: true},
-            2: {n: 2, props: ["lineWidth", "radius", "opacity", "angle", "stretch", "hue", "saturation", "lightness"], k: "periodic_max", length: true, range: 1},
-            3: {n: 3, props: ["lineWidth", "radius", "opacity", "stretch", "hue", "saturation", "lightness"], k: "pressure", length: true, range: 1},
+            1: {n: 1, props: ["diameter", "opacity", "stretch", "angle"], k: "fade", length: true},
+            2: {n: 2, props: ["lineWidth", "diameter", "opacity", "angle", "stretch", "hue", "saturation", "lightness"], k: "periodic_max", length: true, range: 1},
+            3: {n: 3, props: ["lineWidth", "diameter", "opacity", "stretch", "hue", "saturation", "lightness"], k: "pressure", length: true, range: 1},
             4: {n: 4, props: ["stretch"], k: "periodic_ampl", length: true, range: 1},
             5: {n: 5, props: ["angle"], k: "circular", length: true},
             6: {n: 6, props: "all", k: "random", range: true}

@@ -26,7 +26,7 @@ export default new Vuex.Store({
         title: "Васина мазня",
         textures: {
             brush: [],
-            marker: []
+            roller: []
         },
         patterns: [],
         shapes: [
@@ -157,7 +157,7 @@ export default new Vuex.Store({
                     ...predefinedLists,
                     textures: {
                         brush: assets.textures_brush,
-                        marker: assets.textures_roller
+                        roller: assets.textures_roller
                     },
                     patterns: assets.patterns,
                     sizes: {width: 800, height: 600, px_ratio: 1}

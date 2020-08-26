@@ -107,7 +107,7 @@ export default {
             eraser: "Eraser",
             fill: "Filling tool",
             picker: "Color picker",
-            marker: "Roller",
+            roller: "Roller",
             airbrush: "Airbrush",
             pen: "Pen",
             hand: "Hand",
@@ -118,7 +118,7 @@ export default {
             selection_lasso: "Freehand selection",
         },
         settings: {
-            radius: "Diameter", 
+            diameter: "Diameter", 
             angle: "Angle",
             stretch: "Stretch",
             lineWidth: "Width",
