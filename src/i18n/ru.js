@@ -97,7 +97,7 @@ export default  {
         moveRight: "Переместить вправо"
     },
     colorPicker: {
-        newPallete: "Новая палитра"
+        newPalette: "Новая палитра"
     },
     tools: {
         tools: {

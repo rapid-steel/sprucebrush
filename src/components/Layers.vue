@@ -67,12 +67,8 @@
 </template>
 
 <script>
-import Draggable from 'vuedraggable';
 export default {
     name: 'Layers',
-    components: {
-        Draggable
-    },
     props: ['layers', 'currentLayer', 'disabled'],
     data() {
         return {

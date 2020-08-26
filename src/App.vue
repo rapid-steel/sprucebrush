@@ -62,7 +62,7 @@
         </div>
     </div>
     <div class="panel right">
-        <ColorPallete
+        <ColorPalette
             :colorToEdit.sync="colorToEdit" 
         />
         <Layers 
@@ -168,7 +168,7 @@ import JSZip from 'jszip';
 
 
 import Toolbox from "./components/Toolbox";
-import ColorPallete from "./components/ColorPallete";
+import ColorPalette from "./components/ColorPalette";
 import Layers from "./components/Layers";
 import TopPanel from "./components/TopPanel";
 import StatusBar from "./components/StatusBar";
@@ -218,7 +218,7 @@ export default {
         }
     },
     components: {
-        Toolbox, ColorPallete, Layers, TopPanel, StatusBar, ContextMenu
+        Toolbox, ColorPalette, Layers, TopPanel, StatusBar, ContextMenu
     },
     mixins: [FilterMixin, HistoryMixin, CanvasMixin, SelectionMixin, CursorMixin],
     computed: {
@@ -1271,6 +1271,7 @@ ul[role=listbox] {
     &.cancel { background-image: url("./assets/img/cancel.svg"); }
     &.merge { background-image: url("./assets/img/merge.svg"); }
     &.delete { background-image: url("./assets/img/trash.svg"); }
+    &.export { background-image: url("./assets/img/export.svg"); }
     
     &.lock { background-image: url("./assets/img/lock.svg"); }
     &.mask-layer { background-image: url("./assets/img/mask-layer.svg"); }

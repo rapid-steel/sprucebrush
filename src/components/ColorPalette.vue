@@ -1,6 +1,6 @@
 <template>
-    <div id="color-pallete">
-        <div class="color-picker">            
+    <div id="color-palette">
+        <div class="color-picker-container">            
             <div class="colors-selected">
                 <div class="color-selected background" 
                     :class="{editing: colorToEdit === 'bg'}"
@@ -15,52 +15,59 @@
             </div>
             <color-picker 
                 :value="colorVal" 
-                :width="wheelSize" 
-                :height="wheelSize"
-                @color-change="select"></color-picker>   
+                :size="wheelSize" 
+                @input="select"></color-picker>   
         </div>
    
-        <div class="select-pallete">
+        <div class="select-palette">
+            <button class="icon-btn small delete"
+                :disabled="palettes.length==1" 
+                @click.stop="deletePalette" />
             <button class="icon-btn small add" 
-                @click.stop="addPallete"></button>
+                @click.stop="addPalette"></button>
             <button class="icon-btn small edit" 
-                @click.stop="() => editPalleteName = !editPalleteName"></button>
-             <button class="icon-btn small delete"
-                        :disabled="palletes.length==1" 
-                        @click.stop="deletePallete" />
+                @click.stop="() => editPaletteName = !editPaletteName"></button>
+             
             <v-select 
-                :options="palletes"
+                :options="palettes"
                 :label="'name'"
-                v-model="pallete"
-                :disabled="editPalleteName"
+                v-model="palette"
+                :disabled="editPaletteName"
                 :clearable="false"
                 :searchable="false"  />
             <input type="text" 
-                id="rename-pallete"
-                v-if="pallete"
-                v-show="editPalleteName" 
-                :value="pallete.name"
-                @blur="() => editPalleteName = false"
-                @keyup.enter="renamePallete"
-                @change="renamePallete">
+                id="rename-palette"
+                v-if="palette"
+                v-show="editPaletteName" 
+                :value="palette.name"
+                @blur="() => editPaletteName = false"
+                @keyup.enter="renamePalette"
+                @change="renamePalette">
         </div> 
         <div class="colors">
             
-            <div class="pallete">
+            <div class="palette">
                 <div class="add-color">
                     <button class="icon-btn add"
-                    v-show="!colorSelected" 
-                    @click="() => addColor(colorVal)"></button>
+                        v-show="!colorSelected" 
+                        @click="() => addColor(colorVal)"></button>
                     <button class="icon-btn delete"
                         :disabled="!colorSelected" 
                         @click.stop="deleteSelected" />
+                     <button class="icon-btn export" 
+                        @click.stop="paletteToFile"></button>
                 </div>
-                <div v-if="pallete">
-                    <div v-for="c in pallete.colors" 
+                <div v-if="palette">
+                    <draggable 
+                        :list="palette.colors" 
+                        group="colors" 
+                        @end="reorderColors" >
+                    <div v-for="c in palette.colors" 
                         :key="c" class="color" 
                         :class="{active: colorSelected == c}"
                         :style="{backgroundColor: c}" 
                         @click="() => select(c, true)"></div>      
+                    </draggable>
                 </div>          
             </div>
         </div>
@@ -72,20 +79,21 @@
 
 import {toHex} from "../functions/color-functions";
 import {mapState} from "vuex";
+import {saveAs} from 'file-saver';
 
 export default {
-    name: 'ColorPallete',
+    name: 'ColorPalette',
     data() {
       return {
-            colorSelected: false,  // a color from the pallete matching to currentColor
-            pallete: null,
-            editPalleteName: false,
+            colorSelected: false,  // a color from the palette matching to currentColor
+            palette: null,
+            editPaletteName: false,
             wheelSize: 160
         };
     },
     props: ['colorToEdit'],
     computed: {
-        ...mapState(['currentColor', 'colorBG', 'palletes']),
+        ...mapState(['currentColor', 'colorBG', 'palettes']),
         colorVal() {
             return toHex(
                 this.colorToEdit === "fg" ? 
@@ -95,29 +103,35 @@ export default {
         }
     },
     watch: {
-        palletes() {
-            if(this.palletes.length && !this.pallete) this.pallete = this.palletes[0];
+        palettes() {
+            if(this.palettes.length && !this.palette) this.palette = this.palettes[0];
         },
         colorVal() {
-            this.colorSelected = this.pallete.colors.find(c => 
+            this.colorSelected = this.palette.colors.find(c => 
                 toHex(c) == toHex(this.colorVal)
             );
       }
     },
     methods: {
         addColor(color) {
-            this.$store.dispatch("changePallete", {
+            this.$store.dispatch("changePalette", {
                 action: "addColor", 
-                data: [this.pallete.id, color]
+                data: [this.palette.id, color]
             });
-        },
+        },    
+        reorderColors(d) {
+            this.$store.dispatch("changePalette", {
+                action: "reorderColors", 
+                data: [this.palette.id, d]
+            });
+        },        
         swapColors() {
             const c = this.currentColor;
             this.$store.commit("selectColor", ['fg', this.colorBG]);
             this.$store.commit("selectColor", ['bg', c]);
         },
-        select(color, fromPallete) {
-            if(fromPallete) 
+        select(color, fromPalette) {
+            if(fromPalette) 
                 this.colorSelected = color;
             else if(this.colorSelected && 
                 toHex(color) != toHex(this.colorSelected)
@@ -125,39 +139,48 @@ export default {
                 this.colorSelected = false;
             this.$store.commit("selectColor", [this.colorToEdit, color]);
         },
-        selectPallete(e) {
-            this.pallete = e;
+        selectPalette(e) {
+            this.palette = e;
         },
         deleteSelected() {
-            this.$store.dispatch("changePallete", {
+            this.$store.dispatch("changePalette", {
                 action: "deleteColor", 
-                data: [this.pallete.id, this.colorSelected]
+                data: [this.palette.id, this.colorSelected]
             });
             this.colorSelected = false;
         },
-        addPallete() {
-            this.$store.dispatch("changePallete", {
+        addPalette() {
+            this.$store.dispatch("changePalette", {
                 action: "add", 
-                data: this.$t("colorPicker.newPallete")
+                data: this.$t("colorPicker.newPalette")
             });
-            this.pallete = this.palletes[this.palletes.length-1];
+            this.palette = this.palettes[this.palettes.length-1];
             this.colorSelected = false;
         },
-        deletePallete() {
-            let i = this.palletes.indexOf(this.pallete);
-            this.$store.dispatch("changePallete", {
+        deletePalette() {
+            let i = this.palettes.indexOf(this.palette);
+            this.$store.dispatch("changePalette", {
                 action: "delete", 
-                data: this.pallete.id
+                data: this.palette.id
             });
             i = i > 0 ? i-1 : i;
-            this.pallete = this.palletes[i];
+            this.palette = this.palettes[i];
         },
-        renamePallete(e) {
-            this.$store.dispatch("changePallete", {
+        renamePalette(e) {
+            this.$store.dispatch("changePalette", {
                 action: "rename", 
-                data:  [this.pallete.id, e.target.value]
+                data:  [this.palette.id, e.target.value]
             });
-            this.editPalleteName = false;
+            this.editPaletteName = false;
+        },
+        paletteToFile() {
+            saveAs(
+                new Blob([JSON.stringify(this.palette)], {type: "text"}), 
+                `${this.palette.name}.json`
+            );
+        },
+        paletteFromFile(file) {
+
         }
   }
 }
@@ -168,13 +191,40 @@ export default {
 
 
 
-#color-pallete {
+#color-palette {
     z-index: $z-index-color-picker;
-    flex: 1 0 $color-pallete-height;
-    max-height: $color-pallete-height;
-    overflow: hidden;
+    flex: 1 0 $color-palette-height;
+    max-height: $color-palette-height;
     position: relative;
-     &:after {
+    display: flex;
+    flex-direction: column;
+    justify-content: stretch;
+    button {
+        &:disabled {
+            opacity: 0;
+        }
+    }
+}
+
+.color-picker-container {
+    flex: 1 0 $color-picker-height;
+    height: $color-picker-height;
+    display: flex;
+    align-items: flex-end;
+     .colors {
+        min-height: 120px;
+    }
+}
+
+#color-wheel {
+    float: right;
+}
+
+.colors {
+    flex: 1 2 50%;
+    position: relative;
+    overflow: hidden;    
+    &:after {
         position: absolute;
         z-index: 1;
         bottom: 0;
@@ -190,59 +240,30 @@ export default {
             display: none;
         }
     }
-    button {
-        &:disabled {
-            opacity: 0;
-        }
-    }
-}
-
-.color-picker {
-    height: $color-picker-height;
-    display: flex;
-    align-items: flex-end;
-}
-
-#color-wheel {
-    float: right;
-}
-
-.colors {
-    display: flex;
-    justify-content: space-between;
-    align-items: stretch;
-    position: relative;
-    
-}
-
-.color-picker {
-    .colors {
-        min-height: 120px;
-    }
 }
 
 @media screen and (max-height: $max-height_sm) {
-    #color-pallete {
-        flex: 1 0 $color-pallete-height_sm;
-        max-height: $color-pallete-height_sm;
+    #color-palette {
+        flex: 1 0 $color-palette-height_sm;
+        max-height: $color-palette-height_sm;
     }
 }
 
-.pallete {
-    flex: 1 1 100%;
+.palette {
     height: 100%;
     max-height: 100%;
-    overflow: hidden;
     display: flex;
     flex-direction: column;
     align-items: stretch;
     justify-content: stretch;
-    & > div:nth-child(2) {
+   
+    & > div:nth-child(2) > * {
         flex: 1 1 100%;
         display: flex;
         padding-bottom: 10px;
         border-radius: 3px;
         flex-wrap: wrap;
+        align-content: flex-start;
         background-color: transparentize($color-bg, .15);
         .color {
             flex: 0 0 20px;
@@ -308,11 +329,11 @@ export default {
         border-color: $color-accent2;
     }
 }
-.select-pallete {
+.select-palette {
     display: flex;
     justify-content: stretch;
     align-items: center;
-    height: 30px;
+    flex: 0 0 30px;
     margin-top: 10px;
     position: relative;
     button {
@@ -328,7 +349,7 @@ export default {
         height: 30px;
     }
 
-    #rename-pallete {
+    #rename-palette {
         position: absolute;
         font: $font-select;
         width: 170px;

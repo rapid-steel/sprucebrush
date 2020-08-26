@@ -33,7 +33,7 @@ export default new Vuex.Store({
             {k: "round"}, {k: "rect"}
         ],
         gradients: [],
-        palletes: [],
+        palettes: [],
         currentToolSettings: toolSettings,
         historySize: 10,
         sizes: {width: 800, height: 600, px_ratio: 1}
@@ -97,36 +97,40 @@ export default new Vuex.Store({
         load(state, data) {
             Object.assign(state, data);
         },
-        pallete_add(state, name) {
-            let e = state.palletes.filter(p => 
+        palette_add(state, name) {
+            let e = state.palettes.filter(p => 
                 p.name.replace(/[0-9]/ig, "").trim().toLowerCase() == name.toLowerCase()
             ).length;
             if(e > 0) name += " " + (e + 1);
 
-            state.palletes.push({
+            state.palettes.push({
                 name, id: Date.now(),
                 colors: []
             });
         },
-        pallete_rename(state, [id, name]) {
-            state.palletes.find(p => p.id == id).name = name;
-            state.palletes = state.palletes.slice();
+        palette_rename(state, [id, name]) {
+            state.palettes.find(p => p.id == id).name = name;
+            state.palettes = state.palettes.slice();
         },
-        pallete_delete(state, id) {
-            state.palletes.splice(
-                state.palletes.findIndex(p => p.id == id), 1);
+        palette_delete(state, id) {
+            state.palettes.splice(
+                state.palettes.findIndex(p => p.id == id), 1);
         },
-        pallete_addColor(state, [id, color]) {
-            let pallete = state.palletes.find(p => p.id == id);
-            if(pallete.colors.indexOf(color) == -1) {
-                pallete.colors.push(color);
-                state.palletes = state.palletes.slice();
+        palette_addColor(state, [id, color]) {
+            let palette = state.palettes.find(p => p.id == id);
+            if(palette.colors.indexOf(color) == -1) {
+                palette.colors.push(color);
+                state.palettes = state.palettes.slice();
             }
         },
-        pallete_deleteColor(state, [id, color]) {
-            let pallete = state.palletes.find(p => p.id == id);
-            pallete.colors.splice(pallete.colors.indexOf(color), 1);
-            state.palletes = state.palletes.slice();
+        palette_reorderColors(state, [id, {oldIndex, newIndex}]) {
+            let palette = state.palettes.find(p => p.id == id);
+            palette.colors = palette.colors.slice();
+        },
+        palette_deleteColor(state, [id, color]) {
+            let palette = state.palettes.find(p => p.id == id);
+            palette.colors.splice(palette.colors.indexOf(color), 1);
+            state.palettes = state.palettes.slice();
         },
         asset_add(state, [{type, textype = 0}, obj]) {
             let arr = state[type + "s"];
@@ -149,7 +153,7 @@ export default new Vuex.Store({
     actions: {
         load({ commit, state }) {
             let data = getLocalStorageData();
-           // data = null;
+            data = null;
             if(data) {
                 commit("load", data);
             } else {
@@ -165,8 +169,8 @@ export default new Vuex.Store({
                 setLocalStorageData(state);
             }
         },
-        changePallete({ commit, state }, {action, data}) {
-            commit("pallete_" + action, data);
+        changePalette({ commit, state }, {action, data}) {
+            commit("palette_" + action, data);
             setLocalStorageData(state);
         },
         changeGradient({commit, state}, {action, data}) {
@@ -192,8 +196,8 @@ function getLocalStorageData() {
     return data;
 }
 
-function setLocalStorageData({palletes, gradients, textures, patterns, sizes}) {
+function setLocalStorageData({palettes, gradients, textures, patterns, sizes}) {
     localStorage.setItem("spruceBrushData", JSON.stringify({
-        palletes, gradients, textures, patterns, sizes
+        palettes, gradients, textures, patterns, sizes
     }));
 }

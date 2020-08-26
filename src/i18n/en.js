@@ -99,7 +99,7 @@ export default {
         moveRight: "Move color to right"
     },
     colorPicker: {
-        newPallete: "New pallete"
+        newPalette: "New palette"
     },
     tools: {
         tools: {

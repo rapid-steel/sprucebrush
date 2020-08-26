@@ -50,12 +50,13 @@ void main(void) {
     #endif
 
     #ifndef TEXTURE        
+        float base = 1.0;
     # ifdef ROUND
         float r = 0.0;            
         r = dot(cxy, cxy);
     #  if defined SMOOTH && defined GL_OES_standard_derivatives
             float delta = fwidth(r);
-            alpha = alpha - smoothstep(hardness - delta, 1.0 + delta, r);
+            alpha = alpha - smoothstep(base - delta, base + delta, r);
     #  else
             if(r > 1.0) discard;                
     #  endif
@@ -63,7 +64,7 @@ void main(void) {
         float r = max(abs(cxy.x), abs(cxy.y)); 
     #  if defined SMOOTH && defined GL_OES_standard_derivatives                
         float delta = fwidth(r);
-        alpha = alpha - smoothstep(hardness - delta, 1.0 + delta, r);
+        alpha = alpha - smoothstep(base - delta, base + delta, r);
     #  else
         if(r > 1.0) discard;
     #  endif

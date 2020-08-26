@@ -1,10 +1,7 @@
 # SpruceBrush
 
-This is a web application for drawing. It is developing in two main directions:
-- wide range of instrument settings, so you can use experiment with them and use 
-imagination.
-- the most common and useful functions of advanced graphic editors, like filters, 
-layers and so, but all this is available in the browser.
+This is a web application for drawing. Still not GIMP or Photoshop, but already 
+not MSPaint.
 
 ## Launching
 
@@ -17,18 +14,28 @@ download dist folder and open index page on localhost.
 
 ### Tools
 Currently there are available the following tools:
-- Brush - draws points
-- Eraser - acts equal to brush and the options are same, except for color settings.
-- Roller - draws lines
-- Filling tool, with the option to use a pattern.
+- Brush - draws points. 
+- Roller - draws lines.
+- Eraser
+- Filling tool.
 - Selection tool
 - Helpers tools: color picker, tool to drag and rotate the canvas.
 This is not the most impressive list yet, but be sure there are a few more 
 interesting things to be added ahead.
 
-#### Tools options
+#### Tools settings
+Basic settings for brush and roller: diameter or line width, opacity, blur. 
+There are also the shape settings available for the brush: angle and stretch of 
+a point, distance between points, point spread (perpendicular to the direction 
+of the brush stroke).
+For some settings, you can set the dynamics so that the parameter will change, 
+for example, periodically or randomly. There is also support for tablet pressing
+(if you choose "Pressure" dynamics).
+You can choose a texture or even upload your own. The texture is used for alpha 
+mapping, so it should be transparent.
+It is also possible to draw with a gradient rather than a solid color.
 
-Some options has a parameter "length": it is set in units equal to diameter or
+Note: some settings has a parameter "length": it is set in units equal to diameter or
 line width.
 
 
@@ -91,32 +98,12 @@ Vue components used:
 
 ## Credits
 
-Palletes
-
-**[Cranyon](http://www.colourlovers.com/web/blog/2008/04/22/all-120-crayon-names-color-codes-and-fun-facts)**
+**[Color palette](http://www.colourlovers.com/web/blog/2008/04/22/all-120-crayon-names-color-codes-and-fun-facts)**
 
 
 ## Known issues
 
- - If the app crashes constantly after a centain amount of time, this is most 
- likely a problem related to GPU acceleration support.
- In a Chromium browser, check the status of graphic features:
- chrome://gpu/
- 
- If GPU acceleration isn't available, maybe your videocard is the browser blacklist
- You can work around this problem by enabling flag ignore-gpu-blacklist
- chrome://flags/
-
- Caution! Use this at your own risk!
-
- - An image looks blurry on zoom in. This is a drawback of HTML Canvas. A possible 
- trick to make canvas bigger, but performance will suffer. You can try to set 
- resolution to x2 in settings, but see if this wouldn't significantly slow down
- the app for you.
-
- - So ... I've heard rumors that modern browsers support graphic tablet pressure. 
- Having suffered multiple setbacks in trying to get them to do this, I decided 
- that other tasks were of higher priority in the development of this application. 
- However, I promise that I will be back to this problem.
+ - An image looks blurry on zoom in. You can try to set resolution to x2 in settings, 
+ but see if this wouldn't significantly slow down the app for you.
 
  

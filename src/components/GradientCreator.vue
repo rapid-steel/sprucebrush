@@ -4,39 +4,38 @@
             :title="$t('gradientCreator.addColor')"
             @click.stop="addColor">
             <div class="gradient-big" 
-                :style="value | gradientBG"></div>
+                :style="value | gradientBG" />
             <div class="gradient-colors">
                     <div class="color-container" 
-                    v-for="(color, i) in value" 
-                    :key="maxI + color + i"
-                    :class="{active: i === editColor}"
-                    :style="{left: 100 * (i / maxI) + '%'}"
-                    >
+                        v-for="(color, i) in value" 
+                        :key="maxI + color + i"
+                        :class="{active: i === editColor}"
+                        :style="{left: 100 * (i / maxI) + '%'}">
                         <div class="color"
-                        :style="{background: color}"
-                        @click.exact.stop="() => editColor = i"
-                        ></div>
+                            :style="{background: color}"
+                            @click.exact.stop="() => editColor = i" />
                         <div class="controls">
                             <button class="move-left" 
-                            :disabled="!i"
-                            :title="$t('gradientCreator.moveLeft')"
-                            @click.stop="() => move(-1, i)"></button>
+                                :disabled="!i"
+                                :title="$t('gradientCreator.moveLeft')"
+                                @click.stop="() => move(-1, i)" />
                             <button class="remove" 
-                            :disabled="maxI==1"
-                            :title="$t('gradientCreator.remove')"
-                            @click.stop="() => remove(i)"></button>
+                                :disabled="maxI==1"
+                                :title="$t('gradientCreator.remove')"
+                                @click.stop="() => remove(i)" />
                             <button class="move-right" 
-                            :disabled="i==maxI"
-                            :title="$t('gradientCreator.moveRight')"
-                            @click.stop="() => move(1, i)"></button>    
-                        </div>                    
-                    
+                                :disabled="i==maxI"
+                                :title="$t('gradientCreator.moveRight')"
+                                @click.stop="() => move(1, i)" />    
+                        </div>                   
                     </div>
             </div>
         </div>
         
         <div id="gradient-colorpicker">
-            <color-picker v-model="value[editColor]" :width="180" :height="180" />
+            <color-picker 
+                v-model="value[editColor]" 
+                :size="180"  />
         </div>
 
 

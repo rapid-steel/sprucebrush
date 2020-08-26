@@ -3,9 +3,10 @@ import App from './App.vue';
 import store from './store/index';
 import i18n from "./i18n";
 
-import ColorPicker from 'vue-color-picker-wheel';
+import ColorPicker from './components/ColorPicker';
 import RangeInput from "./components/RangeInput";
 import vSelect from "./components/VSelect";
+import Draggable from "vuedraggable";
 
 Vue.config.productionTip = false;
 
@@ -26,6 +27,7 @@ Vue.filter('gradientBG', function(gradient, gradientType="linear", dir="to right
 Vue.component('v-select', vSelect);
 Vue.component("RangeInput", RangeInput);
 Vue.component("color-picker", ColorPicker);
+Vue.component("draggable", Draggable);
 
 
 

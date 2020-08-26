@@ -52,6 +52,7 @@ void main(void) {
     
     // pressure already includes diameter dynamics
     gl_PointSize = diameter * pressure;
+    vDiameter = gl_PointSize;
 
     #if STRETCHDYNAMICS == 1
         float s = dynamics_down(stretch, linePos, stretch_dynlen);
@@ -105,7 +106,6 @@ void main(void) {
         sin(angle1), cos(angle1)
     );
 
-
     vOpacity = opacity;
         
     #if OPACITYDYNAMICS == 1
@@ -118,7 +118,7 @@ void main(void) {
         vOpacity = dynamics_random(vOpacity, opacity_dynr, gl_Position.xy, index, 3.0);
     #endif
 
-    vDiameter = gl_PointSize;
+    
     
     #if defined RECT || defined TEXTURE
         gl_PointSize = vDiameter * DIAG;

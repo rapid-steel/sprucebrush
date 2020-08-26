@@ -37,8 +37,6 @@ export default class ToolWebGL {
     _init() {      
         this.gl.getExtension("OES_standard_derivatives");
         this.gl.clearColor(0, 0, 0, 0);
-        this.gl.enable(this.gl.SAMPLE_ALPHA_TO_COVERAGE);
-        this.gl.enable(this.gl.SAMPLE_COVERAGE);
         this.gl.enable(this.gl.BLEND);
         this.gl.blendFuncSeparate(
             this.gl.SRC_ALPHA, 
@@ -46,6 +44,7 @@ export default class ToolWebGL {
             this.gl.ONE, 
             this.gl.ONE_MINUS_SRC_ALPHA
         );
+        this.gl.blendColor(1, 1, 1, 1);
         this.gl.depthMask(false);        
 
         this.gl.clear(this.gl.COLOR_BUFFER_BIT  | this.gl.DEPTH_BUFFER_BIT);

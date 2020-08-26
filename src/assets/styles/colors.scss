@@ -50,13 +50,13 @@ $texture-size: 64px;
 $gradient-list-size: 100px;
 $gradient-radial-size: 60px;
 
-$color-pallete-height: 360px;
-$color-pallete-height_sm: 310px;
+$color-palette-height: 360px;
+$color-palette-height_sm: 310px;
 $color-picker-height: 160px;
 $color-selected-size: 35px;
 $right-panel-margin-bottom: 20px;
-$layers-height: calc(100vh - #{$color-pallete-height + $right-panel-margin-bottom * 2});
-$layers-height_sm: calc(100vh - #{$color-pallete-height_sm + $right-panel-margin-bottom * 2});
+$layers-height: calc(100vh - #{$color-palette-height + $right-panel-margin-bottom * 2});
+$layers-height_sm: calc(100vh - #{$color-palette-height_sm + $right-panel-margin-bottom * 2});
 
 $panel_left_width: $tool-panel-width + 5px;
 $panel_right_width: 230px;
