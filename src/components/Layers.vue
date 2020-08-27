@@ -31,7 +31,7 @@
                 <button class="icon-btn small visible"
                     :disabled="layers.length == 1" 
                     @click.stop="() => $emit('toggle-layer', l.id)" />
-                <img class="img-icon" src="@/assets/img/opacity.svg" />
+                <button class="icon-btn micro opacity" />
                 <RangeInput 
                     :min="0" 
                     :max="100" 
@@ -52,7 +52,7 @@
                 <!--  <button class="icon-btn small merge"
                     v-if="i != layersReverse.length - 1"
                     @click.stop="() => $emit('merge-layers', layersReverse.slice(i, i+2).map(l => l.id))" /> -->
-                <img class="img-icon compose" src="@/assets/img/compose.svg" />
+                <button class="icon-btn micro compose" />
                 <v-select 
                     :options="blendModes" 
                     :label="'label'"           
@@ -114,7 +114,7 @@ export default {
 
 <style lang="scss">
 
-@import "../assets/styles/colors";
+@import "../assets/styles/index.scss";
 
 #layers {
     flex: 1 1 50%;
@@ -195,12 +195,6 @@ export default {
     &.visible {
         opacity: 1;
     }
-    .img-icon {
-        width: 13px;
-        height: 13px;
-        display: inline-block;
-        margin: 3px;
-    }
     .layer-name {
         flex: 2 0 90px;
         overflow: hidden;
@@ -212,14 +206,14 @@ export default {
         outline: none;
         font: $font-layer;
         &:focus {
-            background: white;
+            background: $color-bg;
         }
     }
     &.selected {
-        background:$color-accent3;
+        background: $color-accent3;
     }
     &.current {
-        background:$color-accent;
+        background: $color-accent;
         .layer-name {
             font-weight: bold;
         }

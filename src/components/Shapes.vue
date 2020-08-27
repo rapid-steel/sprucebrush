@@ -46,7 +46,7 @@ export default {
 
 
 <style lang="scss">
-@import "../assets/styles/colors";
+@import "../assets/styles/index.scss";
 .shapes {
     &.disabled {
         opacity: .5;

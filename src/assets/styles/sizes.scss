@@ -1,0 +1,52 @@
+
+$max-height_sm: 800px;
+
+$tool-panel-width: 80px;
+$tool-size: $tool-panel-width / 2;
+$tool-selected-size: 60px;
+$tool-selected-size_sm: 40px;
+$settings-icon-size: 20px;
+$shape-size: 15px;
+$ckbx-size: 18px;
+$btn-top-size: 60px;
+$texture-size: 64px;
+$gradient-list-size: 100px;
+$gradient-radial-size: 60px;
+
+$color-palette-height: 360px;
+$color-palette-height_sm: 310px;
+$color-picker-height: 160px;
+$color-selected-size: 35px;
+$right-panel-margin-bottom: 20px;
+$layers-height: calc(100vh - #{$color-palette-height + $right-panel-margin-bottom * 2});
+$layers-height_sm: calc(100vh - #{$color-palette-height_sm + $right-panel-margin-bottom * 2});
+
+$panel_left_width: $tool-panel-width + 5px;
+$panel_right_width: 230px;
+$panel_top_height: 60px;
+$panel_bottom_height: 30px;
+$panel_padding: 5px;
+$panels_width: ($panel_left_width + $panel_right_width + $panel_padding * 2);
+$panels_height: ($panel_top_height + $panel_bottom_height + $panel_padding * 3);
+$canvas_width: calc(100vw - #{$panels_width});
+$canvas_height: calc(100vh - #{$panels_height});
+$canvas_width_full: calc(100vw - #{$panel_padding * 4});
+
+$logo_size: $panel_right_width;
+
+
+$icon-btn-size: 30px;
+$icon-btn-size-small: 20px;
+$icon-btn-size-micro: 12px;
+
+$z-index-layers:            1;
+$z-index-color-picker:      2;
+$z-index_underlay:          99;
+$z-index_canvas:            100;
+$z-index_side-list:         1000;
+$z-index_menu:              10000;
+$z-index_canvas-cursor:     100000;
+$z-index_context-menu:      10000000;
+$z-index_dropdown-list:     1000000000;
+$z-index_range-input:       1000000000;
+$z-index_gradient-creator:  10000000000;

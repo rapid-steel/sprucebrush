@@ -55,7 +55,14 @@
                         :disabled="!colorSelected" 
                         @click.stop="deleteSelected" />
                      <button class="icon-btn export" 
-                        @click.stop="paletteToFile"></button>
+                        @click.stop="exportPalette"></button>
+                    <button class="icon-btn import"
+                        @click.stop="$refs.importPalette.click">
+                         <input 
+                            type="file" accept="application/json" multiple
+                            ref="importPalette" 
+                            @change="importPalette">
+                    </button>
                 </div>
                 <div v-if="palette">
                     <draggable 
@@ -173,21 +180,32 @@ export default {
             });
             this.editPaletteName = false;
         },
-        paletteToFile() {
+        exportPalette() {
             saveAs(
                 new Blob([JSON.stringify(this.palette)], {type: "text"}), 
                 `${this.palette.name}.json`
             );
         },
-        paletteFromFile(file) {
-
+        importPalette(e) {
+            Promise.all(
+                Array.from(e.target.files)
+                .map(f => f.text()
+                           .then(text =>  JSON.parse(text))
+                )
+            ).then(palettes => {
+                this.$store.dispatch("changePalette", {
+                    action: "import", 
+                    data: palettes
+                });
+                this.palette = this.palettes[0];
+            })
         }
   }
 }
 </script>
 
 <style lang="scss">
-@import "../assets/styles/colors";
+@import "../assets/styles/index.scss";
 
 
 

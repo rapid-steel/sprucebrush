@@ -123,7 +123,7 @@ export default {
 </script>
 
 <style lang="scss">
-@import "../assets/styles/colors.scss";
+@import "../assets/styles/index.scss";
 
 .range-input {
     position: relative;
@@ -134,13 +134,13 @@ export default {
         display: none;
         align-items: center;
         position: fixed;
-        background: white;
+        background: $color-bg;
         padding: 3px;
         border-radius: 3px;
         height: 16px;
         width: 112px;
-        box-shadow: 0 0 5px rgba(0,0,0,.15);
-        z-index: 100;
+        box-shadow: $box-shadow_range-input;
+        z-index: $z-index_range-input;
         input[type=range] {
             width: 100px;
         }

@@ -8,7 +8,9 @@ import settingRanges from "./setting-ranges.js";
 Vue.use(Vuex);
 
 
-
+function generateId() {
+    return Date.now();
+}
 
 
 export default new Vuex.Store({
@@ -104,9 +106,14 @@ export default new Vuex.Store({
             if(e > 0) name += " " + (e + 1);
 
             state.palettes.push({
-                name, id: Date.now(),
+                name, id: generateId(),
                 colors: []
             });
+        },
+        palette_import(state, palettes) {
+            palettes = palettes.filter(p => p.name && Array.isArray(p.colors))
+            .map(p => ({ ...p, id: generateId()}));
+            state.palettes = palettes.concat(state.palettes);
         },
         palette_rename(state, [id, name]) {
             state.palettes.find(p => p.id == id).name = name;
@@ -123,7 +130,7 @@ export default new Vuex.Store({
                 state.palettes = state.palettes.slice();
             }
         },
-        palette_reorderColors(state, [id, {oldIndex, newIndex}]) {
+        palette_reorderColors(state, [id, {oldIndex, newIndex}]) {            
             let palette = state.palettes.find(p => p.id == id);
             palette.colors = palette.colors.slice();
         },

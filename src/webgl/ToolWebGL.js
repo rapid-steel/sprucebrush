@@ -21,7 +21,10 @@ const commonChunks = {
 
 export default class ToolWebGL {
     constructor() { 
-        this.gl =  Ctx.create(100, 100, "webgl");
+        this.gl =  Ctx.create(100, 100, "webgl", {
+           premultipliedAlpha: true,
+           depth: false,
+        });
         this.canvas = this.gl.canvas;
 
         this.DYNTYPE = {
@@ -32,11 +35,15 @@ export default class ToolWebGL {
             PERIOD_AMPL: 4,
             CIRCULAR:    5,
             RANDOM:      6  
-        }
+        };
+
+        // let's see if it could be useful in future, for blur or other effects
+        // but so far, i have to solve problems with blending
+        this.useFrameBuffer = false;
     }
     _init() {      
         this.gl.getExtension("OES_standard_derivatives");
-        this.gl.clearColor(0, 0, 0, 0);
+        
         this.gl.enable(this.gl.BLEND);
         this.gl.blendFuncSeparate(
             this.gl.SRC_ALPHA, 
@@ -44,10 +51,15 @@ export default class ToolWebGL {
             this.gl.ONE, 
             this.gl.ONE_MINUS_SRC_ALPHA
         );
-        this.gl.blendColor(1, 1, 1, 1);
+        this.gl.enable(this.gl.SAMPLE_COVERAGE);
         this.gl.depthMask(false);        
-
+        this.gl.clearColor(0, 0, 0, 0);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT  | this.gl.DEPTH_BUFFER_BIT);
+        
+
+        if(this.useFrameBuffer)
+            this._initFramebuffer();
+        
 
         for(let k in this.buffers) {
             this.buffers[k].buf = this.gl.createBuffer();
@@ -70,41 +82,71 @@ export default class ToolWebGL {
         this.update = false;
         this.commonChunks = commonChunks;
 
-        this._loadShadersCode();
+        this.mainProgShaders = this._loadShadersCode(this.PROGRAM_NAME);
+       if(this.useFrameBuffer) {
+            this.postProgShaders = this._loadShadersCode("postprocess"); 
+            this.postProgram = this._createProgram(this.postProgShaders, {});
+       }
     }
-    createVertShader(props) {
-        
-        return  Object.entries(props)
-        .map(p => `#define ${p[0].toUpperCase()} ${p[1]}`)
-        .join("\n") + "\n" +
-        this.vertexShaderCode
-        .map(c => c.ref ? this.commonChunks[c.ref] : c)
-        .join("\n");
+    _initFramebuffer() {
+        this.gl.getExtension("OES_texture_float");
+        this.gl.getExtension("OES_texture_float_linear");
+        this.frameBuffer = this.gl.createFramebuffer();
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.frameBuffer);
+        this.framebufferTexture = this.gl.createTexture();
+        this.gl.bindTexture(this.gl.TEXTURE_2D,  this.framebufferTexture); 
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
+        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.canvas.width, this.canvas.height, 0, this.gl.RGBA, this.gl.FLOAT,
+                      null);
+      
+        this.gl.framebufferTexture2D(
+            this.gl.FRAMEBUFFER, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_2D,  this.framebufferTexture, 0);
+
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
+        this.gl.bindTexture(this.gl.TEXTURE_2D,  null); 
+
+        this.postProgBuffer = this.gl.createBuffer();
+        this.postProgBufferData = new Float32Array([
+            1.0, -1.0, 
+            1.0,  1.0, 
+           -1.0, -1.0, 
+           -1.0,  1.0, 
+           -1.0, -1.0, 
+            1.0,  1.0,           
+        ]);
     }
-    createFragShader(props) {
-        return Object.entries(props)
-        .map(p => `#define ${p[0].toUpperCase()} ${p[1]}`)
-        .join("\n") + "\n" +
-        this.fragmentShaderCode
-        .map(c => c.ref ? this.commonChunks[c.ref] : c)
-        .join("\n");
+    _createShader(props, shaderCode) {
+        return [
+            ...Object.entries(props)
+                .map(p => `#define ${p[0].toUpperCase()} ${p[1]}`),
+            ...shaderCode
+                .map(c => c.ref ? this.commonChunks[c.ref] : c)
+        ].join("\n");
     }
-    _loadShadersCode() {
-        ['vertex', 'fragment'].forEach(shaderType => {
-            const code = require(`./shaders/${this.PROGRAM_NAME}_${shaderType}.glsl`).default;
-            this[shaderType + "ShaderCode"] = code.split("//${")
-            .reduce((chunks, ch, i) => {
+    _loadShadersCode(program) {
+        const shaders = { 
+            vertex: [], 
+            fragment: [] 
+        };
+        for(let shader in shaders) {
+            const chunks = shaders[shader];
+            const code = require(`./shaders/${program}_${shader}.glsl`).default;
+            code.split("//${")
+            .forEach((chunk, i) => {
                 if(i) {
-                    let delim = ch.indexOf("}");
+                    let delim = chunk.indexOf("}");
                     chunks.push({
-                        ref: ch.slice(0, delim)
+                        ref: chunk.slice(0, delim)
                     });
-                    ch = ch.slice(delim+1);
+                    chunk = chunk.slice(delim+1);
                 }   
-                chunks.push(ch);            
-                return chunks;
+                chunks.push(chunk);  
             }, []);
-        });
+        }
+        return shaders;
     }
     _getGlColor(color) {
         if(color.indexOf("rgb") == 0) {
@@ -121,8 +163,33 @@ export default class ToolWebGL {
             return vals;
         }
     }
-    _createProgram(programType) {
+    _createProgram(shaders, props) {
         let errorInfo;
+
+        const vertShader = this.gl.createShader(this.gl.VERTEX_SHADER);
+        this.gl.shaderSource(vertShader, this._createShader(props, shaders.vertex));
+        this.gl.compileShader(vertShader); // eslint-disable-next-line
+        if(DEBUG && (errorInfo = this.gl.getShaderInfoLog(vertShader))) 
+            console.log(errorInfo);
+
+        const fragShader = this.gl.createShader(this.gl.FRAGMENT_SHADER);
+
+        this.gl.shaderSource(fragShader, this._createShader(props, shaders.fragment));
+        this.gl.compileShader(fragShader); // eslint-disable-next-line
+        if(DEBUG && (errorInfo = this.gl.getShaderInfoLog(fragShader))) 
+            console.log(errorInfo);
+
+        const program = this.gl.createProgram();
+        this.gl.attachShader(program, vertShader); 
+        this.gl.attachShader(program, fragShader);
+        this.gl.linkProgram(program); 
+        this.gl.validateProgram(program); // eslint-disable-next-line
+        if(DEBUG && (errorInfo = this.gl.getProgramInfoLog(program)))
+            console.log(errorInfo);
+
+        return program;
+    }
+    _createMainProgram(programType) {
         this.programType = programType;
         this.programProps = Object.fromEntries(
             programType.split("-")
@@ -138,53 +205,32 @@ export default class ToolWebGL {
 
 
         if(!this.programsLoaded[programType]) {
-            if(this.program) {
+            if(this.mainProgram) {
                 for(let k in this.buffers) {
                     if(this.buffers[k].enabled)
                         this.gl.disableVertexAttribArray(
-                            this.gl.getAttribLocation(this.program, this.buffers[k].attrib)
+                            this.gl.getAttribLocation(this.mainProgram, this.buffers[k].attrib)
                         ); 
                 }           
             }
-            const vertShader = this.gl.createShader(this.gl.VERTEX_SHADER);
-            this.gl.shaderSource(vertShader, this.createVertShader(this.programProps));
-            this.gl.compileShader(vertShader);
-
-            // eslint-disable-next-line
-            if(DEBUG && (errorInfo = this.gl.getShaderInfoLog(vertShader))) 
-                console.log(errorInfo);
-    
-            const fragShader = this.gl.createShader(this.gl.FRAGMENT_SHADER);
-    
-            this.gl.shaderSource(fragShader, this.createFragShader(this.programProps));
-            this.gl.compileShader(fragShader);
-            // eslint-disable-next-line
-            if(DEBUG && (errorInfo = this.gl.getShaderInfoLog(fragShader))) 
-                console.log(errorInfo);
-    
-            const program = this.gl.createProgram();
-            this.gl.attachShader(program, vertShader); 
-            this.gl.attachShader(program, fragShader);
-            this.gl.linkProgram(program);
-            // eslint-disable-next-line
-            if(DEBUG && (errorInfo = this.gl.getProgramInfoLog(program)))
-                console.log(errorInfo);
-
-            this.programsLoaded[programType] = program;
-
+            this.programsLoaded[programType] = this._createProgram(this.mainProgShaders, this.programProps);
         }
-        this.program = this.programsLoaded[programType];      
-        this.gl.useProgram(this.program);   
+        this.gl.clear(this.gl.COLOR_BUFFER_BIT  | this.gl.DEPTH_BUFFER_BIT);
+        this.mainProgram = this.programsLoaded[programType];    
+        this.gl.useProgram(this.mainProgram);
 
-
+        this.setAttributes();
+    }
+    setAttributes() {
         for(let k in this.buffers) {
             this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers[k].buf);
-            let ptr = this.gl.getAttribLocation(this.program, this.buffers[k].attrib); //eslint-disable-next-line
+            let ptr = this.gl.getAttribLocation(this.mainProgram, this.buffers[k].attrib); //eslint-disable-next-line
             if(this.buffers[k].enabled = ptr !== -1) {
                 this.gl.vertexAttribPointer(ptr, this.buffers[k].size, this.buffers[k].type, false, 0, 0);
                 this.gl.enableVertexAttribArray(ptr);
             }
         }
+
     }
     _createTexture(img, index) {
         const glTexture = this.gl.createTexture();
@@ -214,7 +260,6 @@ export default class ToolWebGL {
         ctx.fillStyle = canvasGradient;
         ctx.fillRect(0, 0, k*w, k*h);
 
-
         ctx.canvas.toBlob(blob => 
             this.loadTexture(
                 URL.createObjectURL(blob), 
@@ -223,6 +268,7 @@ export default class ToolWebGL {
         ));  
     }
     loadTexture(src, attrib, index = this.textures.BASE) {
+        this.gl.useProgram(this.mainProgram);   
         const img = new Image();
         img.crossOrigin = "anonymous";
         img.onload = () => {
@@ -230,12 +276,12 @@ export default class ToolWebGL {
             if(index == this.textures.BASE) {
                 this.textureRatio = img.width / img.height;
                 this.gl.uniform1f(
-                    this.gl.getUniformLocation(this.program, "textureRatio"),  
+                    this.gl.getUniformLocation(this.mainProgram, "textureRatio"),  
                     this.textureRatio);
             }
-            if(this.program) {
+            if(this.mainProgram) {
                 this.gl.uniform1i(
-                    this.gl.getUniformLocation(this.program, attrib),  
+                    this.gl.getUniformLocation(this.mainProgram, attrib),  
                     index);
             }    
         };
@@ -294,16 +340,59 @@ export default class ToolWebGL {
         this.render();
         ctx2d.drawImage(this.canvas, 0, 0);
     }
-    render() {
-        this.gl.clear(this.gl.COLOR_BUFFER_BIT  | this.gl.DEPTH_BUFFER_BIT);
+    _enableFb() {
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.frameBuffer);
+        this.gl.clearColor(0, 0, 0, 0);    this.gl.useProgram(this.mainProgram);
+        this.setUniforms();
+        this.setAttributes();  
+    }
+    _disableFb() {
+        for(let k in this.buffers) {
+            if(this.buffers[k].enabled)
+                this.gl.disableVertexAttribArray(
+                    this.gl.getAttribLocation(this.mainProgram, this.buffers[k].attrib)
+                ); 
+        }           
 
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
+    }
+    _renderPostProcess() {
+        this.gl.bindTexture(this.gl.TEXTURE_2D,  this.framebufferTexture); 
+        this.gl.clearColor(1, 1, 1, 0);
+
+        this.gl.clear(this.gl.COLOR_BUFFER_BIT  | this.gl.DEPTH_BUFFER_BIT);
+        this.gl.useProgram(this.postProgram);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.postProgBuffer);
+        let ptr = this.gl.getAttribLocation(this.postProgram, "pos"); 
+        this.gl.vertexAttribPointer(ptr, 2, this.gl.FLOAT, false, 0, 0);
+        this.gl.enableVertexAttribArray(ptr);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.postProgBuffer);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, this.postProgBufferData, this.gl.DYNAMIC_DRAW);
+        this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
+
+        this.gl.bindTexture(this.gl.TEXTURE_2D,  null); 
+        this.gl.useProgram(this.mainProgram); 
+    }
+    render() {        
+        if(this.useFrameBuffer) this._enableFb();
+
+        this.gl.clear(this.gl.COLOR_BUFFER_BIT  | this.gl.DEPTH_BUFFER_BIT);
+      
         for(let k in this.buffers) {
             if(this.buffers[k].enabled) {
                 this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers[k].buf);
                 this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this[k]), this.gl.DYNAMIC_DRAW);
             }
         }
+        
         this.gl.drawArrays(this.PRIMITIVE_TYPE, 0, this.indexes.length);
+        
+        if(this.useFrameBuffer) {
+            this._disableFb();
+            this._renderPostProcess;
+        }
+
+
      }
      setParams(params) {
         let old = {
@@ -334,10 +423,11 @@ export default class ToolWebGL {
             this.createGradientTexture(
                this.gradient, size_ratio, loop);      
             this.gradientRatio =  h_ratio;
-            this.gl.uniform1f(this.gl.getUniformLocation(this.program, "gradientRatio"), this.gradientRatio);
+            this.gl.uniform1f(this.gl.getUniformLocation(this.mainProgram, "gradientRatio"), this.gradientRatio);
         }     
-
-        this.setAttributes();
+        this.gl.sampleCoverage(this.params.opacity, false);
+  //      this.gl.enable(this.gl.SAMPLE_ALPHA_TO_COVERAGE)
+       this.setUniforms();
 
     }
     setSizes({width, height}) {
@@ -350,56 +440,65 @@ export default class ToolWebGL {
             width2: width / 2,
             height2: height / 2
         });
-        this.setAttributes();
+        
+        if(this.useFrameBuffer) this._resizeFramebufferTexture();
+        
+        this.setUniforms();
+    }
+    _resizeFramebufferTexture() {
+        this.gl.bindTexture(this.gl.TEXTURE_2D,  this.framebufferTexture); 
+        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.canvas.width, this.canvas.height, 0, this.gl.RGBA, this.gl.FLOAT,
+                      null);
+        this.gl.bindTexture(this.gl.TEXTURE_2D,  null); 
     }
     _setDynamics() {
         for(let d in this.dynamics) {
             let range = this.dynamics[d] ? this.dynamics[d].range : 0;
             let length = this.dynamics[d] ? this.dynamics[d].length : 1;
             this.gl.uniform1f(
-                this.gl.getUniformLocation(this.program, d + "_dynr"), range);  
+                this.gl.getUniformLocation(this.mainProgram, d + "_dynr"), range);  
             this.gl.uniform1f(
-                this.gl.getUniformLocation(this.program, d + "_dynlen"), length);   
+                this.gl.getUniformLocation(this.mainProgram, d + "_dynlen"), length);   
         }
     }
-    setAttributes() {
-        if(this.program) {
+    setUniforms() {
+        if(this.mainProgram) {
             for(let param in this.params) {
                 if(param == "color") {
                     this.gl.uniform3fv(
-                        this.gl.getUniformLocation(this.program, "color"), 
+                        this.gl.getUniformLocation(this.mainProgram, "color"), 
                         this._getGlColor(this.params.color));
                 }
                 else if(param == "angle") {
                     let angle = this.params.angle / 180 * Math.PI;
                     this.gl.uniform1f(
-                        this.gl.getUniformLocation(this.program, "angle"), angle);
+                        this.gl.getUniformLocation(this.mainProgram, "angle"), angle);
                 }
     
                 else if(this.programParams[param]) {
                     this.gl.uniform1f(
-                        this.gl.getUniformLocation(this.program, param), 
+                        this.gl.getUniformLocation(this.mainProgram, param), 
                         this.params[param]);                         
                 }
 
             }
             if(this.gradient && this.gradient.enabled) {
-                this.gl.uniform1f(this.gl.getUniformLocation(this.program, "gradientRatio"), this.gradientRatio);
+                this.gl.uniform1f(this.gl.getUniformLocation(this.mainProgram, "gradientRatio"), this.gradientRatio);
                 if(this.programProps.by_len) {
                     this.gl.uniform1f(
-                        this.gl.getUniformLocation(this.program, "gradientLength"), 
+                        this.gl.getUniformLocation(this.mainProgram, "gradientLength"), 
                         this.gradient.length);
                 }            
                 this.gl.uniform1i(
-                    this.gl.getUniformLocation(this.program, "gradientTexture"), 
+                    this.gl.getUniformLocation(this.mainProgram, "gradientTexture"), 
                     this.textures.GRADIENT);        
             }
             if(this.texture) {
                 this.gl.uniform1i(
-                    this.gl.getUniformLocation(this.program, "texture"), 
+                    this.gl.getUniformLocation(this.mainProgram, "texture"), 
                     this.textures.BASE); 
                 this.gl.uniform1f(
-                    this.gl.getUniformLocation(this.program, "textureRatio"), 
+                    this.gl.getUniformLocation(this.mainProgram, "textureRatio"), 
                     this.textureRatio
                 );
             }

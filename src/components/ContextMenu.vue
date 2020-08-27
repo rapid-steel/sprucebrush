@@ -117,14 +117,14 @@ export default {
 </script>
 
 <style lang="scss">
-@import "../assets/styles/colors";
+@import "../assets/styles/index.scss";
 
 .context-menu {
     background-color: $color-bg;
     position: fixed;
     z-index: $z-index-context-menu;
     display: flex;
-    box-shadow: 0 0 10px rgba(0,0,0, .3);
+    box-shadow: $box-shadow_content-menu;
     .actual-settings {
         .setting-value {
             margin: 8px;
@@ -167,7 +167,7 @@ export default {
             &:hover {
                 background: $color-accent;
                 font-weight: bold;
-                color: white;
+                color: $color-bg;
                 .hint {
                     font-weight: normal;
                     color: $color-accent3;

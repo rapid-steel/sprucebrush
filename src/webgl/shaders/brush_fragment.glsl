@@ -103,5 +103,6 @@ void main(void) {
 
     gl_FragColor.rgb = color1;
     gl_FragColor.a *= alpha;       
+    
 
 }

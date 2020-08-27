@@ -58,7 +58,7 @@ export default {
 </script>
 
 <style lang="scss">
-@import "../assets/styles/colors";
+@import "../assets/styles/index.scss";
 
 .side-list {
     position: relative;

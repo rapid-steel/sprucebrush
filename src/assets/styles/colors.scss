@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Anonymous+Pro:wght@400;700&family=Didact+Gothic&family=Russo+One&family=Caveat&display=swap');
+
 
 
 $color-bg: white;
@@ -6,81 +6,22 @@ $color-text: black;
 $color-accent: #58906c;
 $color-accent2: #2ae042;
 $color-accent3: lightgrey;
-
 $color-selected: blue;
 
-$font-tools: 12px Russo One;
-$font-tool-title: 13px Russo One;
-$font-shape-axes: bold 12px Anonymous Pro;
-$font-menu: 14px Didact Gothic;
-$font-menu-form: 14px Russo One;
-$font-contextmenu: 16px Didact Gothic;
-$font-window: 14px Russo One;
-$font-btn: 18px Russo One;
-$font-btn-small: 12px Russo One;
-$font-input: 14px Anonymous Pro;
-$font-input-small: 12px Anonymous Pro;
-$font-hint: 12px Didact Gothic;
-$font-layer: 10px Anonymous Pro;
-$font-layer-button: 30px Russo One;
-$font-select: 14px Russo One;
-$font-select-small: 12px Russo One;
-$font-title: bold 18px Caveat;
-$font-status-bar: bold 16px Anonymous Pro;
+$color-bg-wrapper: grey;
 
 
-$btn-bg: url("../assets/img/btn-frame.png");
+
+
+
+$img-bg-button: url("../assets/img/btn-frame.png");
+$img-bg-wrapper: url("./assets/img/forest.jpg");
+$img-bg-transparent: url("./assets/img/transparent.png");
+
 
 $window-border: 2px black solid;
 $input-border: 1px $color-accent solid;
 $layer-border: 1px lightgrey solid;
 
-
-$max-height_sm: 800px;
-
-$tool-panel-width: 80px;
-$tool-size: $tool-panel-width / 2;
-$tool-selected-size: 60px;
-$tool-selected-size_sm: 40px;
-$settings-icon-size: 20px;
-$shape-size: 15px;
-$ckbx-size: 18px;
-$btn-top-size: 60px;
-$texture-size: 64px;
-$gradient-list-size: 100px;
-$gradient-radial-size: 60px;
-
-$color-palette-height: 360px;
-$color-palette-height_sm: 310px;
-$color-picker-height: 160px;
-$color-selected-size: 35px;
-$right-panel-margin-bottom: 20px;
-$layers-height: calc(100vh - #{$color-palette-height + $right-panel-margin-bottom * 2});
-$layers-height_sm: calc(100vh - #{$color-palette-height_sm + $right-panel-margin-bottom * 2});
-
-$panel_left_width: $tool-panel-width + 5px;
-$panel_right_width: 230px;
-$panel_top_height: 60px;
-$panel_bottom_height: 30px;
-$panel_padding: 5px;
-$panels_width: ($panel_left_width + $panel_right_width + $panel_padding * 2);
-$panels_height: ($panel_top_height + $panel_bottom_height + $panel_padding * 3);
-$canvas_width: calc(100vw - #{$panels_width});
-$canvas_height: calc(100vh - #{$panels_height});
-$canvas_width_full: calc(100vw - #{$panel_padding * 4});
-
-$logo_size: $panel_right_width;
-
-
-$icon-btn-size: 30px;
-$icon-btn-size-small: 20px;
-
-$z-index-layers: 1;
-$z-index-color-picker: 2;
-$z-index_underlay:      99;
-$z-index_canvas:        100;
-$z-index_side-list:     1000000;
-$z-index_menu:          1000000;
-$z-index_canvas-cursor: 10000000;
-$z-index_context-menu:  100000000;
-$z-index_dropdown-list: 10000000000;
+$box-shadow_content-menu: 0 0 10px rgba(0,0,0, .3);
+$box-shadow_range-input: 0 0 5px rgba(0,0,0,.15);

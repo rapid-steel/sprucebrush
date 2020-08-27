@@ -27,7 +27,7 @@ export default class Roller extends ToolWebGL {
         this._init();    
     }
     setProgram(programType) {
-        this._createProgram(programType);          
+        this._createMainProgram(programType);          
         this.programParams = {
             lineWidth: "1f",
             textureRatio: "1f",

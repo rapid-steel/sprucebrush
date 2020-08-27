@@ -1204,8 +1204,9 @@ methods: {
 </script>
 
 <style lang="scss">
+@import "./assets/styles/icons.scss";
+@import "./assets/styles/index.scss";
 
-@import "./assets/styles/colors.scss";
 
 input[type=file] {
     width: 0;
@@ -1229,66 +1230,7 @@ ul[role=listbox] {
 }
 
 
-.icon-btn {
-    cursor: pointer;
-    border: none;
-    width: $icon-btn-size;
-    flex: 0 0 $icon-btn-size;
-    height: $icon-btn-size;
-    
-    background: {
-        color: transparent;            
-        position: center;
-        repeat: no-repeat;
-        size: 60% 60%;
-    }
-    &.toggle-btn {
-        opacity: .8;
-        &.active {
-            opacity: 1;
-            border: 1px black solid;
-            border-radius: 5px;
-        }
-    }
-    &.small {
-        width: $icon-btn-size-small;
-        flex: 0 0 $icon-btn-size-small;
-        height: $icon-btn-size-small;
-        background-size: 80% 80%;    
-        &.delete {
-            background-size: 70% 70%;
-        }
-        &.cancel {
-            background-size: 60% 60%;
-        }
-    }
-    &[disabled] {
-        opacity: .5;
-    }
-    &.add { background-image: url("./assets/img/plus.svg"); }
-    &.copy { background-image: url("./assets/img/copy.svg"); }
-    &.edit { background-image: url("./assets/img/edit.svg"); }
-    &.cancel { background-image: url("./assets/img/cancel.svg"); }
-    &.merge { background-image: url("./assets/img/merge.svg"); }
-    &.delete { background-image: url("./assets/img/trash.svg"); }
-    &.export { background-image: url("./assets/img/export.svg"); }
-    
-    &.lock { background-image: url("./assets/img/lock.svg"); }
-    &.mask-layer { background-image: url("./assets/img/mask-layer.svg"); }
-    &.visible { background-image: url("./assets/img/visible.svg"); }
-    &.swap { background-image: url("./assets/img/swap.svg"); }
-    &.link { background-image: url("./assets/img/link.svg"); }
 
-    &.apply { background-image: url("./assets/img/check.svg"); }
-    &.reset { background-image: url("./assets/img/none.gif"); }
-
-    &.to-full-view { background-image: url("./assets/img/to-full-view.svg"); }
-    &.to-normal-view { background-image: url("./assets/img/to-normal-view.svg"); }
-    &.undo { background-image: url("./assets/img/undo.png"); }
-    &.redo { background-image: url("./assets/img/redo.png"); }
-    &.zoom-in { background-image: url("./assets/img/zoom-in.png"); }
-    &.zoom-out { background-image: url("./assets/img/zoom-out.png"); }
-}
 
 body {
     overflow: hidden;
@@ -1351,11 +1293,10 @@ body {
     outline: 2px solid black;
     box-sizing: border-box;
     overflow: auto;
-  //  overflow: hidden;
-    background-image: url("./assets/img/forest.jpg");
+    background-image: $img-bg-wrapper;
     background-size: 100% 100%;
     background-repeat: no-repeat;
-    background-color: grey;
+    background-color: $color-bg-wrapper;
 }
 
 #canvas-container {    
@@ -1365,7 +1306,7 @@ body {
     position: relative;
     cursor: none;
     #canvas {
-        background: url("./assets/img/transparent.png");
+        background: $img-bg-transparent;
         outline: 1px solid black;
         position: absolute;
         margin: auto;
@@ -1517,7 +1458,6 @@ body {
 
     &.rotation {
         transform: translate(-50%,-50%);
-        background-image: url("./assets/img/crosshair.png");
         background-size: cover;
         width: 16px!important;
         height: 16px!important;

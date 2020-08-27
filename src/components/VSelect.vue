@@ -80,7 +80,7 @@ export default {
 
 <style lang="scss">
 @import '~vue-select/dist/vue-select.css';
-@import "../assets/styles/colors";
+@import "../assets/styles/index.scss";
 
 $vs-dropdown-max-height: 30vh;
 
@@ -90,7 +90,7 @@ $vs-dropdown-max-height: 30vh;
 
 
 .vs__dropdown-menu {
-    z-index: 100000000000000;
+    z-index: $z-index_dropdown-list;
 }
 
 .vs__dropdown-option--highlight {

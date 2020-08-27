@@ -95,13 +95,13 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "../assets/styles/colors";
+@import "../assets/styles/index.scss";
 
 #gradient-creator {
     position: fixed;
     left: 50%;
     top: 50%;
-    z-index: 100000000;
+    z-index: $z-index_gradient-creator;
     border: 1px solid black;
     background: $color-bg;
     transform: translate(-50%,-50%);

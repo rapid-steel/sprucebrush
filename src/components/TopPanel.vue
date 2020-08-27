@@ -100,10 +100,12 @@
             :class="{active: display.importMenu}"
             @click.stop="() => setDisplay('importMenu', !display.importMenu)">
             <input 
-            type="file" accept="image/*"
-            ref="importImage" 
-            @change="importImage">
-            <img src="../assets/img/load-image.png" :title="$t('topPanel.importMenu.title')" />
+                type="file" accept="image/*"
+                ref="importImage" 
+                @change="importImage">
+            <img 
+                src="../assets/img/load-image.png" 
+                :title="$t('topPanel.importMenu.title')" />
             <div class="menu-itemlist" 
                 v-show="display.importMenu" 
                 @click.stop>
@@ -174,8 +176,8 @@
             </div>
         </div>    
          <div class="btn" 
-         @click.stop="() => $emit('save-image')" 
-         :title="$t('topPanel.saveImage.title')">
+            @click.stop="() => $emit('save-image')" 
+            :title="$t('topPanel.saveImage.title')">
             <img src="../assets/img/save-image.png" />
         </div>    
     </div>
@@ -372,7 +374,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "../assets/styles/colors";
+@import "../assets/styles/index.scss";
 
 .menu-tabs { 
     display: flex; 
@@ -512,7 +514,7 @@ export default {
         top: 50%;
         left: 0;
         transform: translate(-50%,-50%);
-        background-color: white;
+        background-color: $color-bg;
     }
     border: 3px dashed transparent;
     border-right: none;

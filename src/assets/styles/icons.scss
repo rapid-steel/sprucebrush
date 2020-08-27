@@ -1,0 +1,75 @@
+@import "./sizes.scss";
+
+$icon_folder: "./assets/img/icons/";
+$icons: (
+    add: "plus.svg",
+    copy: "copy.svg",
+    edit: "edit.svg",
+    cancel: "cancel.svg",
+    merge: "merge.svg",
+    delete: "trash.svg",
+    export: "export.svg",
+    import: "import.svg",
+    lock: "lock.svg",
+    mask-layer: "mask-layer.svg",
+    opacity: "opacity.svg",
+    compose: "compose.svg",
+    visible:"visible.svg",
+    swap: "swap.svg",
+    link: "link.svg",
+    apply: "check.svg",
+    reset: "none.gif",
+    to-full-view: "to-full-view.svg",
+    to-normal-view: "to-normal-view.svg",
+    undo: "undo.png",
+    redo: "redo.png",
+    zoom-in: "zoom-in.png",
+    zoom-out: "zoom-out.png",
+);
+
+.icon-btn {
+    cursor: pointer;
+    border: none;
+    width: $icon-btn-size;
+    flex: 0 0 $icon-btn-size;
+    height: $icon-btn-size;    
+    background: {
+        color: transparent;            
+        position: center;
+        repeat: no-repeat;
+        size: 60% 60%;
+    }
+    &.toggle-btn {
+        opacity: .8;
+        &.active {
+            opacity: 1;
+            border: 1px black solid;
+            border-radius: 5px;
+        }
+    }
+    &.small {
+        width: $icon-btn-size-small;
+        flex: 0 0 $icon-btn-size-small;
+        height: $icon-btn-size-small;
+        background-size: 80% 80%;    
+        &.delete {
+            background-size: 70% 70%;
+        }
+        &.cancel {
+            background-size: 60% 60%;
+        }
+    }
+    &.micro {
+        width: $icon-btn-size-micro;
+        flex: 0 0 $icon-btn-size-micro;
+        height: $icon-btn-size-micro;
+        background-size: 100% 100%;
+    }
+    &[disabled] {
+        opacity: .5;
+    }
+
+    @each $icon, $img in $icons {
+        &.#{$icon} { background-image: url($icon_folder + $img); }
+    }
+}

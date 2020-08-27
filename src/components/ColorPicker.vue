@@ -57,7 +57,7 @@ export default {
 </script>
 
 <style lang="scss">
-@import "../assets/styles/colors";
+@import "../assets/styles/index.scss";
 
 .color-picker {
     position: relative;

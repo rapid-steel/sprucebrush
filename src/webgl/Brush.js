@@ -44,7 +44,7 @@ export default class Brush extends ToolWebGL {
        
     }
     setProgram(programType) {
-        this._createProgram(programType);
+        this._createMainProgram(programType);
 
         this.programParams = {
             diameter: "1f",

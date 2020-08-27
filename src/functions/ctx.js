@@ -3,8 +3,8 @@
 // and also some common operations to not copypaste them everywhere
 
 
-function create(w, h, context) {
-    let ctx = document.createElement("canvas").getContext(context);
+function create(w, h, context, params = {}) {
+    let ctx = document.createElement("canvas").getContext(context, params);
     resize(ctx, w, h);
     if(context == "2d") {
         disableSmoothing(ctx);

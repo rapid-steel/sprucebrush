@@ -447,7 +447,7 @@ export default {
 </script>
 
 <style lang="scss">
-@import "../assets/styles/colors";
+@import "../assets/styles/index.scss";
 
 #tools {
     width: $tool-panel-width;
@@ -651,7 +651,7 @@ img.icon {
             &::after {
                 background: $color-accent;                
                 content: '\2713';
-                color: white;
+                color: $color-bg;
             }        
         }
     }
@@ -726,7 +726,7 @@ img.icon {
     justify-content: center;
     margin: 10px 0;
     button {
-        background: $btn-bg;
+        background: $img-bg-button;
         background: {
             size: 100% 100%;
             repeat: no-repeat;

@@ -36,7 +36,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "../assets/styles/colors";
+@import "../assets/styles/index.scss";
 
 
 #statusBar {
