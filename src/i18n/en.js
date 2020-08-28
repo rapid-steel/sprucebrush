@@ -98,8 +98,16 @@ export default {
         remove: "Remove color",
         moveRight: "Move color to right"
     },
-    colorPicker: {
-        newPalette: "New palette"
+    palette: {
+        newPalette: "New palette",
+        addPalette: "Add palette",
+        renamePalette: "Rename palette",
+        deletePalette: "Delete palette",
+        addColor: "Add color to palette",
+        editColor: "Edit color",
+        deleteColor: "Remove color from palette",
+        importPalette: "Import palette",
+        exportPalette: "Export palette"
     },
     tools: {
         tools: {

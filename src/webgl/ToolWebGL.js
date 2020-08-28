@@ -24,6 +24,7 @@ export default class ToolWebGL {
         this.gl =  Ctx.create(100, 100, "webgl", {
            premultipliedAlpha: true,
            depth: false,
+           antialias: true
         });
         this.canvas = this.gl.canvas;
 

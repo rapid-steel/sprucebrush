@@ -1,5 +1,6 @@
 <template>
     <vue-select 
+        ref="select"
         :options="options"            
         :value="value"
         :label="vsLabel"
@@ -50,6 +51,9 @@ export default {
         }
     }, 
     methods: {
+        toggle(e) {
+            this.$refs.select.toggleDropdown(e);
+        },
          getLabel(option) {
             if(this.label != null) {
                 if(typeof this.label == "string") {

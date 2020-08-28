@@ -38,7 +38,6 @@ It is also possible to draw with a gradient rather than a solid color.
 Note: some settings has a parameter "length": it is set in units equal to diameter or
 line width.
 
-
 ### Other
 - Layers
 - Blending modes

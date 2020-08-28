@@ -111,7 +111,7 @@ export default new Vuex.Store({
             });
         },
         palette_import(state, palettes) {
-            palettes = palettes.filter(p => p.name && Array.isArray(p.colors))
+            palettes = palettes
             .map(p => ({ ...p, id: generateId()}));
             state.palettes = palettes.concat(state.palettes);
         },
@@ -130,13 +130,18 @@ export default new Vuex.Store({
                 state.palettes = state.palettes.slice();
             }
         },
+        palette_editColor(state, [id, {index, color}]) {
+            let palette = state.palettes.find(p => p.id == id);
+            palette.colors[index] = color;
+            palette.colors = palette.colors.slice();
+        },
         palette_reorderColors(state, [id, {oldIndex, newIndex}]) {            
             let palette = state.palettes.find(p => p.id == id);
             palette.colors = palette.colors.slice();
         },
-        palette_deleteColor(state, [id, color]) {
+        palette_deleteColor(state, [id, index]) {
             let palette = state.palettes.find(p => p.id == id);
-            palette.colors.splice(palette.colors.indexOf(color), 1);
+            palette.colors.splice(index, 1);
             state.palettes = state.palettes.slice();
         },
         asset_add(state, [{type, textype = 0}, obj]) {

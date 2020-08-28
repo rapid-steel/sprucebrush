@@ -12,7 +12,14 @@ export function toHex(str) {
       if(str.indexOf("#") == 0) return str;
       if(str.indexOf("rgb") == 0) 
           return rgbToHex(...( str.replace(")", "").split("(")[1].split(",")).map(s => +s));
-  }
+ }
+
+
+export function validateRgb(str) {
+    let vals = str.replace(")", "").split("(")[1].split(",").map(s => +s);  
+    return vals[0] <= 255 && vals[1] <= 255 && vals[2] <= 255 && (vals.length == 3 || vals[3] <= 1);
+}
+
 
 export function getRgba(color) {
     if(color.indexOf("rgb") == 0) {

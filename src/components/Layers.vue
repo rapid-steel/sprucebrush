@@ -52,11 +52,13 @@
                 <!--  <button class="icon-btn small merge"
                     v-if="i != layersReverse.length - 1"
                     @click.stop="() => $emit('merge-layers', layersReverse.slice(i, i+2).map(l => l.id))" /> -->
-                <button class="icon-btn micro compose" />
+                <button class="icon-btn micro compose" 
+                    @click.stop="e => $refs['bm' + l.id][0].toggle(e)" />
                 <v-select 
+                    :ref="'bm' + l.id"
                     :options="blendModes" 
                     :label="'label'"           
-                    :disabled="!l.visible"
+                    :disabled="!l.visible || l.locked"
                     v-model="l.blend"
                     @input="() => $emit('update:blend')" />
             </div>
@@ -101,7 +103,6 @@ export default {
         }
     },
     mounted() {
-
     },
     methods: {
         
