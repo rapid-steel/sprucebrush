@@ -1,0 +1,90 @@
+@import "./sizes.scss";
+@import "./images.scss";
+
+
+%pseudo-el-center {
+    display: block;
+    position: absolute;
+    content: "";
+    z-index: $z-index_canvas-cursor;
+}
+
+
+#cursor {
+    pointer-events: none;
+    position: fixed;
+    z-index: -1;
+    visibility: hidden;
+    transform: translate3d(-50%,-50%, 0);
+    transform-origin: 50% 50%;
+
+
+    &.brush, &.eraser, &.picker, &.roller, &.fill {
+        border: .5px solid rgba(255,255,255,.75);
+        box-shadow: 0 0 .5px .5px rgba(0,0,0,.5);
+    }
+    
+    &.brush, &.eraser {
+        &.round {
+            border-radius: 50%;
+        }      
+        &.texture {
+            max-width: unset;
+            background: {
+                repeat: no-repeat;
+                position: center;
+                size: 100% 100%;                
+            };
+            border: none;
+            box-shadow: none;
+            filter: url(#outline);
+        }
+    }
+    &.hand, 
+    &.grab {
+        width: 2px!important;
+        height: 2px!important;
+    }
+    &.fill {
+        width: 2px!important;
+        height: 2px!important;
+        border-radius: 50%;
+    }
+    &.picker {
+        width: 5px!important;
+        height: 5px!important;
+        border-radius: 50%;      
+    }
+    &.picker, &.fill, &.hand {
+        &::after {
+            @extend %pseudo-el-center;
+            bottom: 75%;
+            left: 60%;
+            width: 20px;
+            height: 20px;
+            background-size: 100% 100%;        
+        }
+    }
+
+    &.selection_rect, &.selection_polygon, &.selection_lasso, 
+    &.rotation, &.locked {
+        width: 0;
+        height: 0;
+        &::after {
+            @extend %pseudo-el-center;
+            width: 20px!important;
+            height: 20px!important;
+            background-size: 100% 100%;        
+            transform: translate(-50%,-50%);
+        }
+    }
+
+    
+    &.locked {
+        border: none!important;       
+        box-shadow: none;
+    }
+    @each $icon, $img in $cursor-icons {
+        &.#{$icon}::after { background-image: url($cursor-icons_folder + $img); }
+    }
+}

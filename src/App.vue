@@ -491,15 +491,20 @@ created() {
             this.restrictToAxis(e);
         },
         Delete: e => {
-            if(this.activeSelection) {
-                this.clearSelection();
-            } else if(this.selection) {
-                if(this.selection.type == "polygon") {
-                    if(this.selection.path.length > 2) {
-                        this.selection.removePoint();
-                        this.selection.setPoint(this.lastPoint.coords);
-                    } else this.dropSelection();
-                }
+            if(this.currentSettings.selection) {
+                if(this.activeSelection) {
+                    this.clearSelection();
+                } else if(this.selection) {
+                    if(this.selection.type == "polygon") {
+                        if(this.selection.path.length > 2) {
+                            this.selection.removePoint();
+                            this.selection.setPoint(this.lastPoint.coords);
+                        } else this.dropSelection();
+                    }
+                } 
+            }
+            if(this.currentTool == "picker") {
+                this.clearPicker();
             }
         },
         KeyB: e => this.$store.commit("selectTool", "brush"),
@@ -919,6 +924,9 @@ methods: {
         } 
         return this.colorToEdit;
     },
+    clearPicker() {
+        this.setCursorColor("transparent");
+    },
     pickColor(coord, colorType) {
         let color = this._pickColorAtCoord(coord);
         if(color) {
@@ -1204,12 +1212,18 @@ methods: {
 </script>
 
 <style lang="scss">
-@import "./assets/styles/icons.scss";
-@import "./assets/styles/index.scss";
+@import "./styles/icon-btn.scss";
+@import "./styles/cursor.scss";
+@import "./styles/index.scss";
+@import "./styles/icon.scss";
+@import "./styles/tools.scss";
+@import "./styles/menu-icon.scss";
 
 
 input[type=file] {
     width: 0;
+    height: 0;
+    position: absolute;
     visibility: hidden;
 }
 input::-webkit-outer-spin-button,
@@ -1284,6 +1298,7 @@ body {
         }
     }
 }
+
 
 #wrapper {
     flex: 2 1 100%;
@@ -1364,119 +1379,7 @@ body {
     }
 }
 
-#cursor {
-    pointer-events: none;
-    position: fixed;
-    z-index: -1;
-    visibility: hidden;
-    transform: translate(-50%,-50%);
-    transform-origin: 50% 50%;
 
-
-    &.brush, &.eraser, &.picker, &.roller, &.fill {
-        border: .5px solid rgba(255,255,255,.75);
-        box-shadow: 0 0 .5px .5px rgba(0,0,0,.5);
-    }
-    
-    &.brush, &.eraser {
-        &.round {
-            border-radius: 50%;
-        }      
-        &.texture {
-            max-width: unset;
-            background: {
-                repeat: no-repeat;
-                position: center;
-                size: 100% 100%;                
-            };
-            border: none;
-            box-shadow: none;
-            filter: url(#outline);
-        }
-    }
-    &.hand, 
-    &.grab {
-        width: 2px!important;
-        height: 2px!important;
-    }
-    &.hand {
-        &::after {
-            background-image: url("./assets/img/hand.svg");
-        }
-    }
-    &.grab {
-        &::after {
-            background-image: url("./assets/img/grab.svg");
-        }
-    }
-    &.fill {
-        width: 2px!important;
-        height: 2px!important;
-        border-radius: 50%;
-        &::after {
-            background-image: url("./assets/img/fill_opaq.png");
-        }
-    }
-    &.picker {
-        width: 15px!important;
-        height: 15px!important;
-        border-radius: 50%;      
-        &::after {
-            background-image: url("./assets/img/picker_opaq.png");
-        }
-    }
-    &.picker, &.fill, &.hand {
-        transform: none!important;
-        &::after {
-            display: block;
-            position: absolute;
-            bottom: 50%;
-            left: 50%;
-            content: "";
-            z-index: $z-index_canvas-cursor;
-            width: 20px;
-            height: 20px;
-            background-size: 100% 100%;        
-        }
-    }
-
-    &.selection_rect, &.selection_polygon, &.selection_lasso {
-        transform: translate(-50%,-50%);
-        background-image: url("./assets/img/crosshair.png");
-        background-size: cover;
-        width: 20px!important;
-        height: 20px!important;
-        &.rotate {
-            width: 16px!important;
-            height: 16px!important;
-            background-image: url("./assets/img/rotate.svg");
-        }
-        &.resize {
-            background-image: url("./assets/img/resize3.svg");
-        }
-    }
-
-    &.rotation {
-        transform: translate(-50%,-50%);
-        background-size: cover;
-        width: 16px!important;
-        height: 16px!important;
-        background-image: url("./assets/img/rotate.svg");
-
-    }
-
-    &.locked {
-        width: 16px!important;
-        height: 16px!important;
-        background-size: cover;
-        border: none!important;
-        background-image: url("./assets/img/none.gif")!important;
-        box-shadow: none;
-        &::after {
-            display: none!important;
-        }
-    }
-}
 
 #logo {
     position: fixed;

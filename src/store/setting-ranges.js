@@ -1,29 +1,30 @@
 export default Object.freeze({
     values: {
-        diameter:    {min: 1,    max: 1000, step: 1,   icon: require("../assets/img/diameter.png")},
-        lineWidth: {min: 1,    max: 1000, step: 1,   icon: require("../assets/img/linewidth.png")},    
-        opacity:   {min: .01,  max: 1,    step: .01, icon: require("../assets/img/opacity.png")},
-        hardness: {min: .01, max: 1, step: .01, icon: require("../assets/img/hardness.png")},
-        spacing:   {min: .01,  max: 10,   step: .01, icon: require("../assets/img/spacing.png")},  
-        scatter:   {min: 0,  max: 1,   step: .01, icon: require("../assets/img/scatter.png")},  
+        diameter:    {min: 1,    max: 1000, step: 1,   icon: "diameter"},
+        lineWidth: {min: 1,    max: 1000, step: 1,   icon: "linewidth"},    
+        opacity:   {min: .01,  max: 1,    step: .01, icon:"opacity"},
+        flow:   {min: .01,  max: 1,    step: .01, icon: "flow"},
+        hardness: {min: .01, max: 1, step: .01, icon: "hardness"},
+        spacing:   {min: .01,  max: 10,   step: .01, icon: "spacing"},  
+        scatter:   {min: 0,  max: 1,   step: .01, icon: "scatter"},  
         tolerance: {min: 1,    max: 255,  step: 1 },
-        angle:     {min: 0,    max: 359,  step: 1,   icon: require("../assets/img/angle.png")},   
-        stretch:   {min: .01, max: 100,  step: .01,icon: require("../assets/img/stretch.png")},   
+        angle:     {min: 0,    max: 359,  step: 1,   icon: "angle"},   
+        stretch:   {min: .01, max: 100,  step: .01, icon: "stretch"},   
         rAngle: {min: 0,    max: 359,  step: 1, resetTo: 0},
-        hue: {icon: require("../assets/img/hue.png")},
-        saturation: {icon: require("../assets/img/saturation.png")},
-        lightness: {icon: require("../assets/img/lightness.png")}
+        hue: {icon: "hue"},
+        saturation: {icon: "saturation"},
+        lightness: {icon: "lightness"}
     },
     smoothing: {
         curve: {min: 1, max: 25, step: 1},
         angle: {min: 1, max: 25, step: 1},
     },
     gradient: {
-        length: {min: 1, max: 1000, step: 1, icon: require("../assets/img/linewidth.png") },
+        length: {min: 1, max: 1000, step: 1, icon: "linewidth" },
         types: {
-            by_len: {icon: require("../assets/img/gradient_by_len.png")},
-            by_wid: {icon: require("../assets/img/gradient_by_wid.png")},
-            radial: {icon: require("../assets/img/gradient_radial.png")}
+            by_len: {icon: "gradient_by_len"},
+            by_wid: {icon: "gradient_by_wid"},
+            radial: {icon: "gradient_radial"}
         }
     },
     pattern: {

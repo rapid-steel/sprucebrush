@@ -123,7 +123,7 @@ export default {
 </script>
 
 <style lang="scss">
-@import "../assets/styles/index.scss";
+@import "../styles/index.scss";
 
 .range-input {
     position: relative;

@@ -3,10 +3,10 @@
         <div class="setting-value"
             v-for="s in settingsList" 
             :key="s[0]">
-            <img class="icon" 
+            <div class="icon" 
                 v-if="s[1].icon"
-                :src="s[1].icon" 
-                :title="$t('tools.settings.' + s[0])">
+                :class="s[1].icon" 
+                :title="$t('tools.settings.' + s[0])"/>
             <div class="caption"
                 v-if="!s[1].icon"
                 >{{$t('tools.settings.' + s[0])}}</div>
@@ -74,7 +74,7 @@ export default {
 </script>
 
 <style lang="scss">
-@import "../assets/styles/index.scss";
+@import "../styles/index.scss";
 
 
 

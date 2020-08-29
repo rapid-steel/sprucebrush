@@ -1,15 +1,14 @@
 <template>
     <div class="menu-tabs">
 
-        <div class="btn" 
-            @click.stop="$emit('new-drawing')">
-            <img src="../assets/img/new-drawing.png" 
-                :title="$t('topPanel.newDrawing.title')" />
-        </div>
-        <div class="btn" 
+        <div class="menu-section menu-icon new-drawing"
+            :title="$t('topPanel.newDrawing.title')"
+            @click.stop="$emit('new-drawing')"></div>
+
+        <div class="menu-section" 
             :class="{active: display.sizesForm}"
             @click.stop="() => setDisplay('sizesForm', !display.sizesForm)">
-            <img src="../assets/img/change-sizes.png" 
+            <div class="menu-icon sizes-form"
                 :title="$t('topPanel.sizesForm.title')" />
             <div class="menu-form" 
                 v-show="display.sizesForm" 
@@ -49,7 +48,7 @@
                         :class="{active: sizesModel.resizeMode == 'resize'}"
                         @click="() => sizesModel.resizeMode = 'resize'">
                         <div>
-                            <img src="../assets/img/resize-mode.png" >
+                            <div class="menu-icon resize-mode" />
                         </div>
                         <div>{{$t('topPanel.sizesForm.resize')}}</div>
                     </div>
@@ -63,7 +62,7 @@
                                 :class="{active: sizesModel.originMode == m}"
                                 @click="() => sizesModel.originMode = m">
                             </div>
-                            <img src="../assets/img/move-mode.png" >                            
+                            <div class="menu-icon move-mode" />                           
                         </div>
                         <div>{{$t('topPanel.sizesForm.move')}}</div>
                     </div>
@@ -75,14 +74,14 @@
                 </div>                          
             </div>
         </div>
-        <div class="btn" 
+        <div class="menu-section" 
             :class="{active: display.transformMenu}"
             @click.stop="() => setDisplay('transformMenu', !display.transformMenu)">
             <input 
-            type="file" accept="image/*"
-            ref="importImage" 
-            @change="importImage">
-            <img src="../assets/img/transform-menu.png" 
+                type="file" accept="image/*"
+                ref="importImage" 
+                @change="importImage">
+            <div class="menu-icon transform-menu"
             :title="$t('topPanel.transformMenu.title')" />
             <div class="menu-itemlist" 
                 v-show="display.transformMenu" 
@@ -91,20 +90,19 @@
                     v-for="action in transformations"
                     :key="action.k"
                     @click.stop="() => $emit('transform-canvas', action)">
-                    <img :src="action.img">
+                    <div class="menu-icon" :class="action.icon" />
                     <div>{{$t('topPanel.transformMenu.' + action.k)}}</div>
                 </div>
             </div>
         </div>    
-        <div class="btn" 
+        <div class="menu-section" 
             :class="{active: display.importMenu}"
             @click.stop="() => setDisplay('importMenu', !display.importMenu)">
             <input 
                 type="file" accept="image/*"
                 ref="importImage" 
                 @change="importImage">
-            <img 
-                src="../assets/img/load-image.png" 
+            <div class="menu-icon import-menu"
                 :title="$t('topPanel.importMenu.title')" />
             <div class="menu-itemlist" 
                 v-show="display.importMenu" 
@@ -113,15 +111,15 @@
                     v-for="mode in importModes"
                     :key="mode.k"
                     @click.stop="() => loadImage(mode)">
-                    <img :src="mode.img">
+                    <div class="menu-icon" :class="mode.icon" />   
                     <div>{{$t('topPanel.importMenu.' + mode.k)}}</div>
                 </div>
             </div>
         </div>    
-        <div class="btn"
+        <div class="menu-section"
             :class="{active: display.filtersMenu}"
             @click.stop="() => setDisplay('filtersMenu', !display.filtersMenu)">
-            <img src="../assets/img/filters.png" 
+             <div class="menu-icon filters" 
                 :title="$t('topPanel.filtersMenu.title')" />
             <div class="menu-itemlist" 
                 v-show="display.filtersMenu">
@@ -175,12 +173,10 @@
                 </div>                          
             </div>
         </div>    
-         <div class="btn" 
+         <div class="menu-section menu-icon save-image" 
             @click.stop="() => $emit('save-image')" 
-            :title="$t('topPanel.saveImage.title')">
-            <img src="../assets/img/save-image.png" />
-        </div>    
-    </div>
+            :title="$t('topPanel.saveImage.title')"></div>    
+        </div>
 
 
 </template>
@@ -204,16 +200,16 @@ export default {
             currentFilter: false,
             importMode: "leave",
             importModes: [
-                {k: "leave", img: require("../assets/img/import-leave.png")},
-                {k: "resize_img", img: require("../assets/img/import-resize-img.png")},
-                {k: "resize_canvas", img: require("../assets/img/import-resize-canvas.png")}
+                {k: "leave", icon :"import-leave"},
+                {k: "resize_img", icon :"import-resize-img"},
+                {k: "resize_canvas", icon :"import-resize-canvas"}
             ],
             transformations: [
-                {k: "rotate90_CW", img: require("../assets/img/rotate-90-cw.png"), rotate: 90},
-                {k: "rotate90_CCW", img: require("../assets/img/rotate-90-ccw.png"), rotate: -90},
-                {k: "rotate180", img: require("../assets/img/rotate-180.png"), rotate: 180},
-                {k: "flipX", img: require("../assets/img/flip-x.png"), flip: "x"},
-                {k: "flipY", img: require("../assets/img/flip-y.png"), flip: "y"}
+                {k: "rotate90_CW", icon: "rotate-90-cw", rotate: 90},
+                {k: "rotate90_CCW", icon: "rotate-90-ccw", rotate: -90},
+                {k: "rotate180", icon: "rotate-180", rotate: 180},
+                {k: "flipX", icon: "flip-x", flip: "x"},
+                {k: "flipY", icon: "flip-y", flip: "y"}
             ],
             filters: [{
                     k: "invert"
@@ -374,7 +370,31 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "../assets/styles/index.scss";
+@import "../styles/index.scss";
+
+.menu-section {
+    flex: 1 0 $btn-top-size;
+    height: $btn-top-size;
+    max-width: $btn-top-size;
+    margin: 0 10px;
+    position: relative;
+    & > .menu-icon {
+        width: 100%;
+        height: 100%;
+    }
+    
+    &.active {
+        &::after {
+            position: absolute;
+            content: "";
+            display: block;
+            top: 100%;
+            right: 0;
+            left: 0;
+            border-top: 4px $color-accent solid;
+        }
+    }
+}
 
 .menu-tabs { 
     display: flex; 
@@ -383,33 +403,9 @@ export default {
     position: relative;
     z-index: $z-index_menu;
     
-    .btn {
-        flex: 1 0 $btn-top-size;
-        height: $btn-top-size;
-        max-width: $btn-top-size;
-        margin: 0 10px;
-        
-        img {
-            width: 100%;
-            height: 100%;
-        }
-        position: relative;
-        
-        &.active {
-            &::after {
-                position: absolute;
-                content: "";
-                display: block;
-                top: 100%;
-                right: 0;
-                left: 0;
-                border-top: 4px $color-accent solid;
-            }
-        }
-    }
     .menu-form {
         padding: 15px;
-        min-width: 240px;
+        min-width: $menu-form-min-width;
         display: flex;
         flex-direction: column;
         align-items: stretch;
@@ -426,7 +422,7 @@ export default {
         .footer {
             justify-content: center;
         }
-        input {
+        input[type=number] {
             border: $input-border;
             border-radius: 0;
             width: 60px;
@@ -446,11 +442,9 @@ export default {
                     outline: 2px $color-selected solid;
                 }        
             }
-
         }
-
-
     }
+
     .menu-itemlist {
         font: $font-menu;
         .menu-item {
@@ -460,7 +454,6 @@ export default {
             padding: 3px;
             &:hover {
                 background-color: $color-accent3;
-                //color: $color-bg;
                 font-weight: bold;
             }
             & > div {
@@ -468,17 +461,17 @@ export default {
                 padding: 5px 1px;
                 flex: 1 1 100%;
             }
-            img {
-                width: 32px;
-                height: 32px;
-                margin-right: 3px;
+            .menu-icon, img {
+                width: $menu-item-icon-size;
+                height: $menu-item-icon-size;
+                margin-right: $menu-item-icon-size / 10;
             }
             &.big {
                 padding: 5px;
-                img {
-                    width: 64px;
-                    height: 64px;
-                    margin-right: 5px;
+                .menu-icon {
+                    width:  $menu-item-icon-size-big;
+                    height: $menu-item-icon-size-big;
+                    margin-right: $menu-item-icon-size-big / 10;
                 }
             }
 
@@ -543,7 +536,7 @@ export default {
             flex: 3.5 1 70px;         
             outline: 1px dashed rgba(0,0,0,.25);   
             position: relative; 
-            & > img {
+            & > .menu-icon {
                 width: 100px;
                 height: 70px;
             }
@@ -560,26 +553,28 @@ export default {
             justify-content: stretch;
             align-items: stretch;
             position: relative;
-            img {
+            .menu-icon {
                 position: absolute;
                 width: 66%;
+                max-width: 66%;
                 height: 66%;
+                max-height: 66%;
                 pointer-events: none;
                 z-index: -1;
                 top: 16.5%;
                 left: 16.5%;
             }
             &.top {
-                img { top: 0; }
+                .menu-icon { top: 0; }
             }
             &.bottom {
-                img { top: 33%; }
+               .menu-icon { top: 33%; }
             }
             &.left {
-                img { left: 0; }
+                .menu-icon { left: 0; }
             }
             &.right {
-                img { left: 33%; }
+                .menu-icon { left: 33%; }
             }
 
             & > div {

@@ -426,7 +426,7 @@ export default class ToolWebGL {
             this.gradientRatio =  h_ratio;
             this.gl.uniform1f(this.gl.getUniformLocation(this.mainProgram, "gradientRatio"), this.gradientRatio);
         }     
-        this.gl.sampleCoverage(this.params.opacity, false);
+        this.gl.sampleCoverage(1 - (1 - this.params.opacity) * this.params.flow||1, false);
   //      this.gl.enable(this.gl.SAMPLE_ALPHA_TO_COVERAGE)
        this.setUniforms();
 

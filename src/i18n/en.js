@@ -96,7 +96,9 @@ export default {
         addColor: "Click to add color",
         moveLeft: "Move color to left",
         remove: "Remove color",
-        moveRight: "Move color to right"
+        moveRight: "Move color to right",
+        importGradient: "Import gradient",
+        exportGradient: "Export gradient"
     },
     palette: {
         newPalette: "New palette",
@@ -130,6 +132,7 @@ export default {
             angle: "Angle",
             stretch: "Stretch",
             lineWidth: "Width",
+            flow: "Flow",
             curveSmoothing: "Smooth curve",
             angleSmoothing: "Smooth angle",
             opacity: "Opacity",            

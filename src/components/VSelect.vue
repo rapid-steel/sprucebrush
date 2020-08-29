@@ -84,14 +84,24 @@ export default {
 
 <style lang="scss">
 @import '~vue-select/dist/vue-select.css';
-@import "../assets/styles/index.scss";
+@import "../styles/index.scss";
 
 $vs-dropdown-max-height: 30vh;
 
 .vs__dropdown-option {
     font: $font-select-small;
 }
-
+.vs__selected-options {
+    max-width: 100%;
+}
+.vs__selected {
+    overflow: hidden;
+    span {
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+}
 
 .vs__dropdown-menu {
     z-index: $z-index_dropdown-list;

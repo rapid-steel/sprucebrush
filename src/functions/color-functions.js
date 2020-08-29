@@ -55,3 +55,27 @@ export function getGlColor(color) {
         return vals;
     }
 }
+
+const patternHex = /(#)?[0-9a-f]{6}/ig;
+const patternRgb = /rgb(\s+)?\((\s+)?[0-9]{1,3}(\s+)?,(\s+)?[0-9]{1,3}(\s+)?,(\s+)?[0-9]{1,3}(\s+)?\)/ig;
+const patternRgba = /rgba(\s+)?\((\s+)?[0-9]{1,3}(\s+)?,(\s+)?[0-9]{1,3}(\s+)?,(\s+)?[0-9]{1,3}(\s+)?,(\s+)?[\.0-9]+(\s+)?\)/ig;
+
+export function extractColorsFromText(text) {
+    let colors = [];
+    let colorsHex = text.match(patternHex).map(c => c[0] != "#" ? "#" + c : c);
+    if(colorsHex) colors = colors.concat(colorsHex.map(c => c.toLowerCase()));
+    let colorsRgb = text.match(patternRgb);
+    if(colorsRgb) colors = colors.concat(colorsRgb.filter(validateRgb).map(toHex));
+    let colorsRgba = text.match(patternRgba);
+    if(colorsRgba) colors = colors.concat(colorsRgba.filter(validateRgb).map(toHex));
+
+    let codes = {};
+    let colors_uniq = [];
+    for(let i = 0; i < colors.length; i++) {
+        if(!codes[colors[i]]) {
+            codes[colors[i]] = 1;
+            colors_uniq.push(colors[i]);
+        }
+    }
+    return colors_uniq;
+}

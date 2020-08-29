@@ -14,9 +14,10 @@ export default {
         modifying: true,
         drawing: true,
         values: {
-            diameter: 50,
+            diameter: 5,
             opacity: 1,
             spacing: .05,
+            flow: 1,
             scatter: 0,  
             angle: 0,
             stretch: 1,
@@ -50,7 +51,7 @@ export default {
         drawing: true,
         smoothing: {},
         values: {
-            diameter: 50,
+            diameter: 5,
             opacity: 1,
             spacing: .05,  
             scatter: 0,  

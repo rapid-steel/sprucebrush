@@ -7,7 +7,7 @@ export default {
     methods: {
         setCursor() {
             const {values} = this.currentSettings;
-            this.$refs.cursor.style.transform = null;
+            this.$refs.cursor.style.transform = `translate3d(-50%,-50%,0)`;
             this.$refs.cursor.style.backgroundImage = null;
             this.$refs.cursor.style.backgroundColor = "transparent";
             this.$refs.cursor.style.width = null;

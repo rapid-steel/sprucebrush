@@ -117,7 +117,7 @@ export default {
 </script>
 
 <style lang="scss">
-@import "../assets/styles/index.scss";
+@import "../styles/index.scss";
 
 .context-menu {
     background-color: $color-bg;

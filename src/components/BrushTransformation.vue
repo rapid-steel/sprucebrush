@@ -130,7 +130,7 @@ export default {
 </script>
 
 <style lang="scss">
-@import "../assets/styles/index";
+@import "../styles/index.scss";
 
 .brush-transformation {    
     .world-axes {

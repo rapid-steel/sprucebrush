@@ -80,7 +80,7 @@ void main(void) {
 
     #ifdef GRADIENT
     # ifdef BY_LEN
-        float div = gradientLength / spacing / 2.0;
+        float div = gradientLength / spacing;
         float offset = mod(vIndex, div) / div;
     # else        
         float offset = length(cxy);

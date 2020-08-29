@@ -1,0 +1,106 @@
+
+
+$btn-icons_folder: "./assets/img/icons/";
+$btn-icons: (
+    add: "plus.svg",
+    apply: "check.svg",
+    copy: "copy.svg",
+    cancel: "cancel.svg",
+    color-wheel: "color-wheel.svg",
+    compose: "compose.svg",
+    delete: "trash.svg",
+    downward: "downward.svg",
+    edit: "edit.svg",
+    export: "export.svg",
+    import: "import.svg",
+    link: "link.svg",
+    lock: "lock.svg",
+    mask-layer: "mask-layer.svg",
+    merge: "merge.svg",
+    opacity: "opacity.svg",
+    redo: "redo.png",
+    reset: "none.gif",
+    swap: "swap.svg",
+    to-full-view: "to-full-view.svg",
+    to-normal-view: "to-normal-view.svg",
+    visible:"visible.svg",    
+    undo: "undo.png",    
+    zoom-in: "zoom-in.png",
+    zoom-out: "zoom-out.png",
+);
+
+$cursor-icons_folder: "./assets/img/cursor/";
+$cursor-icons: (
+    hand: "hand.svg",
+    grab: "grab.svg",
+    fill: "fill_opaq.png",
+    picker: "picker_opaq.png",
+    selection_rect: "crosshair.png",
+    selection_polygon: "crosshair.png",
+    selection_lasso: "crosshair.png",
+    rotate: "rotate.svg",
+    resize: "resize3.svg",
+    rotation: "rotate.svg",
+    locked: "none.gif"
+);
+
+$settings-icons_folder: "./assets/img/settings/";
+$settings-icons: (
+    angle: "angle.png",
+    diameter: "diameter.png",
+    flow: "flow.png",
+    gradient_by_len: "gradient_by_len.png",
+    gradient_by_wid: "gradient_by_wid.png",
+    gradient_radial: "gradient_radial.png",
+    hardness: "hardness.png",
+    hue: "hue.png",
+    lightness: "lightness.png",
+    linewidth: "linewidth.png",
+    opacity: "opacity.png",
+    saturation: "saturation.png",
+    scatter: "scatter.png",
+    spacing: "spacing.png",
+    stretch: "stretch.png"
+);
+
+$menu-icons_folder: "./assets/img/menu/";
+$menu-icons: (
+    new-drawing: "new-drawing.png",
+    sizes-form:  "change-sizes.png",
+    resize-mode: "resize-mode.png",
+    move-mode:   "move-mode.png",
+    transform-menu: "transform-menu.png",
+    flip-x: "flip-x.png",
+    flip-y: "flip-y.png",
+    rotate-90-cw: "rotate-90-cw.png",
+    rotate-90-ccw: "rotate-90-ccw.png",
+    rotate-180: "rotate-180.png",
+    import-menu: "load-image.png",
+    import-leave: "import-leave.png",
+    import-resize-canvas: "import-resize-canvas.png",
+    import-resize-img: "import-resize-img.png",
+    save-image: "save-image.png",
+    filters: "filters.png"
+);
+
+$tools-icons_folder: "./assets/img/tools/";
+$tools-icons: (
+    brush: "brush.png",
+    eraser: "eraser.png",
+    fill: "fill.png",
+    hand: "hand.png",
+    marker: "marker.png",
+    pen: "pen.png",
+    picker: "picker.png",
+    roller: "roller.png",
+    rotation: "rotation.png",
+    selection-lasso: "selection-lasso.png",
+    selection-polygon: "selection-polygon.png",
+    selection-rect: "selection-rect.png",
+);
+
+@mixin icon-classes($folder, $icons) {
+    @each $icon, $img in $icons {
+        &.#{$icon} { background-image: url($folder + $img); }
+    }
+}

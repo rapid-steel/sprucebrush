@@ -38,6 +38,20 @@
                 :size="180"  />
         </div>
 
+        <div class="gradient-controls">
+            <button class="icon-btn small export" 
+                :title="$t('gradientCreator.exportGradient')"
+                @click.stop="exportGradient"></button>
+            <button class="icon-btn small import"
+                :title="$t('gradientCreator.importGradient')"
+                @click.stop="$refs.importGradient.click">
+                <input 
+                    type="file" 
+                    ref="importGradient" 
+                    @change="importGradient">
+            </button>
+        </div>
+
 
         <div class="footer">
             <button @click="() => $emit('save', value)">{{$t('common.save')}}</button>
@@ -49,6 +63,8 @@
 
 <script>
 import {mapState} from "vuex";
+import {saveAs} from "file-saver";
+import {extractColorsFromText} from "../functions/color-functions";
 
 export default {
   name: 'GradientCreator',
@@ -71,31 +87,52 @@ export default {
 
   },
   methods: {
-      move(dir, i) {
-          let min = dir > 0 ? i : i+dir;
-          this.$emit('input', this.value.slice(0, min)
-          .concat([this.value[min+1], this.value[min]])
-          .concat(this.value.slice(min+2)));
-      },
-      remove(i) {
-          this.$emit('input', this.value.slice(0, i)
-          .concat(this.value.slice(i+1)));
+        exportGradient() {
+            saveAs(
+                new Blob([JSON.stringify({colors: this.value})], {type: "text"}), 
+                `gradient.json`
+            );
+        },
+        importGradient(e) {
+            e.target.files[0]
+            .text()
+            .then(text =>  {
+                let colors = extractColorsFromText(text);
+                if(colors.length > 1) {
+                    this.$emit("input", colors);
+                }
+            });
+        },
+        move(dir, i) {
+            let min = dir > 0 ? i : i+dir;
+            this.$emit('input', this.value.slice(0, min)
+            .concat([this.value[min+1], this.value[min]])
+            .concat(this.value.slice(min+2)));
+        },
+        remove(i) {
+            this.$emit('input', this.value.slice(0, i)
+            .concat(this.value.slice(i+1)));
 
-      },
-      addColor(e) {
-          let pos = Math.ceil(e.offsetX / e.target.clientWidth * this.maxI);
-
-          this.$emit('input', this.value.slice(0, pos)
-          .concat([this.value[this.editColor]])
-          .concat(this.value.slice(pos)));
-          this.editColor = pos;
-      }
+        },
+        addColor(e) {
+            let pos = Math.ceil(e.offsetX / e.target.clientWidth * this.maxI);
+            this.$emit('input', this.value.slice(0, pos)
+            .concat([this.value[this.editColor]])
+            .concat(this.value.slice(pos)));
+            this.editColor = pos;
+        }
   }
 }
 </script>
 
 <style scoped lang="scss">
-@import "../assets/styles/index.scss";
+@import "../styles/index.scss";
+
+$gradient-creator-width: 540px;
+$gradient-color-size: 20px;
+$gradient-color-controls-size: 15px;
+$gradient-colors-margin-x: $gradient-color-controls-size * 3; 
+$gradient-colors-width: $gradient-creator-width - $gradient-colors-margin-x * 2;
 
 #gradient-creator {
     position: fixed;
@@ -108,13 +145,14 @@ export default {
     display: flex;
     align-items: center;
     flex-direction: column;
+    width: $gradient-creator-width;
     
     #gradient-colors {
         display: flex;
         flex-direction: column;
         align-items: stretch;
-        width: 450px;
-        margin: 5px 40px;
+        width: $gradient-colors-width;
+        margin: 5px $gradient-colors-margin-x;
         position: relative;
     }
     #gradient-colorpicker {
@@ -140,8 +178,8 @@ export default {
             flex-direction: column;
             align-items: center;
             .color {
-                width: 25px;
-                height: 25px;
+                width: $gradient-color-size;
+                height: $gradient-color-size;
                 border: 1px solid black;
                 
             }
@@ -152,17 +190,18 @@ export default {
             }
             .controls {
                 display: flex;
+                flex-wrap: nowrap;
                 justify-content: center;
                 button {
                     border: none;
                     background-color: transparent;
                     background-size: cover;
                     background-position: center;
-                    width: 20px;
-                    height: 20px;
-                    margin: 5px;
+                    width: $gradient-color-controls-size;
+                    height: $gradient-color-controls-size;
+                    margin: 5px 2px;
                     &:disabled {
-                        opacity: .25;
+                        opacity: .5;
                     }
                     &.remove {
                         background-image: url("../assets/img/cross.svg");
@@ -184,6 +223,14 @@ export default {
             border: 2px solid black;
         }
     }
+}
+
+.gradient-controls {
+    position: absolute;
+    right: 10px;
+    bottom: 40px;
+    display: flex;
+
 }
 
 </style>

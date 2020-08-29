@@ -1,18 +1,20 @@
 <template>
 <div id="tools">
-    <div class="btn-container">
-        <div v-for="group in tools" :key="group.group" class="group">
+    <div class="tools-container">
+        <div v-for="group in tools" :key="group.group" class="tool-group">
             <div v-for="t in group.items" 
                 :key="t.name" 
-                class="btn" 
-                :class="{selected: $store.state.currentTool == t.name}"
+                class="tool-icon"  
+                :class="{
+                    [t.icon]: true,
+                    selected: $store.state.currentTool == t.name
+                }"
                 @click="() => select(t)">
-                <img :src="t.icon">
             </div>
         </div>       
     </div>
     <div class="current-tool">        
-        <img :src="currentItem.icon">
+        <div class="tool-icon" :class="currentItem.icon" />   
         <div>{{$t('tools.tools.' + currentTool)}}</div>
     </div>
 
@@ -67,9 +69,9 @@
                     <div v-for="(dynamics, k) in currentSettings.dynamics" 
                         class="setting-dynamic"
                         :key="k">
-                        <img class="icon" 
-                            :src="settings.values[k].icon" 
-                            :title="$t('tools.settings.' + k)">
+                        <div class="icon" 
+                            :class="settings.values[k].icon" 
+                            :title="$t('tools.settings.' + k)" />
                         <v-select 
                             :options="Object.values(settings.dynamics.types)
                                 .filter(opt => opt.props == 'all' || opt.props.indexOf(k) > -1)"
@@ -201,11 +203,13 @@
 
             <template v-if="currentSettings.gradient.enabled">
                 <div class="select-type">
-                    <img class="icon" 
+                    <div class="icon" 
                         v-for="type in currentSettings.gradientTypes"
                         :key="type"
-                        :class="{active: type == currentSettings.gradient.type}"
-                        :src="settings.gradient.types[type].icon"
+                        :class="{
+                            active: type == currentSettings.gradient.type, 
+                            [settings.gradient.types[type].icon]: true
+                        }"
                         @click.stop="() => setGradientType(type)"                                                         
                      />
                 </div>
@@ -261,24 +265,24 @@ export default {
             tools: [{
                 group: "drawing",
                 items: [
-                    {name: "brush", icon: require("@/assets/img/brush.png")},
-                    {name: "eraser", icon: require("@/assets/img/eraser.png")},               
-                    {name: "roller", icon: require("@/assets/img/roller.png")},
-                    {name: "fill", icon: require("@/assets/img/fill.png")},
+                    {name: "brush", icon: "brush"},
+                    {name: "eraser", icon: "eraser"},               
+                    {name: "roller", icon: "roller"},
+                    {name: "fill", icon: "fill"},
                 ]
             }, {
                 group: "helpers",
                 items: [
-                    {name: "picker", icon: require("@/assets/img/picker.png")},
-                    {name: "hand", icon: require("@/assets/img/hand.png")},
-                    {name: "rotation", icon: require("@/assets/img/rotation.png")},
+                    {name: "picker", icon: "picker"},
+                    {name: "hand", icon: "hand"},
+                    {name: "rotation", icon: "rotation"},
                 ]
             },{
                 group: "selection",
                 items: [
-                    {name: "selection_rect", icon: require("@/assets/img/selection-rect.png")},
-                    {name: "selection_polygon", icon: require("@/assets/img/selection-polygon.png")},
-                    {name: "selection_lasso", icon: require("@/assets/img/selection-lasso.png")},
+                    {name: "selection_rect", icon: "selection-rect"},
+                    {name: "selection_polygon", icon: "selection-polygon"},
+                    {name: "selection_lasso", icon: "selection-lasso"},
                 ]
             }]
         }
@@ -414,7 +418,9 @@ export default {
                     data: this.gradientToEdit
                 });
             }
+            this.setGradient(this.gradientToEdit.gradient);
             this.gradientToEdit = false;
+            
         },
         deleteGradient(i) {
             this.$store.dispatch("changeGradient", {
@@ -447,7 +453,7 @@ export default {
 </script>
 
 <style lang="scss">
-@import "../assets/styles/index.scss";
+@import "../styles/index.scss";
 
 #tools {
     width: $tool-panel-width;
@@ -455,42 +461,6 @@ export default {
 
 .caption {
     font: $font-tools;
-}
-
-.btn-container {      
-    .group {
-        border: 1px solid black;
-        display: flex;
-        justify-content: flex-start;
-        align-content: flex-start;
-        align-items: flex-start;
-        flex-wrap: wrap;  
-        width: $tool-size * 2;
-    }
-    .btn {
-        flex: 1 0 $tool-size;
-        height: $tool-size;
-        max-width: $tool-size;        
-        img {
-            width: 100%;
-            height: 100%;
-        }        
-        &.selected {
-            filter: invert(1);
-        }
-    }
-}
-
-.current-tool {
-    text-align: center;
-    max-width: $tool-size * 2;
-    font: $font-tool-title;
-    margin: 10px 0 20px;
-    img {
-        max-width: $tool-selected-size;
-        width: $tool-selected-size;
-        height: $tool-selected-size;
-    }
 }
 
 .settings {
@@ -535,11 +505,7 @@ input[type=number] {
     font: $font-input;
     text-align: right;
 }
-img.icon {
-    width: $settings-icon-size;
-    height: $settings-icon-size;
-    display: inline-block;
-}
+
 
 
 .select-type {
@@ -743,14 +709,6 @@ img.icon {
     display: flex;
 }
 
-@media screen and (max-height: $max-height_sm) {
-    .current-tool {
-        img {
-            max-width: $tool-selected-size_sm;
-            width: $tool-selected-size_sm;
-            height: $tool-selected-size_sm;
-        }
-    }
-}
+
 
 </style>

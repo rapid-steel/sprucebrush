@@ -3,6 +3,7 @@ precision mediump float;
 uniform float diameter;
 uniform float width2;
 uniform float height2;
+uniform float flow;
 uniform float opacity;  
 uniform float angle;
 uniform float stretch;
@@ -106,7 +107,7 @@ void main(void) {
         sin(angle1), cos(angle1)
     );
 
-    vOpacity = opacity;
+    vOpacity = opacity * flow;
         
     #if OPACITYDYNAMICS == 1
         vOpacity = dynamics_down(vOpacity, linePos, opacity_dynlen); 

@@ -1,33 +1,6 @@
 @import "./sizes.scss";
+@import "./images.scss";
 
-$icon_folder: "./assets/img/icons/";
-$icons: (
-    add: "plus.svg",
-    apply: "check.svg",
-    copy: "copy.svg",
-    cancel: "cancel.svg",
-    color-wheel: "color-wheel.svg",
-    compose: "compose.svg",
-    delete: "trash.svg",
-    downward: "downward.svg",
-    edit: "edit.svg",
-    export: "export.svg",
-    import: "import.svg",
-    link: "link.svg",
-    lock: "lock.svg",
-    mask-layer: "mask-layer.svg",
-    merge: "merge.svg",
-    opacity: "opacity.svg",
-    redo: "redo.png",
-    reset: "none.gif",
-    swap: "swap.svg",
-    to-full-view: "to-full-view.svg",
-    to-normal-view: "to-normal-view.svg",
-    visible:"visible.svg",    
-    undo: "undo.png",    
-    zoom-in: "zoom-in.png",
-    zoom-out: "zoom-out.png",
-);
 
 .icon-btn {
     cursor: pointer;
@@ -71,7 +44,5 @@ $icons: (
         opacity: .5;
     }
 
-    @each $icon, $img in $icons {
-        &.#{$icon} { background-image: url($icon_folder + $img); }
-    }
+    @include icon-classes($btn-icons_folder, $btn-icons);
 }

@@ -98,13 +98,11 @@
 
 <script>
 
-import {toHex, validateRgb} from "../functions/color-functions";
+import {toHex, extractColorsFromText} from "../functions/color-functions";
 import {mapState} from "vuex";
 import {saveAs} from 'file-saver';
 
-const patternHex = /(#)?[0-9a-f]{6}/ig;
-const patternRgb = /rgb\([0-9]{1,3},[0-9]{1,3},[0-9]{1,3}\)/ig;
-const patternRgba = /rgba\([0-9]{1,3},[0-9]{1,3},[0-9]{1,3},[\.0-9]+\)/ig;
+
 
 function capitalize(str) {
     return str[0].toUpperCase() + str.slice(1);
@@ -224,36 +222,7 @@ export default {
                 `${this.palette.name}.json`
             );
         },
-        _parseAsText(text, filename) {
-            let colors = [];
-            let colorsHex = text.match(patternHex);
-            if(colorsHex) colors = colors.concat(colorsHex.map(c => c.toLowerCase()));
-            let colorsRgb = text.match(patternRgb);
-            if(colorsRgb) colors = colors.concat(colorsRgb.filter(validateRgb).map(toHex));
-            let colorsRgba = text.match(patternRgba);
-            if(colorsRgba) colors = colors.concat(colorsRgba.filter(validateRgb).map(toHex));
-
-            let codes = {};
-            let colors_uniq = [];
-            for(let i = 0; i < colors.length; i++) {
-                if(!codes[colors[i]]) {
-                    codes[colors[i]] = 1;
-                    colors_uniq.push(colors[i]);
-                }
-            }
-            colors = colors_uniq;
-
-
-            if(colors.length) {
-                return {
-                    parsed: {
-                        name: capitalize(filename.split(".")[0]),
-                        colors
-                    }
-                };
-            } 
-            return {};
-        },
+        
         parsePaletteFile(f) {
             return f.text()
                 .then(text =>  {
@@ -261,10 +230,22 @@ export default {
                         const parsed = JSON.parse(text);
                         if(Array.isArray(parsed.colors)) {
                             return { parsed };
-                        } else return this._parseAsText(text, f.name);
+                        } else {
+                            let colors = extractColorsFromText(text);
+                            if(colors.length) {
+                                return {
+                                    parsed: { colors, name: f.name }
+                                };
+                            }
+                        }
                     }
                     if(f.type.indexOf("text") != -1) {
-                        return this._parseAsText(text, f.name);
+                        let colors = extractColorsFromText(text);
+                        if(colors.length) {
+                            return {
+                                parsed: { colors, name: f.name }
+                            };
+                        }
                     }
                     return {};
                 });
@@ -287,7 +268,7 @@ export default {
 </script>
 
 <style lang="scss">
-@import "../assets/styles/index.scss";
+@import "../styles/index.scss";
 
 
 

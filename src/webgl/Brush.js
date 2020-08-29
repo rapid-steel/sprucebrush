@@ -51,6 +51,7 @@ export default class Brush extends ToolWebGL {
             width2: "1f",
             height2: "1f",
             opacity: "1f",
+            flow: "1f",
             stretch: "1f",
             angle: "1f",
             spacing: "1f",

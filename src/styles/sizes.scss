@@ -32,7 +32,11 @@ $canvas_width: calc(100vw - #{$panels_width});
 $canvas_height: calc(100vh - #{$panels_height});
 $canvas_width_full: calc(100vw - #{$panel_padding * 4});
 
-$logo_size: $panel_right_width;
+$logo_size: $panel_right_width * .75;
+
+$menu-form-min-width: 240px;
+$menu-item-icon-size: 32px;
+$menu-item-icon-size-big: 64px;
 
 
 $icon-btn-size: 30px;

@@ -115,7 +115,7 @@ export default {
 
 <style lang="scss">
 
-@import "../assets/styles/index.scss";
+@import "../styles/index.scss";
 
 #layers {
     flex: 1 1 50%;

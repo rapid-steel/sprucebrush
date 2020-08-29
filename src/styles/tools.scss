@@ -1,0 +1,53 @@
+@import "./sizes.scss";
+@import "./images.scss";
+
+
+.tool-icon {
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+    @include icon-classes($tools-icons_folder, $tools-icons);
+}
+
+.tools-container {      
+    .tool-group {
+        border: 1px solid black;
+        display: flex;
+        justify-content: flex-start;
+        align-content: flex-start;
+        align-items: flex-start;
+        flex-wrap: wrap;  
+        width: $tool-size * 2;
+    }
+    .tool-icon {
+        flex: 1 0 $tool-size;
+        height: $tool-size;
+        max-width: $tool-size;       
+        &.selected {
+            filter: invert(1);
+        }
+    }
+}
+
+.current-tool {
+    max-width: $tool-size * 2;
+    font: $font-tool-title;
+    margin: 10px 0 20px;
+    text-align: center;
+    .tool-icon {
+        margin: auto;
+        max-width: $tool-selected-size;
+        width: $tool-selected-size;
+        height: $tool-selected-size;
+    }
+}
+
+@media screen and (max-height: $max-height_sm) {
+    .current-tool {
+        .tool-icon {
+            max-width: $tool-selected-size_sm;
+            width: $tool-selected-size_sm;
+            height: $tool-selected-size_sm;
+        }
+    }
+}

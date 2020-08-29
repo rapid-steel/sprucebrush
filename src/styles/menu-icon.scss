@@ -1,0 +1,11 @@
+@import "./sizes.scss";
+@import "./images.scss";
+
+
+.menu-icon {
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+    @include icon-classes($menu-icons_folder, $menu-icons);
+}
+
