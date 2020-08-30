@@ -520,6 +520,7 @@ created() {
         KeyW: e => this.switchViewMode()
     };
 
+
     this.pointerActions = this.pointerActionsMap[this.currentTool];
 },
 mounted() {
@@ -694,7 +695,7 @@ methods: {
                 : this.keyCodeMap)[e.code];
             if(action) 
                 action(e);
-            else console.log(
+            else if(process.env.NODE_ENV != 'production') console.log(
                 `Key: ${e.key}\nCode: ${e.code}\nCtrl: ${e.ctrlKey}\nAlt: ${e.altKey}\nShift: ${e.shiftKey}`
             );
         });   

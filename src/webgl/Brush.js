@@ -48,8 +48,7 @@ export default class Brush extends ToolWebGL {
 
         this.programParams = {
             diameter: "1f",
-            width2: "1f",
-            height2: "1f",
+            resolution: "2fv",
             opacity: "1f",
             flow: "1f",
             stretch: "1f",

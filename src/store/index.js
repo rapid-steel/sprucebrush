@@ -19,8 +19,8 @@ export default new Vuex.Store({
         zoomLevels: [.25, .5, .75, 1, 1.25, 1.5, 2],
         activeSelection: false,
         currentTool: "brush",
-        currentColor: "rgb(255,0,0)",
-        colorBG: "rgb(255,255,255)",
+        currentColor: "#000000",
+        colorBG: "#ffffff",
         currentLayer: 0,
         viewMode: 'normal',
         zoom: 1,
@@ -165,7 +165,7 @@ export default new Vuex.Store({
     actions: {
         load({ commit, state }) {
             let data = getLocalStorageData();
-            data = null;
+            //data = null;
             if(data) {
                 commit("load", data);
             } else {

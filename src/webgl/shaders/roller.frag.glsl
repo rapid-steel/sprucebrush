@@ -1,3 +1,7 @@
+#version 100
+
+//#include <definitions>
+
 #if (defined GRADIENT || defined TEXTURE)
 # define COLORFUNC
 #endif
@@ -12,7 +16,7 @@ varying vec2 gradTexPos;
 varying float vOpacity;
 varying vec3 hsldelta;
 
-//${common_colors}
+//#include <colors>
 
 void main(void) {
     gl_FragColor = vec4(color, 1.0);

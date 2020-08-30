@@ -1,7 +1,7 @@
 {
-  "name": "magicpen",
-  "version": "0.1.0",
-  "private": true,
+  "name": "sprucebrush",
+  "version": "0.2.0",
+  "author": "V. 'RapidSteel'",
   "scripts": {
     "import-assets": "node ./import-assets.js",
     "serve": "vue-cli-service serve",

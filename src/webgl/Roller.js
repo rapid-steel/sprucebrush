@@ -31,8 +31,7 @@ export default class Roller extends ToolWebGL {
         this.programParams = {
             lineWidth: "1f",
             textureRatio: "1f",
-            width2: "1f",
-            height2: "1f",
+            resolution: "2fv",
             opacity: "1f",
             color: "3fv"
         };

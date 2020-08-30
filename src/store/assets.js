@@ -69,15 +69,15 @@ const assets = {
             },{
                 k: "b_02",
                 src: require("../assets/img/textures_roller/b_02.png")
+            },{
+                k: "d_02",
+                src: require("../assets/img/textures_roller/d_02.png")
             }],patterns : [{
                 k: "pat1",
                 src: require("../assets/img/patterns/pat1.png")
             },{
                 k: "pat3",
                 src: require("../assets/img/patterns/pat3.png")
-            },{
-                k: "pat4",
-                src: require("../assets/img/patterns/pat4.png")
             }]
 };
 export default assets;

@@ -1,3 +1,7 @@
+#version 100
+
+//#include <definitions>
+
 #ifdef GL_OES_standard_derivatives
 # extension GL_OES_standard_derivatives : enable
 #endif      
@@ -30,7 +34,7 @@ varying vec3 hsldelta;
     uniform sampler2D texture;  
 #endif
 
-//${common_colors}
+//#include <colors>
 
 void main(void) {
     if(vDiameter == 0.0 || vStretch == 0.0 || vOpacity == 0.0) discard;
@@ -43,6 +47,7 @@ void main(void) {
     if(vStretch > 1.0)
         cxy.y *= vStretch;
     else cxy.x /= vStretch;
+
     gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);   
 
     #ifndef ROUND

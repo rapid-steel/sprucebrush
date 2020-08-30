@@ -15,10 +15,12 @@ vec3 rgb2hsl(vec3 rgb) {
             dc = rgb.r - rgb.g;
             angle = 4.0;
         }                    
-        hue = fract((dc / (maxc - minc) + angle) / 6.0);
+        hue = fract(
+            (dc / (maxc - minc) + angle) / 6.0
+        );
     } 
     float saturation = (maxc - minc) / (1.0 - abs(1.0 - (maxc + minc)));               
-    float lightness = (minc + maxc) / 2.0;
+    float lightness = (minc + maxc) * 0.5;
     return vec3(hue, saturation, lightness);
 }
 

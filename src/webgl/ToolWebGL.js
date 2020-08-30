@@ -8,15 +8,17 @@ function n2(n) {
     return k >>>= 1;
 }
 
-// all the shaders are .glsl files, so i needn't search them somewhere in this  
-// class and can look at the code without squinting.
-// placeholders for common chunks are commented line in format: //${chunk_key}
-// so they should be added via js
+// All the shaders are .glsl files. I want to keep them apart from js code.
+// Some parts have to be inserted dynamically: definitions, specific for 
+// current program params, and common functions.
+// Placeholders for common chunks are defined as include directives,
+// but commented, to not misled about the validity of this expression.
+// These parts of code should be added via js.
 
 
 const commonChunks = {
-    common_colors: require("./shaders/common_colors.glsl").default,
-    common_dynamics: require("./shaders/common_dynamics.glsl").default
+    colors: require("./shaders/colors.common.glsl").default,
+    dynamics: require("./shaders/dynamics.common.glsl").default
 };
 
 export default class ToolWebGL {
@@ -37,6 +39,7 @@ export default class ToolWebGL {
             CIRCULAR:    5,
             RANDOM:      6  
         };
+
 
         // let's see if it could be useful in future, for blur or other effects
         // but so far, i have to solve problems with blending
@@ -81,7 +84,10 @@ export default class ToolWebGL {
         };
         this.autoUpdate = false;
         this.update = false;
-        this.commonChunks = commonChunks;
+        this.codeChunks = {
+            definitions: "\n",
+            ...commonChunks
+        };
 
         this.mainProgShaders = this._loadShadersCode(this.PROGRAM_NAME);
        if(this.useFrameBuffer) {
@@ -119,13 +125,10 @@ export default class ToolWebGL {
             1.0,  1.0,           
         ]);
     }
-    _createShader(props, shaderCode) {
-        return [
-            ...Object.entries(props)
-                .map(p => `#define ${p[0].toUpperCase()} ${p[1]}`),
-            ...shaderCode
-                .map(c => c.ref ? this.commonChunks[c.ref] : c)
-        ].join("\n");
+    _createShader(shaderCode) {
+        return shaderCode
+            .map(c => c.ref ? this.codeChunks[c.ref] : c)
+            .join("\n");
     }
     _loadShadersCode(program) {
         const shaders = { 
@@ -134,13 +137,14 @@ export default class ToolWebGL {
         };
         for(let shader in shaders) {
             const chunks = shaders[shader];
-            const code = require(`./shaders/${program}_${shader}.glsl`).default;
-            code.split("//${")
+            const shaderExt = shader.slice(0,4);
+            const code = require(`./shaders/${program}.${shaderExt}.glsl`).default;
+            code.split("//#include")
             .forEach((chunk, i) => {
                 if(i) {
-                    let delim = chunk.indexOf("}");
+                    let delim = chunk.indexOf("\n");
                     chunks.push({
-                        ref: chunk.slice(0, delim)
+                        ref: chunk.slice(0, delim).replace(/[<>]/g, "").trim()
                     });
                     chunk = chunk.slice(delim+1);
                 }   
@@ -168,14 +172,14 @@ export default class ToolWebGL {
         let errorInfo;
 
         const vertShader = this.gl.createShader(this.gl.VERTEX_SHADER);
-        this.gl.shaderSource(vertShader, this._createShader(props, shaders.vertex));
+        this.gl.shaderSource(vertShader, this._createShader(shaders.vertex));
         this.gl.compileShader(vertShader); // eslint-disable-next-line
         if(DEBUG && (errorInfo = this.gl.getShaderInfoLog(vertShader))) 
             console.log(errorInfo);
 
         const fragShader = this.gl.createShader(this.gl.FRAGMENT_SHADER);
 
-        this.gl.shaderSource(fragShader, this._createShader(props, shaders.fragment));
+        this.gl.shaderSource(fragShader, this._createShader(shaders.fragment));
         this.gl.compileShader(fragShader); // eslint-disable-next-line
         if(DEBUG && (errorInfo = this.gl.getShaderInfoLog(fragShader))) 
             console.log(errorInfo);
@@ -203,6 +207,10 @@ export default class ToolWebGL {
            this.programProps.lightnessdynamics
         ) 
             this.programProps.colordynamics = 1.0;
+
+        this.codeChunks.definitions = Object.entries(this.programProps)
+            .map(p => `#define ${p[0].toUpperCase()} ${p[1]}`)
+            .join("\n");
 
 
         if(!this.programsLoaded[programType]) {
@@ -426,7 +434,7 @@ export default class ToolWebGL {
             this.gradientRatio =  h_ratio;
             this.gl.uniform1f(this.gl.getUniformLocation(this.mainProgram, "gradientRatio"), this.gradientRatio);
         }     
-        this.gl.sampleCoverage(1 - (1 - this.params.opacity) * this.params.flow||1, false);
+        this.gl.sampleCoverage(1 - (1 - this.params.opacity) * (this.params.flow||1), false);
   //      this.gl.enable(this.gl.SAMPLE_ALPHA_TO_COVERAGE)
        this.setUniforms();
 
@@ -438,8 +446,10 @@ export default class ToolWebGL {
         this.gl.clear(this.gl.COLOR_BUFFER_BIT  | this.gl.DEPTH_BUFFER_BIT);
 
         Object.assign(this.params, {
-            width2: width / 2,
-            height2: height / 2
+            resolution: [
+                2 / width,
+                - 2 / height
+            ]
         });
         
         if(this.useFrameBuffer) this._resizeFramebufferTexture();
@@ -477,7 +487,7 @@ export default class ToolWebGL {
                 }
     
                 else if(this.programParams[param]) {
-                    this.gl.uniform1f(
+                    this.gl[`uniform${this.programParams[param]}`](
                         this.gl.getUniformLocation(this.mainProgram, param), 
                         this.params[param]);                         
                 }

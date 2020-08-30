@@ -10,9 +10,11 @@ import Draggable from "vuedraggable";
 
 Vue.config.productionTip = false;
 
+/*
 if(process.env.NODE_ENV === 'production')
   if(navigator.languages[0].indexOf("ru") == 0)
     i18n.locale = "ru";
+*/
 
 Vue.filter('gradientBG', function(gradient, gradientType="linear", dir="to right") {
   if(gradientType == 'radial') 
