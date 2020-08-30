@@ -5,7 +5,10 @@ can be familiar by desktop drawing apps, and various tool settings to play with.
 
 ## Running
 
-Just download and open the dist folder at localhost.
+Preview:
+https://spruce-brush.netlify.app
+
+For the better load speed download and open the dist folder at localhost.
 The app saves the imported textures and patterns to local storage. So if you
 would like to add a lot of new assets, there could be not enough place. In this
 case, you may add it right to a corresponding folder: 
